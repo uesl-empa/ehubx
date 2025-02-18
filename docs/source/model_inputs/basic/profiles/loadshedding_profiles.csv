@@ -1,0 +1,7 @@
+stage_id,    S1,      S1,      S1
+hub_id,      H1,      H1,      H1
+ec_id,       E1,      E1,      E1
+profile_key, max_abs, max_rel, energy_cost
+1,           300,     0.30,    120_000
+2,           310,     0.31,    121_000
+3,           320,     0.32,    122_000

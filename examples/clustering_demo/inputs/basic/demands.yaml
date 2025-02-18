@@ -1,0 +1,19 @@
+demands:
+- demand_id: D1
+  profile_path: profiles/demands.csv
+
+load_shedding:
+  manual:
+  - stages: S1
+    hubs: H1
+    ecs: E1
+    profile_path: profiles/load_shedding.csv
+
+# Load shifting currently not possible with clustering
+# load_shifting:
+# - load_shift_id: LS1
+#   stages: S1
+#   hubs: H1
+#   ecs: E1
+#   interval_length: 12
+#   profile_path: profiles/load_shifting.csv

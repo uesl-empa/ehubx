@@ -1,0 +1,20 @@
+net_tech_lists:
+- net_tech_list_id: NTL1
+  net_techs: [N1]
+
+start_hubs:
+- start_hub_id: H2
+  end_hubs:
+  - end_hub_id: H1
+
+    net_links:
+    - net_link_id: L1
+      ecs: [E1]
+      length: 1
+      bidirectional: False
+      allowed_net_tech_lists: NTL1
+
+      ec_params:
+      - ec_id: E1
+        cap_max: 20
+        profile_path: profiles/L1_availability.csv

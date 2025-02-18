@@ -1,0 +1,65 @@
+tech_lists:
+- tech_list_id: TL1
+  techs: [X1Conv]
+- tech_list_id: TL2
+  techs: [X2Stor]
+- tech_list_id: TL3
+  techs: [X3Solar]
+- tech_list_id: TL4
+  techs: [X4Wind]
+- tech_list_id: TL10
+  techs: [X10Conv]
+- tech_list_id: TL11
+  techs: [X11Main, X11Conv]
+- tech_list_id: TL12
+  techs: [X12Conv_E12a, X12Conv_E12b]
+- tech_list_id: TL13
+  techs: X13Hp
+- tech_list_id: TL14
+  techs: X14Ebm
+
+hubs:
+- hub_id: H1
+  allowed_tech_lists: TL1
+- hub_id: H2
+  allowed_tech_lists: TL2
+- hub_id: H3
+  allowed_tech_lists: TL3
+- hub_id: H4
+  allowed_tech_lists: TL4
+- hub_id: H5
+  allowed_tech_lists: []
+- hub_id: H6
+  allowed_tech_lists: []
+- hub_id: H7
+  allowed_tech_lists: []
+- hub_id: H8
+  allowed_tech_lists: []
+- hub_id: H9
+  allowed_tech_lists: []
+- hub_id: H10
+  allowed_tech_lists: TL10
+- hub_id: H11
+  allowed_tech_lists: TL11
+- hub_id: H12
+  allowed_tech_lists: TL12
+  techs:
+  - tech_id: X12Conv_E12a
+    tech_params:
+      cap_max: 5
+  - tech_id: X12Conv_E12b
+    tech_params:
+      cap_max: 5
+- hub_id: H13
+  allowed_tech_lists: TL13
+  techs:
+  - tech_id: X13Hp
+    heatpump_params:
+      cop: 3.5
+- hub_id: H14
+  allowed_tech_lists: TL14
+  techs:
+  - tech_id: X14Ebm
+    ebm_params:
+      num_vehicles: 2
+      profile_path: profiles/ebm.csv

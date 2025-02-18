@@ -1,0 +1,299 @@
+"""Demand writer module. Writes out information from the demands submodule to
+files"""
+import os
+from typing import Dict, List, Optional, Tuple
+import pandas as pd
+from pyomo.core import Model, value
+from ehubx.core.common import TimeSeriesKind
+from ehubx.core import exceptions
+from ehubx.data.energy_system_data import EnergySystem
+from ehubx.data.stage_data import StageId
+from ehubx.data.hub_data import HubId
+from ehubx.data.ec_data import EcId
+from ehubx.data.demand_data import Demands
+from ehubx.parser.demand_parser import YAMLKEY_DEMANDS
+from ehubx.parser.csv_parser import HeaderId
+from ehubx.data.time_data import Times
+from ehubx.data.time_series import TimeSeries
+from ehubx.model import energy_system_model
+from ehubx.model import demand_model
+from ehubx.writer.common_writer import create_dir, FileGranularity, \
+    init_df_st, init_df_ts_hor, init_df_ts_cl, \
+    add_to_df_st, add_to_df_ts_cl, COL_STAGE, COL_HUB, COL_EC, COL_TECH, \
+    COL_NETLINK, COL_NETLINKDIR, COL_NETTECH, COL_WINDPARK, COL_SOURCE
+from ehubx.writer import load_shedding_writer
+from ehubx.writer import load_shifting_writer
+
+# -------- #
+# Literals #
+# -------- #
+LOG_MODULE_STR: str = "writ/demand"
+"""String identifying the demand writer module for logging purposes"""
+
+FILENAME_TIMESERIES_DEMANDS: str = "demands.csv"
+"""Filename for conversion tech time series"""
+
+FILENAME_LOADS: str = "loads"
+"""Filename for all load-related data (demands, load shedding, load
+shifting)"""
+
+SOURCE: str = "demands"
+"""Display name for the demands module in result files"""
+
+ENTRY_DEMAND: str = "Demand"
+"""Entry name for demand parameter 'demand' in result files"""
+
+ENTRY_BIGMGENERIC: str = \
+    f"Generic BigM parameter ({demand_model.PAR_BIGMGENERIC})"
+"""Entry name for generic, demand-based bigM parameter inr esult files"""
+
+ENTRY_DEMANDSUPPLY: str = \
+    f"Demand supply ({energy_system_model.VAR_DEMANDSUPPLY})"
+"""Entry name for demand supply variable in result files"""
+
+
+def format_all(energy_system: EnergySystem, model: Model, dir_path: str,
+               file_granularity: FileGranularity = FileGranularity.DEFAULT
+               ) -> List[Tuple[pd.DataFrame, str]]:
+
+    # Initialize dataframes
+    df_st = init_df_st()
+    df_ts_hor = init_df_ts_hor(energy_system.times)
+    df_ts_cl: Optional[pd.DataFrame] = None
+    if energy_system.times.is_clustered:
+        df_ts_cl = init_df_ts_cl(energy_system.times)
+
+    # Generic bigM parameter
+    par = getattr(model, demand_model.PAR_BIGMGENERIC)
+    big_m_generic = value(par, exception=False)
+    add_to_df_st(df_st, ENTRY_BIGMGENERIC, big_m_generic, source=SOURCE,
+                 in_res="input")
+
+    # Tuple-specific values
+    for (s, h, e) in energy_system.demands.tuples:
+        _format_tuple(energy_system, model, s, h, e, df_st, df_ts_hor,
+                      df_ts_cl)
+
+    # Child modules
+    load_shedding_writer.format_all(energy_system, model, df_st, df_ts_hor,
+                                    df_ts_cl)
+    load_shifting_writer.format_all(energy_system, model, df_st, df_ts_hor,
+                                    df_ts_cl)
+
+    # Remove unused columns
+    cols_to_drop_st = [COL_TECH, COL_NETLINK, COL_NETLINKDIR, COL_NETTECH,
+                       COL_WINDPARK]
+    cols_to_drop_ts = [COL_TECH, COL_NETLINK, COL_NETTECH]
+    df_st.drop(columns=(cols_to_drop_st), inplace=True)
+    df_ts_hor.columns = df_ts_hor.columns.droplevel(cols_to_drop_ts)
+    if df_ts_cl is not None:
+        df_ts_cl.columns = df_ts_cl.columns.droplevel(cols_to_drop_ts)
+
+    # Format for file granularity
+    dfs = _format_file_granularity(df_st, df_ts_hor, df_ts_cl, dir_path,
+                                   file_granularity)
+
+    # Return
+    return dfs
+
+
+def _format_tuple(energy_system: EnergySystem, model: Model, s: StageId,
+                  h: HubId, e: EcId, df_st: pd.DataFrame,
+                  df_ts_hor: pd.DataFrame, df_ts_cl: Optional[pd.DataFrame]
+                  ) -> None:
+    # demand
+    demand = energy_system.demands.get_demand(s, h, e)
+    if demand.has_values:
+        add_to_df_ts_cl(df_ts_hor, df_ts_cl,
+            energy_system.times, ENTRY_DEMAND, demand, unit="kW",
+            stage=s.key, hub=h.key, ec=e.key, source=SOURCE, in_res="input")
+    if not demand.has_values:
+        demand_def = demand.def_value
+        assert demand_def is not None
+        add_to_df_st(df_st, ENTRY_DEMAND, demand_def, unit="kW", stage=s.key,
+                     hub=h.key, ec=e.key, source=SOURCE, in_res="input")
+
+    # Demand supply
+    var = getattr(model, energy_system_model.VAR_DEMANDSUPPLY)
+    supply = TimeSeries()
+    for t in energy_system.times.ids:
+        supply.set_value(t, value(var[s.key, h.key, e.key, t.key_as_int],
+                                  exception=False))
+    add_to_df_ts_cl(df_ts_hor, df_ts_cl, energy_system.times,
+                    ENTRY_DEMANDSUPPLY, supply, unit="kW", stage=s.key,
+                    hub=h.key, ec=e.key, source=SOURCE, in_res="result")
+
+
+def _format_file_granularity(df_st: pd.DataFrame, df_ts_hor: pd.DataFrame,
+                             df_ts_cl: Optional[pd.DataFrame],
+                             dir_path, file_granularity: FileGranularity
+                             ) -> List[Tuple[pd.DataFrame, str]]:
+    # Prepare dataframe list
+    dfs: List[Tuple[pd.DataFrame, str]] = []
+
+    # Format for minimal file granularity (One csv file "loads" for static,
+    # horizon time and clustered time df each)
+    if file_granularity == FileGranularity.MIN:
+        # Filenames
+        filename_st = os.path.join(dir_path, f"{FILENAME_LOADS}.csv")
+        filename_ts_hor = os.path.join(dir_path,
+                                       f"{FILENAME_LOADS}-TS.csv")
+        filename_ts_cl = os.path.join(dir_path,
+                                      f"{FILENAME_LOADS}-TSCL.csv")
+        # Append dfs
+        dfs.append((df_st, filename_st))
+        dfs.append((df_ts_hor, filename_ts_hor))
+        if df_ts_cl is not None:
+            dfs.append((df_ts_cl, filename_ts_cl))
+
+    # Format for default file granularity (split by tuples but keep demands,
+    # load shedding and load shifting together)
+    if file_granularity == FileGranularity.DEFAULT:
+
+        # Static files (tuples)
+        ids_st = df_st[[COL_STAGE, COL_HUB, COL_EC]].drop_duplicates()
+        for (s, h, e) in ids_st.itertuples(index=False, name=None):
+            if not h:
+                continue
+            filename_st = f"{FILENAME_LOADS}_{s}_{h}_{e}"
+            filename_st = os.path.join(dir_path, f"{filename_st}.csv")
+            df_st_cur = df_st[(df_st[COL_STAGE] == s)
+                              & (df_st[COL_HUB] == h)
+                              & (df_st[COL_EC] == e)]
+            if len(df_st_cur) > 0:
+                dfs.append((df_st_cur, filename_st))
+        # Static files (nontuple)
+        df_st_0 = df_st[df_st[COL_HUB] == ""]
+        filename_st = os.path.join(dir_path, f"{FILENAME_LOADS}.csv")
+        dfs.append((df_st_0, filename_st))
+
+        # Horizon time files
+        ids_ts_hor = df_ts_hor.columns.to_frame(index=False)[
+            [COL_STAGE, COL_HUB, COL_EC]]
+        for (s, h, e) in ids_ts_hor.itertuples(index=False, name=None):
+            filename_ts_hor = f"{FILENAME_LOADS}-TS"
+            if s:
+                filename_ts_hor = f"{FILENAME_LOADS}_{s}_{h}_{e}-TS"
+            filename_ts_hor = os.path.join(dir_path, f"{filename_ts_hor}.csv")
+            df_ts_hor_cur = df_ts_hor.xs((s, h, e), axis=1,
+                                         level=(COL_STAGE, COL_HUB, COL_EC),
+                                         drop_level=False)
+            if len(df_ts_hor_cur) > 0:
+                dfs.append((df_ts_hor_cur, filename_ts_hor))
+
+        # Clustered time files
+        if df_ts_cl is not None:
+            ids_ts_cl = df_ts_cl.columns.to_frame(index=False)[
+                [COL_STAGE, COL_HUB, COL_EC]]
+            for (s, h, e) in ids_ts_cl.itertuples(index=False, name=None):
+                filename_ts_cl = f"{FILENAME_LOADS}-TSCL"
+                if s:
+                    filename_ts_cl = f"{FILENAME_LOADS}_{s}_{h}_{e}-TSCL"
+                filename_ts_cl = os.path.join(dir_path,
+                                              f"{filename_ts_cl}.csv")
+                df_ts_cl_cur = df_ts_cl.xs((s, h, e), axis=1,
+                                           level=(COL_STAGE, COL_HUB, COL_EC),
+                                           drop_level=False)
+                if len(df_ts_cl_cur) > 0:
+                    dfs.append((df_ts_cl_cur, filename_ts_cl))
+
+    # Format for maximal file granularity (split by tuples and make separate
+    # csvs for demands, load shedding and load shifting)
+    if file_granularity == FileGranularity.MAX:
+
+        # Static files (tuples)
+        ids_st = df_st[[COL_STAGE, COL_HUB, COL_EC, COL_SOURCE]
+                       ].drop_duplicates()
+        for (s, h, e, source) in ids_st.itertuples(index=False, name=None):
+            if not h:
+                continue
+            filename_st = f"{source}_{s}_{h}_{e}"
+            filename_st = os.path.join(dir_path, f"{filename_st}.csv")
+            df_st_cur = df_st[(df_st[COL_STAGE] == s)
+                              & (df_st[COL_HUB] == h)
+                              & (df_st[COL_EC] == e)
+                              & (df_st[COL_SOURCE] == source)]
+            if len(df_st_cur) > 0:
+                dfs.append((df_st_cur, filename_st))
+        # Static files (nontuple)
+        df_st_0 = df_st[df_st[COL_HUB] == ""]
+        for source in df_st_0[COL_SOURCE].unique():
+            filename_st = source
+            filename_st = os.path.join(dir_path, f"{filename_st}.csv")
+            df_st_cur = df_st_0[df_st_0[COL_SOURCE] == source]
+            if len(df_st_cur) > 0:
+                dfs.append((df_st_cur, filename_st))
+
+        # Horizon time files
+        ids_ts_hor = df_ts_hor.columns.to_frame(index=False)[
+            [COL_STAGE, COL_HUB, COL_EC, COL_SOURCE]]
+        for (s, h, e, source) in ids_ts_hor.itertuples(index=False, name=None):
+            filename_ts_hor = f"{source}TS"
+            if s:
+                filename_ts_hor = f"{source}_{s}_{h}_{e}-TS"
+            filename_ts_hor = os.path.join(dir_path, f"{filename_ts_hor}.csv")
+            df_ts_hor_cur = df_ts_hor.xs((s, h, e, source), axis=1,
+                                         level=(COL_STAGE, COL_HUB, COL_EC,
+                                                COL_SOURCE),
+                                         drop_level=False)
+            if len(df_ts_hor_cur) > 0:
+                dfs.append((df_ts_hor_cur, filename_ts_hor))
+
+        # Clustered time files
+        if df_ts_cl is not None:
+            ids_ts_cl = df_ts_cl.columns.to_frame(index=False)[
+                [COL_STAGE, COL_HUB, COL_EC, COL_SOURCE]]
+            for (s, h, e, source) in ids_ts_cl.itertuples(index=False,
+                                                          name=None):
+                filename_ts_cl = f"{source}-TSCL"
+                if s:
+                    filename_ts_cl = f"{source}_{s}_{h}_{e}-TSCL"
+                filename_ts_cl = os.path.join(dir_path,
+                                              f"{filename_ts_cl}.csv")
+                df_ts_cl_cur = df_ts_cl.xs((s, h, e, source), axis=1,
+                                           level=(COL_STAGE, COL_HUB, COL_EC,
+                                                  COL_SOURCE),
+                                           drop_level=False)
+                if len(df_ts_cl_cur) > 0:
+                    dfs.append((df_ts_cl_cur, filename_ts_cl))
+
+    return dfs
+
+
+def write_input_time_series(demands: Demands, times: Times, dir_path: str
+                            ) -> None:
+    """
+    Writes all time series with actual data (def_value is not enough) in a
+    Demands data object to a dedicated csv file in a directory
+
+    :param demands: The Demands data object whose time series are to be written
+    :type demands: Demands
+    :param times: Times data object
+    :type times: Times
+    :param dir_path: Path where the csv file will be placed
+    :type dir_path: str
+    """
+    # Create directory if it does not exist
+    if not os.path.isdir(dir_path):
+        if not create_dir(dir_path):
+            raise exceptions.EhubXException(
+                "Could not write demand time series data because "
+                "the directory could not be created", module=LOG_MODULE_STR)
+
+    # Gather time series
+    data: Dict[Tuple[str, str, str, str], List[float]] = {}
+    for (kind, stage, ids, series) in demands.time_series:
+        # Skip series without values
+        if not series.has_values:
+            continue
+        if kind == TimeSeriesKind.DEMAND:
+            data[stage.key, ids[0], ids[1], YAMLKEY_DEMANDS] = [
+                series.get_value(t) for t in times.ids_in_order]
+
+    # Write demands file
+    if data:
+        df = pd.DataFrame(data)
+        df.columns.names = [HeaderId.STAGEID.value, HeaderId.HUBID.value,
+                            HeaderId.ECID.value, HeaderId.PROFILEKEY.value]
+        df.index += 1
+        df.to_csv(os.path.join(dir_path, FILENAME_TIMESERIES_DEMANDS))

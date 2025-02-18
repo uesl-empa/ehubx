@@ -1,0 +1,12 @@
+windparks:
+- windpark_id: WP1
+  ecs: [E7]
+
+ecs:
+- ec_id: E1
+- ec_id: E2
+- ec_id: E3
+- ec_id: E4
+- ec_id: E5
+- ec_id: E6
+- ec_id: E7

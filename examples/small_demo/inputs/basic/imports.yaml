@@ -1,0 +1,57 @@
+- stages: S1
+  hubs: [H2, H6, H7, H8]
+  ecs: E0
+  profile_path: profiles/imports.csv
+
+- stages: S1
+  hubs: H1
+  ecs: E1
+  price: 10
+  co2: 3
+
+- stages: S1
+  hubs: H3
+  ecs: E3
+
+- stages: S1
+  hubs: H4
+  ecs: E4
+
+- stages: S1
+  hubs: H5
+  ecs: E0
+  max: 5
+
+- stages: S1
+  hubs: H10
+  ecs: E0
+  co2: 3
+
+- stages: S1
+  hubs: H10
+  ecs: E10
+  price: 10
+
+- stages: S1
+  hubs: H11
+  ecs: E11
+  price: 10
+  co2: 3
+
+- stages: S1
+  hubs: H12
+  ecs: [E12a, E12b]
+  price: 10
+  co2: 3
+
+- stages: S1
+  hubs: H13
+  ecs: [E13a, E13b, E13d]
+  price: 10
+  co2: 3
+
+- stages: S1
+  hubs: H14
+  ecs: E0
+  price: 10
+  co2: 3

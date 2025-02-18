@@ -1,0 +1,24 @@
+- stages: S1
+  hubs: H1
+  ecs: E1
+  profile_path: profiles/imports.csv
+
+- stages: S1
+  hubs: H1
+  ecs: E2
+  max: 20
+
+- stages: S1
+  hubs: H1
+  ecs: E3
+  price: 1
+
+- stages: S1
+  hubs: H1
+  ecs: [E5, E6, E7]
+
+- stages: S1
+  hubs: H2
+  ecs: E1
+  price: 0
+  max: 20

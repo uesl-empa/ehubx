@@ -1,0 +1,64 @@
+techs:
+- tech_id: X1
+  type: conversion
+  tech_params:
+    lifetime: 10
+  conversion_params:
+    in_ecs:
+    - in_id: E2
+      in_part: 1
+    out_ecs:
+    - ec_id: E1
+      out_eff: profiles/X1_out_eff.csv
+
+- tech_id: X2
+  type: ebm
+  tech_params:
+    lifetime: 10
+  ebm_params:
+    ec: E1
+    storage_cap: 100
+
+- tech_id: X3
+  type: heatpump
+  tech_params:
+    lifetime: 10
+  heatpump_params:
+    ecs:
+      elec: E5
+      heat_in: E3
+      heat_out: E3
+      cool_in: E4
+      cool_out: E4
+      cop_factor: 0.5
+
+- tech_id: X4
+  type: solar
+  tech_params:
+    lifetime: 10
+  conversion_params:
+    in_ecs:
+    - in_id: E6
+      in_part: 1
+    out_ecs:
+    - ec_id: E1
+      out_eff: 1
+
+- tech_id: X5
+  type: wind
+  tech_params:
+    lifetime: 10
+  conversion_params:
+    in_ecs:
+    - in_id: E7
+      in_part: 1
+    out_ecs:
+    - ec_id: E1
+      out_eff: 1
+  wind_params:
+    turbine_footprint: 10
+    rotor_area: 100
+    velo_cut_in: 3
+    velo_nominal: 11
+    velo_cut_off: 18
+    curtail_max_rel:

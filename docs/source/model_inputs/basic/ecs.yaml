@@ -1,0 +1,16 @@
+in_ec_groups:
+- ec_group_id: EG1
+  ecs: [E1, E2]
+
+windparks:
+- windpark_id: WP1
+  ecs: [E1, E2]
+
+ecs:
+- ec_id: E1
+  is_energy: True
+  imp_exp_type: cross
+- ec_id: E2
+- ec_id: E3
+- ec_id: E4
+- ec_id: E5

@@ -1,0 +1,7 @@
+stage_id,    S1
+net_link_id, L1
+ec_id,       E1
+profile_key, availability
+1,           0.95
+2,           0.80
+3,           0.90

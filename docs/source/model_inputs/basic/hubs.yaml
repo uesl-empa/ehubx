@@ -1,0 +1,48 @@
+tech_lists:
+- tech_list_id: TechList1
+  techs: [X1, X2, X3, X4, X5, X6]
+
+hubs:
+- hub_id: H1
+  allowed_tech_lists: TechList1
+  techs:
+  - tech_id: X1
+    tech_params:
+      age_init: 5
+      cap_init: 150
+      cap_min: [[2020, 150], [2025, 250]]
+      cap_max: 1000
+      last_inst_year: 2050
+    storage_params:
+      soc_init: 0.5
+
+  - tech_id: X2
+    conversion_params:
+      out_sum_min: [[2020, 40], [2025, 60]]
+      out_sum_max: 500
+      availability: [[2020, 0.8], [[2025, 0.9]]]
+      profile_path: hub_profiles.csv
+
+  - tech_id: X5
+    ebm_params:
+      demand_modifier: [[2020, 200], [2025, 600]]
+      demand_nominal: 1
+      availability: [[2020, 0.8], [2025, 0.9]]
+      profile_path: hub_profiles.csv
+
+  - tech_id: X7
+    heatpump_params:
+      cop: [[2020, 3.5], [2025, 4.0]]
+      temp_heat_in: 38
+      temp_heat_out: 65
+      profile_path: hub_profiles.csv
+
+  - tech_id: X8
+    ebm_params:
+      num_vehicles: [[2020, 100], [2025, 300]]
+      soc_init: 0.5
+      demand_modifier: 1
+      profiles: ebm_profiles.csv
+
+- hub_id: H2
+  allowed_tech_lists: []

@@ -1,0 +1,4 @@
+- stages: S1
+  hubs: H7
+  ecs: E0
+  min: 5

@@ -1,0 +1,31 @@
+net_tech_lists:
+- net_tech_list_id: NetTechList1
+  net_techs: [N1]
+
+start_hubs:
+- start_hub_id: H1
+  end_hubs:
+  - end_hub_id: H2
+
+    links:
+    - link_id: L1
+      ecs: [E1]
+      length: 100
+      bidirectional: True
+      allowed_net_tech_lists: NetTechList1
+
+      net_tech_params:
+      - net_tech_id: N1
+        age_init: 15
+        cap_init: 50
+
+      ec_params:
+      - ec_id: E1
+        cap_min: [[2020, 50], [2025, 75]]
+        cap_max: 250
+        sum_min_forward: 200
+        sum_min_backward: 0
+        sum_max_forward: 1_000
+        sum_max_backward: 500
+        availability: 0.8
+        profile_path: net_link_profiles.csv

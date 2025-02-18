@@ -1,0 +1,22 @@
+net_tech_lists:
+- net_tech_list_id: NTL1
+  net_techs: [N1]
+
+start_hubs:
+- start_hub_id: H8
+  end_hubs:
+  - end_hub_id: H9
+
+    net_links:
+    - net_link_id: L1
+      ecs: [E0]
+      length: 10
+      bidirectional: False
+      allowed_net_tech_lists: NTL1
+
+      ec_params:
+      - ec_id: E0
+        cap_min:
+        cap_max:
+        sum_min_forward:
+        sum_max_forward:

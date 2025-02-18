@@ -1,0 +1,36 @@
+demands:
+- demand_id: D1
+  profile_path: demand_profiles.csv
+
+load_shedding:
+  preset:
+    enabled: True
+    max_abs: 1_000
+    max_rel: 1
+    energy_cost: 100_000
+
+  manual:
+  - stages: [S1, S2]
+    hubs: H1
+    ecs: E1
+    enabled: True
+    max_abs: 400
+    max_rel: 0.5
+    energy_cost: 200_000
+    profile_path: loadshedding_profiles.csv
+
+load_shifting:
+- loadshift_id: LS1
+  stages: [S1, S2]
+  hubs: H1
+  ecs: E1
+  interval_length: 2
+  interval_cap: 10
+  max_above_abs: 200
+  max_below_abs: 150
+  peak_cost_above: 300
+  peak_cost_below: 250
+  energy_cost_above: 0.50
+  energy_cost_below: 0.25
+  fix_cost: 2_000
+  profile_path: loadshifting_profiles.csv

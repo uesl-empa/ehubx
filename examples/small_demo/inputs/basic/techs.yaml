@@ -1,0 +1,214 @@
+techs:
+
+- tech_id: X1Conv
+  type: conversion
+  tech_params:
+    lifetime: 10
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate: 0.2
+    one_time_capex: 100
+    capex_per_cap: 10
+    one_time_opex:
+    opex_per_cap:
+    opex_per_energy: 0.5
+  emissions:
+    co2_per_cap: 20
+  conversion_params:
+    in_ecs:
+    - in_id: E1
+      in_part: 1
+    main_in_ec:
+    out_ecs:
+    - ec_id: E0
+      out_eff: 0.9
+    main_out_ec:
+
+- tech_id: X2Stor
+  type: storage
+  tech_params:
+    lifetime: 10
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate:
+    one_time_capex: 100
+    capex_per_cap: 10
+    one_time_opex:
+    opex_per_cap:
+  emissions:
+    co2_per_cap: 50
+  storage_params:
+    ec: E0
+    charge_max:
+    discharge_max:
+    in_eff: 1
+    out_eff: 0.95
+    standby_loss: 0.01
+
+- tech_id: X3Solar
+  type: solar
+  tech_params:
+    lifetime: 10
+    trl:
+  costs:
+    interest_rate:
+    one_time_capex: 100
+    capex_per_cap: 10
+    one_time_opex:
+    opex_per_cap:
+    opex_per_energy:
+  emissions:
+    co2_per_cap: 50
+  conversion_params:
+    in_ecs:
+    - in_id: E3
+      in_part: 1
+    out_ecs:
+    - ec_id: E0
+      out_eff: 0.5
+  solar_params:
+    curtail_max_rel:
+
+- tech_id: X4Wind
+  type: wind
+  tech_params:
+    lifetime: 10
+    trl:
+  costs:
+    interest_rate:
+    one_time_capex: 100
+    capex_per_cap: 10
+    one_time_opex:
+    opex_per_cap:
+    opex_per_energy:
+  emissions:
+    co2_per_cap: 50
+  conversion_params:
+    in_ecs:
+    - in_id: E4
+      in_part: 1
+    out_ecs:
+    - ec_id: E0
+      out_eff: 1
+  wind_params:
+    turbine_footprint: 100
+    rotor_area: 1000
+    velo_cut_in: 3
+    velo_nominal: 11
+    velo_cut_off: 18
+    curtail_max_rel:
+
+- tech_id: X10Conv
+  type: conversion
+  tech_params:
+    lifetime: 10
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate:
+    one_time_capex:
+    capex_per_cap:
+    one_time_opex:
+    opex_per_cap:
+    opex_per_energy:
+  emissions:
+    co2_per_cap:
+  conversion_params:
+    in_ecs:
+    - in_id: E10
+      in_part: 1
+    main_in_ec:
+    out_ecs:
+    - ec_id: E0
+      out_eff: 1
+    main_out_ec:
+
+- tech_id: X11Conv
+  type: conversion
+  coupling_params:
+    main_tech_id: X11Main
+    cap_factor: 0.5
+  conversion_params:
+    in_ecs:
+    - in_id: E11
+      in_part: 1
+    main_in_ec:
+    out_ecs:
+    - ec_id: E0
+      out_eff: 0.9
+    main_out_ec:
+
+- tech_id: X11Main
+  tech_params:
+    lifetime: 10
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate:
+    one_time_capex: 100
+    capex_per_cap: 10
+    one_time_opex:
+    opex_per_cap:
+    opex_per_energy:
+  emissions:
+    co2_per_cap: 50
+
+- tech_id: X12Conv
+  type: conversion
+  tech_params:
+    lifetime: 10
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate: 0.2
+    one_time_capex: 100
+    capex_per_cap: 10
+    one_time_opex:
+    opex_per_cap:
+    opex_per_energy: 0.5
+  emissions:
+    co2_per_cap: 20
+  conversion_params:
+    in_ecs:
+    - in_id: EG12
+      in_part: 1
+    main_in_ec:
+    out_ecs:
+    - ec_id: E0
+      out_eff: 0.9
+    main_out_ec:
+
+- tech_id: X13Hp
+  type: heatpump
+  tech_params:
+    lifetime: 10
+    trl:
+    unit_cap_min:
+  heatpump_params:
+    ecs:
+      elec: E13d
+      heat_in: E13a
+      heat_out: E0
+      cool_in: E13b
+      cool_out: E13c
+    cop_factor: 0.5
+  costs:
+    interest_rate: 0.2
+    one_time_capex: 100
+    capex_per_cap: 10
+    one_time_opex:
+    opex_per_cap:
+  emissions:
+    co2_per_cap: 20
+
+- tech_id: X14Ebm
+  type: ebm
+  tech_params:
+    lifetime: 10
+    trl:
+    unit_cap_min:
+  ebm_params:
+    ec: E0
+    storage_cap: 1

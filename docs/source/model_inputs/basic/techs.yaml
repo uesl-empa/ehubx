@@ -1,0 +1,129 @@
+techs:
+- tech_id: X1
+  type: storage
+  tech_params:
+    lifetime: 20
+    unit_cap_min: 0
+    trl: [[2020, 3], [2025, 4]]
+  costs:
+    interest_rate: 0.1
+    one_time_capex: 0
+    capex_per_cap: 1500
+    one_time_opex: 0.5
+    opex_per_cap: 0
+  emissions:
+    co2_per_cap: 0.2
+  storage_params:
+    ec: E1
+    in_eff: 0.92
+    out_eff: 0.92
+    charge_max: 1
+    discharge_max: 1
+    soc_min: 0
+    soc_max: 1
+    standby_loss: 0
+
+- tech_id: X2
+  type: conversion
+  tech_params:
+    lifetime: 20
+  costs:
+    opex_per_energy: 0.5
+  conversion_params:
+    in_ecs:
+    - in_id: E1
+      in_part: 0.7
+    - in_id: E2
+      in_part: 0.3
+    main_in_ec: E1
+    out_ecs:
+    - ec_id: E3
+      out_eff: [[2020, 0.61], [2021, 0.66]]
+    - ec_id: E4
+      out_eff: efficiency_profiles.csv
+    main_out_ec: E3
+
+- tech_id: X3
+  type: solar
+  tech_params:
+    lifetime: 30
+  conversion_params:
+    in_ecs:
+    - in_id: EG1
+      in_part: 1
+    out_ecs:
+    - ec_id: E3
+      out_eff: 0.17
+  solar_params:
+    curtail_max_rel: 1
+
+- tech_id: X4
+  type: wind
+  tech_params:
+    lifetime: 30
+  conversion_params:
+    in_ecs:
+    - in_id: E4
+      in_part: 1
+    out_ecs:
+    - ec_id: E3
+      out_eff: 0.25
+  wind_params:
+    turbine_footprint: 100_000
+    rotor_area: 9500
+    velo_cut_in: 3
+    velo_nominal: 11.1
+    velo_cut_off: 18
+    curtail_max_rel: 1
+
+- tech_id: X5
+  type: ebm
+  tech_params:
+    lifetime: 30
+  ebm_params:
+    ec: E3
+    in_eff: 0.99
+    out_eff: 0.98
+    soc_min: 0.15
+    soc_max: 0.85
+    storage_cap: 10
+    charge_max: 2
+    discharge_max: 3
+    v2g_discharge_controllability: 0.9
+
+- tech_id: X6
+  tech_params:
+    lifetime: 30
+  coupling_params:
+    main_tech_id: X1
+    cap_factor: 0.5
+
+- tech_id: X7
+  type: heatpump
+  tech_params:
+    lifetime: 30
+  heatpump_params:
+    ecs:
+      elec: E10
+      heat_in: E2
+      heat_out: E3
+      cool_in: E4
+      cool_out: E5
+    cop_factor: 0.5
+
+- tech_id: X8
+  type: ebm
+  tech_params:
+    lifetime: 20
+  ebm_params:
+    ec: E0
+    storage_cap: 52
+    in_eff: 0.95
+    out_eff: 1
+    standby_loss: 0.01
+    soc_min: 0.1
+    soc_max: 1
+    charge_max: 45
+    discharge_max: 40
+    discharge_controllability: 0.8
+

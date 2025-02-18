@@ -1,0 +1,24 @@
+tech_lists:
+- tech_list_id: TL1
+  techs: [X1, X2, X3, X4, X5]
+
+hubs:
+- hub_id: H1
+  allowed_tech_lists: TL1
+  techs:
+  - tech_id: X1
+    tech_params:
+      cap_max: 20
+    conversion_params:
+      profile_path: profiles/X1_availability.csv
+  - tech_id: X2
+    ebm_params:
+      num_vehicles: 5
+      profile_path: profiles/X2_ebm.csv
+  - tech_id: X3
+    tech_params:
+      cap_max: 20
+    heatpump_params:
+      profile_path: profiles/X3_hp.csv
+- hub_id: H2
+  allowed_tech_lists: []

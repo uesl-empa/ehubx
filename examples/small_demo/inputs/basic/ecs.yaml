@@ -1,0 +1,21 @@
+in_ec_groups:
+- ec_group_id: EG12
+  ecs: [E12a, E12b]
+
+windparks:
+- windpark_id: WP1
+  ecs: [E4]
+
+ecs:
+- ec_id: E0
+- ec_id: E1
+- ec_id: E3
+- ec_id: E4
+- ec_id: E10
+- ec_id: E11
+- ec_id: E12a
+- ec_id: E12b
+- ec_id: E13a
+- ec_id: E13b
+- ec_id: E13c
+- ec_id: E13d

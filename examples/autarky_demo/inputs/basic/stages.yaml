@@ -1,0 +1,12 @@
+system_params:
+  interest_rate_def: 0.1
+  num_times_horizon: 3
+  autarky_calculation_method: quadratic
+  autarky_min: 0
+  autarky_max: 1
+
+stages:
+- stage_id: S1
+  start_year: 2025
+- stage_id: S2
+  start_year: 2030

@@ -1,0 +1,17 @@
+net_techs:
+- net_tech_id: N1
+  ec: E0
+  lifetime: 10
+  trl:
+  trans_loss: 0.001
+  unit_cap_min:
+  costs:
+    interest_rate:
+    one_time_capex: 10
+    capex_per_cap: 1
+    opex_per_cap:
+    one_time_opex:
+    opex_per_energy: 3
+  emissions:
+    co2_per_cap: 5
+    co2_per_energy: 2
