@@ -1,0 +1,112 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  static_tests:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Run Ruff
+        run: poetry run ruff check src --output-format=github --output-file=ruff-report.txt --ignore C901
+
+      - name: Run MyPy
+        run: poetry run mypy src --junit-xml mypy-report.xml
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-test-reports
+          path: |
+            ruff-report.txt
+            mypy-report.xml
+
+  unit_tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Install GLPK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glpk-utils
+
+      - name: Verify GLPK Installation
+        run: glpsol --help
+
+      - name: Run Unit Tests with Coverage
+        run: |
+          poetry run pytest --cov --html=unit_test_report.html --self-contained-html
+          poetry run coverage html
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: |
+            unit_test_report.html
+            htmlcov
+
+  build_docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Build Documentation
+        run: |
+          poetry run sphinx-apidoc -o docs/source src/ehubx
+          rm docs/source/modules.rst
+          sed -i '/modules/c\   ehubx' docs/source/index.rst
+          poetry run sphinx-build -M html docs/source docs/build
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/build/html
