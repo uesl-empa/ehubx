@@ -1,7 +1,9 @@
 """
 Data exceptions module
 """
+
 from typing import List
+
 from ehubx.core.exceptions import EhubXException
 from ehubx.data.index import Index
 
@@ -14,8 +16,7 @@ class DataException(EhubXException):
     list of indices for which the exception was thrown.
     """
 
-    def __init__(self, key: str, indices: List[Index], msg: str,
-                 module: str = ""):
+    def __init__(self, key: str, indices: List[Index], msg: str, module: str = ""):
         self.indices = indices
         self.key = key
         super().__init__(msg, module=module)
@@ -33,8 +34,10 @@ class DuplicateIdException(DataException):
         return self.indices[0]
 
     def __init__(self, key: str, index: Index, module: str = "") -> None:
-        message = f"Duplicate {index.kind_as_str} index {index.key} " + \
-            f"detected while {key}"
+        message = (
+            f"Duplicate {index.kind_as_str} index {index.key} "
+            + f"detected while {key}"
+        )
         super().__init__(key, [index], message, module=module)
 
 
@@ -52,8 +55,9 @@ class UnknownIdException(DataException):
         return self.indices[0]
 
     def __init__(self, key: str, index: Index, module: str = ""):
-        message = f"Unkown {index.kind_as_str} id {index.key} " + \
-            f"detected while {key}"
+        message = (
+            f"Unkown {index.kind_as_str} id {index.key} " + f"detected while {key}"
+        )
         super().__init__(key, [index], message, module=module)
 
 
@@ -64,13 +68,14 @@ class MissingIdsException(DataException):
     known to the class object even though that class manages all known tuples
     of that type. This class inherits from DataException
     """
+
     def __init__(self, key: str, indices: List[Index], module: str = ""):
-        kinds_as_str = "(" + \
-            ",".join([index.kind_as_str for index in indices]) + ")"
-        keys_as_str = "(" + \
-            ",".join([index.key for index in indices]) + ")"
-        message = f"Missing {kinds_as_str} index tuple {keys_as_str} " + \
-            f"detected while {key}"
+        kinds_as_str = "(" + ",".join([index.kind_as_str for index in indices]) + ")"
+        keys_as_str = "(" + ",".join([index.key for index in indices]) + ")"
+        message = (
+            f"Missing {kinds_as_str} index tuple {keys_as_str} "
+            + f"detected while {key}"
+        )
         super().__init__(key, indices, message, module=module)
 
 
@@ -80,6 +85,7 @@ class MissingValueException(DataException):
     data object which has not been defined. This class inherits from
     DataException but may not contain any indices
     """
+
     def __init__(self, key: str, module: str = ""):
         message = f"Missing value detected while {key}"
         super().__init__(key, [], message, module=module)
@@ -97,6 +103,7 @@ class MissingIdException(DataException):
         return self.indices[0]
 
     def __init__(self, key: str, index: Index, module: str = ""):
-        message = f"Missing {index.kind_as_str} index {index.key} " + \
-            f"detected while {key}"
+        message = (
+            f"Missing {index.kind_as_str} index {index.key} " + f"detected while {key}"
+        )
         super().__init__(key, [index], message, module=module)

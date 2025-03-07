@@ -1,8 +1,10 @@
 import os
-from typing import Any, Dict, List, Optional, Self, Set, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Self, Set, Union
+
 import yaml
-from ehubx.data.stage_data import Stages, StageId
+
+from ehubx.data.stage_data import StageId, Stages
 from ehubx.parser import exceptions
 
 
@@ -30,13 +32,13 @@ LOG_MODULE_STR: str = "pars/yaml"
 
 
 class YamlNode:
-
     @property
     def node_kind(self) -> YamlNodeKind:
         return self._node_kind
 
-    def __init__(self, node_kind: YamlNodeKind,
-                 file_path: Optional[str] = None) -> None:
+    def __init__(
+        self, node_kind: YamlNodeKind, file_path: Optional[str] = None
+    ) -> None:
         if file_path is None:
             file_path = ""
         self._node_kind = node_kind
@@ -67,8 +69,9 @@ class YamlNode:
     def update_node_path(self) -> None:
         if self.node_path is None:
             msg = "Tried to update a node's path which does not exist yet"
-            raise exceptions.ParsingException(self.file_path, msg,
-                                              module=LOG_MODULE_STR)
+            raise exceptions.ParsingException(
+                self.file_path, msg, module=LOG_MODULE_STR
+            )
         self.set_node_path(self.node_path)
 
     @property
@@ -80,44 +83,52 @@ class YamlNode:
     # ---------------- #
     @property
     def value(self) -> Any:
-        raise NotImplementedError((".value not implemented for YamlNode "
-                                   f"of type {type(self)}"))
+        raise NotImplementedError(
+            (f".value not implemented for YamlNode of type {type(self)}")
+        )
 
     def add_dict_child(self, child_key: str, child: Any) -> None:
-        raise NotImplementedError(("add_dict_child not implemented for "
-                                   f"YamlNode of type {type(self)}"))
+        raise NotImplementedError(
+            (f"add_dict_child not implemented for YamlNode of type {type(self)}")
+        )
 
     def add_list_child(self, child: Any) -> None:
-        raise NotImplementedError(("add_list_child not implemented for "
-                                   f"YamlNode of type {type(self)}"))
+        raise NotImplementedError(
+            (f"add_list_child not implemented for YamlNode of type {type(self)}")
+        )
 
     def remove_dict_child(self, child_key: str) -> None:
-        raise NotImplementedError(("remove_dict_child not implemented for "
-                                   f"YamlNode of type {type(self)}"))
+        raise NotImplementedError(
+            (f"remove_dict_child not implemented for YamlNode of type {type(self)}")
+        )
 
     def remove_list_child(self, child: Any) -> None:
-        raise NotImplementedError(("remove_list_child not implemented for "
-                                   f"YamlNode of type {type(self)}"))
+        raise NotImplementedError(
+            (f"remove_list_child not implemented for YamlNode of type {type(self)}")
+        )
 
     def __getitem__(self, key: Any) -> Optional[Any]:
-        raise NotImplementedError(("__get__item not implemented for YamlNode "
-                                   f"of type {type(self)}"))
+        raise NotImplementedError(
+            (f"__get__item not implemented for YamlNode of type {type(self)}")
+        )
 
     def __len__(self) -> int:
-        raise NotImplementedError(("__len__ not implemented for YamlNode "
-                                   f"of type {type(self)}"))
+        raise NotImplementedError(
+            (f"__len__ not implemented for YamlNode of type {type(self)}")
+        )
 
     def __iter__(self):
-        raise NotImplementedError(("__iter__ not implemented for YamlNode "
-                                   f"of type {type(self)}"))
+        raise NotImplementedError(
+            (f"__iter__ not implemented for YamlNode of type {type(self)}")
+        )
 
     def set_id(self, id_key: str) -> None:
-        raise NotImplementedError(("set_id not implemented for YamlNode "
-                                   f"of type {type(self)}"))
+        raise NotImplementedError(
+            (f"set_id not implemented for YamlNode of type {type(self)}")
+        )
 
 
 class YamlDictNode(YamlNode):
-
     def __init__(self, file_path: Optional[str] = None) -> None:
         super().__init__(YamlNodeKind.DICT, file_path)
         self._children: Dict[str, YamlNode] = {}
@@ -130,10 +141,13 @@ class YamlDictNode(YamlNode):
 
     def add_dict_child(self, child_key: str, child: YamlNode) -> None:
         if child_key in self._children:
-            msg = "Tried to add child to YamlDictNode with key " + \
-                f"{child_key} that already exists"
-            raise exceptions.ParsingException(self.file_path, msg,
-                                              module=LOG_MODULE_STR)
+            msg = (
+                "Tried to add child to YamlDictNode with key "
+                + f"{child_key} that already exists"
+            )
+            raise exceptions.ParsingException(
+                self.file_path, msg, module=LOG_MODULE_STR
+            )
         self._children[child_key] = child
         child.set_parent(self)
 
@@ -144,10 +158,13 @@ class YamlDictNode(YamlNode):
 
     def remove_dict_child(self, child_key: str) -> None:
         if child_key not in self._children:
-            msg = "Tried to remove child of YamlDictNode with key " + \
-                f"{child_key} that does not exist"
-            raise exceptions.ParsingException(self.file_path, msg,
-                                              module=LOG_MODULE_STR)
+            msg = (
+                "Tried to remove child of YamlDictNode with key "
+                + f"{child_key} that does not exist"
+            )
+            raise exceptions.ParsingException(
+                self.file_path, msg, module=LOG_MODULE_STR
+            )
         self._children[child_key].clear_parent()
         self._children.pop(child_key)
 
@@ -162,10 +179,13 @@ class YamlDictNode(YamlNode):
         for child_key, subnode_raw in node_raw.items():
             # Keys may not contain square brackets
             if ("[" in child_key) or ("]" in child_key):
-                msg = "Tried to populate a YamlDictNode with key " + \
-                    f"{child_key} that contains square brackets []"
-                raise exceptions.ParsingException(self.file_path, msg,
-                                                  module=LOG_MODULE_STR)
+                msg = (
+                    "Tried to populate a YamlDictNode with key "
+                    + f"{child_key} that contains square brackets []"
+                )
+                raise exceptions.ParsingException(
+                    self.file_path, msg, module=LOG_MODULE_STR
+                )
             child = create_node(subnode_raw, self.file_path)
             child.set_parent(self)
             self._children[child_key] = child
@@ -174,14 +194,13 @@ class YamlDictNode(YamlNode):
         return self._children.get(key, None)
 
     def __contains__(self, item: Any) -> bool:
-        return (item in self._children)
+        return item in self._children
 
     def __repr__(self) -> str:
         return f"<YamlDictNode at {self.node_path_as_str}>"
 
 
 class YamlListNode(YamlNode):
-
     def __init__(self, file_path: Optional[str] = None) -> None:
         super().__init__(YamlNodeKind.LIST, file_path)
         self._children: List[YamlNode] = []
@@ -198,19 +217,25 @@ class YamlListNode(YamlNode):
 
     def add_list_child(self, child: YamlNode) -> None:
         if child in self._children:
-            msg = "Tried to add child to YamlListNode that already " + \
-                "contains this child"
-            raise exceptions.ParsingException(self.file_path, msg,
-                                              module=LOG_MODULE_STR)
+            msg = (
+                "Tried to add child to YamlListNode that already "
+                + "contains this child"
+            )
+            raise exceptions.ParsingException(
+                self.file_path, msg, module=LOG_MODULE_STR
+            )
         self._children.append(child)
         child.set_parent(self)
 
     def remove_list_child(self, child: YamlNode) -> None:
         if child not in self._children:
-            msg = "Tried to remove child from YamlListNode that does not " + \
-                "contain this child"
-            raise exceptions.ParsingException(self.file_path, msg,
-                                              module=LOG_MODULE_STR)
+            msg = (
+                "Tried to remove child from YamlListNode that does not "
+                + "contain this child"
+            )
+            raise exceptions.ParsingException(
+                self.file_path, msg, module=LOG_MODULE_STR
+            )
         child.clear_parent()
         self._children.remove(child)
 
@@ -218,12 +243,12 @@ class YamlListNode(YamlNode):
         if len(node_path) == 0:
             node_path = ["_root_"]
         self._node_path = node_path
-        if self._id_key is None:        # node|path[0], node|path[1], ...
+        if self._id_key is None:  # node|path[0], node|path[1], ...
             for child_pos, child in enumerate(self._children):
                 child_node_path = node_path.copy()
                 child_node_path[-1] += f"[{child_pos}]"
                 child.set_node_path(child_node_path)
-        if self._id_key is not None:    # node|path["id1"], node|path["id2"]
+        if self._id_key is not None:  # node|path["id1"], node|path["id2"]
             for child in self._children:
                 child_node_path = node_path.copy()
                 child_id_node = child[self._id_key]
@@ -240,22 +265,31 @@ class YamlListNode(YamlNode):
     def set_id(self, id_key: str) -> None:
         # Id key may not contain square brackets
         if ("[" in id_key) or ("]" in id_key):
-            msg = "Tried to set id of YamlListNode with id_key " + \
-                f"{id_key} that contains square brackets []"
-            raise exceptions.ParsingException(self.file_path, msg,
-                                              module=LOG_MODULE_STR)
+            msg = (
+                "Tried to set id of YamlListNode with id_key "
+                + f"{id_key} that contains square brackets []"
+            )
+            raise exceptions.ParsingException(
+                self.file_path, msg, module=LOG_MODULE_STR
+            )
         child_ids = []
         for child in self._children:
             child_id = parse_mandatory_str_value_from_dict_node(child, id_key)
             child_ids.append(child_id)
         for child_id in child_ids:
-            id_positions = [position
-                            for position, child_id_ in enumerate(child_ids)
-                            if child_id_ == child_id]
+            id_positions = [
+                position
+                for position, child_id_ in enumerate(child_ids)
+                if child_id_ == child_id
+            ]
             if len(id_positions) > 1:
                 raise exceptions.DuplicateIdInYamlBlockListException(
-                    self.file_path, self.node_path_as_str, child_id,
-                    id_positions, module=LOG_MODULE_STR)
+                    self.file_path,
+                    self.node_path_as_str,
+                    child_id,
+                    id_positions,
+                    module=LOG_MODULE_STR,
+                )
         self._id_key = id_key
         # Update child node paths from node|path[0] to node|path["id"]
         self.update_node_path()
@@ -263,10 +297,13 @@ class YamlListNode(YamlNode):
     @property
     def ids(self) -> Set[str]:
         if self._id_key is None:
-            msg = "Tried to get ids of YamlListNode whose ids have not " + \
-                "been set be the set_id method"
-            raise exceptions.ParsingException(self.file_path, msg,
-                                              module=LOG_MODULE_STR)
+            msg = (
+                "Tried to get ids of YamlListNode whose ids have not "
+                + "been set be the set_id method"
+            )
+            raise exceptions.ParsingException(
+                self.file_path, msg, module=LOG_MODULE_STR
+            )
         ids = set()
         for child in self._children:
             child_id_node = child[self._id_key]
@@ -279,20 +316,24 @@ class YamlListNode(YamlNode):
             return self._children[key]
         if isinstance(key, str):
             if self._id_key is None:
-                msg = ("Tried to get a child node by id from a YamlListNode "
-                       "whose ids have not been set be the set_id method")
-                raise exceptions.ParsingException(self.file_path, msg,
-                                                  module=LOG_MODULE_STR)
+                msg = (
+                    "Tried to get a child node by id from a YamlListNode "
+                    "whose ids have not been set be the set_id method"
+                )
+                raise exceptions.ParsingException(
+                    self.file_path, msg, module=LOG_MODULE_STR
+                )
             for child in self._children:
                 child_id_node = child[self._id_key]
                 assert isinstance(child_id_node, YamlValueNode)
                 if child_id_node.value == key:
                     return child
             return None
-        msg = "YamlListNode does not contain a child with an id_key of " + \
-            f"{self._id_key}={key}"
-        raise exceptions.ParsingException(self.file_path, msg,
-                                          module=LOG_MODULE_STR)
+        msg = (
+            "YamlListNode does not contain a child with an id_key of "
+            + f"{self._id_key}={key}"
+        )
+        raise exceptions.ParsingException(self.file_path, msg, module=LOG_MODULE_STR)
 
     def __iter__(self):
         self._iter_cnt = -1
@@ -312,7 +353,6 @@ class YamlListNode(YamlNode):
 
 
 class YamlValueNode(YamlNode):
-
     def __init__(self, file_path: Optional[str] = None) -> None:
         super().__init__(YamlNodeKind.VALUE, file_path)
         self._value: Any = None
@@ -342,7 +382,7 @@ class YamlValueNode(YamlNode):
 NODE_KIND_TO_TYPE: Dict[YamlNodeKind, type] = {
     YamlNodeKind.DICT: YamlDictNode,
     YamlNodeKind.LIST: YamlListNode,
-    YamlNodeKind.VALUE: YamlValueNode
+    YamlNodeKind.VALUE: YamlValueNode,
 }
 
 
@@ -382,31 +422,38 @@ def check_node_type(node: YamlNode, expected_node_kind: YamlNodeKind) -> None:
     if not isinstance(node, expected_node_type):
         actual_node_type: str = f"{type(node)}"
         expected_node_type_str: str = f"{expected_node_type}"
-        raise exceptions.InvalidNodeTypeException(node.file_path,
-            node.node_path_as_str, expected_node_type_str, actual_node_type,
-            module=LOG_MODULE_STR)
+        raise exceptions.InvalidNodeTypeException(
+            node.file_path,
+            node.node_path_as_str,
+            expected_node_type_str,
+            actual_node_type,
+            module=LOG_MODULE_STR,
+        )
 
 
 def check_file_exists(file_path: str, file_type: str) -> None:
     if not os.path.isfile(file_path):
-        raise exceptions.MissingFileException(file_path, file_type,
-                                              module=LOG_MODULE_STR)
+        raise exceptions.MissingFileException(
+            file_path, file_type, module=LOG_MODULE_STR
+        )
 
 
-def get_mandatory_subnode_from_dict_node(parent_node: YamlNode,
-                                         subnode_key: str) -> YamlNode:
+def get_mandatory_subnode_from_dict_node(
+    parent_node: YamlNode, subnode_key: str
+) -> YamlNode:
     check_node_type(parent_node, YamlNodeKind.DICT)
     node = parent_node[subnode_key]
     if node is None:
-        presumed_node_path_str = parent_node.node_path_as_str + \
-            f"|{subnode_key}"
-        raise exceptions.MissingNodeException(parent_node.file_path,
-            presumed_node_path_str, module=LOG_MODULE_STR)
+        presumed_node_path_str = parent_node.node_path_as_str + f"|{subnode_key}"
+        raise exceptions.MissingNodeException(
+            parent_node.file_path, presumed_node_path_str, module=LOG_MODULE_STR
+        )
     return node
 
 
-def parse_optional_bool_value_from_dict_node(parent_node: YamlNode,
-                                             value_key: str) -> Optional[bool]:
+def parse_optional_bool_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> Optional[bool]:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = parent_node[value_key]
     # Value node does not exist
@@ -422,23 +469,26 @@ def parse_optional_bool_value_from_dict_node(parent_node: YamlNode,
     return value_as_bool
 
 
-def parse_mandatory_bool_value_from_dict_node(parent_node: YamlNode,
-                                              value_key: str) -> int:
+def parse_mandatory_bool_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> int:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = get_mandatory_subnode_from_dict_node(parent_node, value_key)
     check_node_type(value_node, YamlNodeKind.VALUE)
     # Value node has to exist
     if value_node.value is None:
-        raise exceptions.MissingValueException(parent_node.file_path,
-            value_node.node_path_as_str, module=LOG_MODULE_STR)
+        raise exceptions.MissingValueException(
+            parent_node.file_path, value_node.node_path_as_str, module=LOG_MODULE_STR
+        )
     # Transform to requested type
     value_as_bool = parse_bool_from_value_node(value_node)
     # Return
     return value_as_bool
 
 
-def parse_optional_int_value_from_dict_node(parent_node: YamlNode,
-                                            value_key: str) -> Optional[int]:
+def parse_optional_int_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> Optional[int]:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = parent_node[value_key]
     # Value node does not exist
@@ -454,24 +504,26 @@ def parse_optional_int_value_from_dict_node(parent_node: YamlNode,
     return value_as_int
 
 
-def parse_mandatory_int_value_from_dict_node(parent_node: YamlNode,
-                                             value_key: str) -> int:
+def parse_mandatory_int_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> int:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = get_mandatory_subnode_from_dict_node(parent_node, value_key)
     check_node_type(value_node, YamlNodeKind.VALUE)
     # Value node has to exist
     if value_node.value is None:
-        raise exceptions.MissingValueException(parent_node.file_path,
-            value_node.node_path_as_str, module=LOG_MODULE_STR)
+        raise exceptions.MissingValueException(
+            parent_node.file_path, value_node.node_path_as_str, module=LOG_MODULE_STR
+        )
     # Transform to requested type
     value_as_int = parse_int_from_value_node(value_node)
     # Return
     return value_as_int
 
 
-def parse_optional_float_value_from_dict_node(parent_node: YamlNode,
-                                              value_key: str
-                                              ) -> Optional[float]:
+def parse_optional_float_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> Optional[float]:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = parent_node[value_key]
     # Value node does not exist
@@ -487,23 +539,26 @@ def parse_optional_float_value_from_dict_node(parent_node: YamlNode,
     return value_as_float
 
 
-def parse_mandatory_float_value_from_dict_node(parent_node: YamlNode,
-                                              value_key: str) -> float:
+def parse_mandatory_float_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> float:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = get_mandatory_subnode_from_dict_node(parent_node, value_key)
     check_node_type(value_node, YamlNodeKind.VALUE)
     # Value node has to exist
     if value_node.value is None:
-        raise exceptions.MissingValueException(parent_node.file_path,
-            value_node.node_path_as_str, module=LOG_MODULE_STR)
+        raise exceptions.MissingValueException(
+            parent_node.file_path, value_node.node_path_as_str, module=LOG_MODULE_STR
+        )
     # Transform to requested type
     value_as_float = parse_float_from_value_node(value_node)
     # Return
     return value_as_float
 
 
-def parse_optional_str_value_from_dict_node(parent_node: YamlNode,
-                             value_key: str) -> Optional[str]:
+def parse_optional_str_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> Optional[str]:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = parent_node[value_key]
     # Value node does not exist
@@ -519,57 +574,72 @@ def parse_optional_str_value_from_dict_node(parent_node: YamlNode,
     return value_as_str
 
 
-def parse_mandatory_str_value_from_dict_node(parent_node: YamlNode,
-                                             value_key: str) -> str:
+def parse_mandatory_str_value_from_dict_node(
+    parent_node: YamlNode, value_key: str
+) -> str:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = get_mandatory_subnode_from_dict_node(parent_node, value_key)
     check_node_type(value_node, YamlNodeKind.VALUE)
     # Value node has to exist
     if value_node.value is None:
-        raise exceptions.MissingValueException(parent_node.file_path,
-            value_node.node_path_as_str, module=LOG_MODULE_STR)
+        raise exceptions.MissingValueException(
+            parent_node.file_path, value_node.node_path_as_str, module=LOG_MODULE_STR
+        )
     # Transform to requested type
     value_as_str = parse_str_from_value_node(value_node)
     # Return
     return value_as_str
 
 
-def parse_str_list_from_dict_node(parent_node: YamlNode,
-        value_key: str, optional: bool = True) -> List[str]:
+def parse_str_list_from_dict_node(
+    parent_node: YamlNode, value_key: str, optional: bool = True
+) -> List[str]:
     list_node = parent_node[value_key]
     if list_node is None:
         if optional:
             return []
-        raise exceptions.MissingValueException(parent_node.file_path,
+        raise exceptions.MissingValueException(
+            parent_node.file_path,
             parent_node.node_path_as_str + f"|{value_key}",
-            module=LOG_MODULE_STR)
+            module=LOG_MODULE_STR,
+        )
     if isinstance(list_node, YamlValueNode):
         if list_node.value is None:
             if optional:
                 return []
-            raise exceptions.MissingValueException(parent_node.file_path,
+            raise exceptions.MissingValueException(
+                parent_node.file_path,
                 parent_node.node_path_as_str + f"|{value_key}",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         return [list_node.value]
     if isinstance(list_node, YamlListNode):
         values: List[str] = []
         for child_node in list_node:
             check_node_type(child_node, YamlNodeKind.VALUE)
             if child_node.value is None:
-                raise exceptions.MissingValueException(parent_node.file_path,
-                    child_node.node_path_as_str, module=LOG_MODULE_STR)
+                raise exceptions.MissingValueException(
+                    parent_node.file_path,
+                    child_node.node_path_as_str,
+                    module=LOG_MODULE_STR,
+                )
             value_as_str = parse_str_from_value_node(child_node)
             values.append(value_as_str)
         return values
     expected_type = f"{YamlNodeKind.VALUE} or {YamlNodeKind.LIST}"
     actual_type = f"{type(list_node)}"
-    raise exceptions.InvalidNodeTypeException(parent_node.file_path,
-        list_node.node_path_as_str, expected_type, actual_type,
-        module=LOG_MODULE_STR)
+    raise exceptions.InvalidNodeTypeException(
+        parent_node.file_path,
+        list_node.node_path_as_str,
+        expected_type,
+        actual_type,
+        module=LOG_MODULE_STR,
+    )
 
 
-def parse_optional_yeardep_float_from_dict_node(parent_node: YamlNode,
-        value_key: str, stages: Stages) -> Optional[Dict[StageId, float]]:
+def parse_optional_yeardep_float_from_dict_node(
+    parent_node: YamlNode, value_key: str, stages: Stages
+) -> Optional[Dict[StageId, float]]:
     check_node_type(parent_node, YamlNodeKind.DICT)
     node = parent_node[value_key]
     if node is None:
@@ -584,15 +654,19 @@ def parse_optional_yeardep_float_from_dict_node(parent_node: YamlNode,
         previous_year = -float("inf")
         for doublet_node in node:
             if not isinstance(doublet_node, YamlListNode):
-                raise exceptions.YearDepFormatException(parent_node.file_path,
+                raise exceptions.YearDepFormatException(
+                    parent_node.file_path,
                     doublet_node.node_path_as_str,
                     ExceptionKey.YEARDEP_ENTRYNOTALIST.value,
-                    module=LOG_MODULE_STR)
+                    module=LOG_MODULE_STR,
+                )
             if not len(doublet_node) == 2:
-                raise exceptions.YearDepFormatException(parent_node.file_path,
+                raise exceptions.YearDepFormatException(
+                    parent_node.file_path,
                     doublet_node.node_path_as_str,
                     ExceptionKey.YEARDEP_ENTRYNOTLENGTHTWO.value,
-                    module=LOG_MODULE_STR)
+                    module=LOG_MODULE_STR,
+                )
             year: int = 0
             year_value: float = 0
             for i in range(2):
@@ -603,54 +677,66 @@ def parse_optional_yeardep_float_from_dict_node(parent_node: YamlNode,
                         parent_node.file_path,
                         doublet_node_i.node_path_as_str,
                         ExceptionKey.YEARDEP_ENTRYPARTISNOTAVALUE.value,
-                        module=LOG_MODULE_STR)
+                        module=LOG_MODULE_STR,
+                    )
                 if i == 0:
                     year = parse_int_from_value_node(doublet_node_i)
                 if i == 1:
                     year_value = parse_float_from_value_node(doublet_node_i)
             if not year > previous_year:
-                raise exceptions.YearDepFormatException(parent_node.file_path,
+                raise exceptions.YearDepFormatException(
+                    parent_node.file_path,
                     doublet_node.node_path_as_str,
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
-                    module=LOG_MODULE_STR)
+                    module=LOG_MODULE_STR,
+                )
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartovalue_to_stagetovalue(
-            year_to_value_dict, stages)
+            year_to_value_dict, stages
+        )
         return stage_to_value_dict
     # Wrong yaml node kind
     expected_type = f"{YamlNodeKind.VALUE} or {YamlNodeKind.DICT}"
     actual_type = f"{type(node)}"
-    raise exceptions.InvalidNodeTypeException(parent_node.file_path,
-        node.node_path_as_str, expected_type, actual_type,
-        module=LOG_MODULE_STR)
+    raise exceptions.InvalidNodeTypeException(
+        parent_node.file_path,
+        node.node_path_as_str,
+        expected_type,
+        actual_type,
+        module=LOG_MODULE_STR,
+    )
 
 
-def parse_mandatory_yeardep_float_from_dict_node(parent_node: YamlNode,
-        value_key: str, stages: Stages) -> Dict[StageId, float]:
+def parse_mandatory_yeardep_float_from_dict_node(
+    parent_node: YamlNode, value_key: str, stages: Stages
+) -> Dict[StageId, float]:
     check_node_type(parent_node, YamlNodeKind.DICT)
     node = get_mandatory_subnode_from_dict_node(parent_node, value_key)
     if isinstance(node, YamlValueNode):
-        value = parse_mandatory_float_value_from_dict_node(parent_node,
-                                                           value_key)
+        value = parse_mandatory_float_value_from_dict_node(parent_node, value_key)
         return {s: value for s in stages.ids}
     if isinstance(node, YamlListNode):
         year_to_value_dict: Dict[int, float] = {}
         if len(node) == 0:
-            raise exceptions.EmptyListNodeException(parent_node.file_path,
-                                                    node.node_path_as_str,
-                                                    module=LOG_MODULE_STR)
+            raise exceptions.EmptyListNodeException(
+                parent_node.file_path, node.node_path_as_str, module=LOG_MODULE_STR
+            )
         previous_year = -float("inf")
         for doublet_node in node:
             if not isinstance(doublet_node, YamlListNode):
-                raise exceptions.YearDepFormatException(parent_node.file_path,
+                raise exceptions.YearDepFormatException(
+                    parent_node.file_path,
                     doublet_node.node_path_as_str,
                     ExceptionKey.YEARDEP_ENTRYNOTALIST.value,
-                    module=LOG_MODULE_STR)
+                    module=LOG_MODULE_STR,
+                )
             if not len(doublet_node) == 2:
-                raise exceptions.YearDepFormatException(parent_node.file_path,
+                raise exceptions.YearDepFormatException(
+                    parent_node.file_path,
                     doublet_node.node_path_as_str,
                     ExceptionKey.YEARDEP_ENTRYNOTLENGTHTWO.value,
-                    module=LOG_MODULE_STR)
+                    module=LOG_MODULE_STR,
+                )
             year: int = 0
             year_value: float = 0
             for i in range(2):
@@ -661,31 +747,39 @@ def parse_mandatory_yeardep_float_from_dict_node(parent_node: YamlNode,
                         parent_node.file_path,
                         doublet_node_i.node_path_as_str,
                         ExceptionKey.YEARDEP_ENTRYPARTISNOTAVALUE.value,
-                        module=LOG_MODULE_STR)
+                        module=LOG_MODULE_STR,
+                    )
                 if i == 0:
                     year = parse_int_from_value_node(doublet_node_i)
                 if i == 1:
                     year_value = parse_float_from_value_node(doublet_node_i)
             if not year > previous_year:
-                raise exceptions.YearDepFormatException(parent_node.file_path,
+                raise exceptions.YearDepFormatException(
+                    parent_node.file_path,
                     doublet_node.node_path_as_str,
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
-                    module=LOG_MODULE_STR)
+                    module=LOG_MODULE_STR,
+                )
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartovalue_to_stagetovalue(
-            year_to_value_dict, stages)
+            year_to_value_dict, stages
+        )
         return stage_to_value_dict
     # Wrong yaml node kind
     expected_type = f"{YamlNodeKind.VALUE} or {YamlNodeKind.LIST}"
     actual_type = f"{type(node)}"
-    raise exceptions.InvalidNodeTypeException(parent_node.file_path,
-        node.node_path_as_str, expected_type, actual_type,
-        module=LOG_MODULE_STR)
+    raise exceptions.InvalidNodeTypeException(
+        parent_node.file_path,
+        node.node_path_as_str,
+        expected_type,
+        actual_type,
+        module=LOG_MODULE_STR,
+    )
 
 
 def _transform_yeartovalue_to_stagetovalue(
-        year_to_value_dict: Dict[int, float],
-        stages: Stages) -> Dict[StageId, float]:
+    year_to_value_dict: Dict[int, float], stages: Stages
+) -> Dict[StageId, float]:
     stage_ids = stages.ids_in_order
     dict_years = list(year_to_value_dict.keys())
     cur_dict_year_pos = 0
@@ -713,9 +807,13 @@ def parse_bool_from_value_node(value_node: YamlNode) -> bool:
     try:
         value_as_bool = bool(value)
     except ValueError as exc:
-        raise exceptions.InvalidParamTypeException(value_node.file_path,
-            value_node.node_path_as_str, bool, type(value),
-            module=LOG_MODULE_STR) from exc
+        raise exceptions.InvalidParamTypeException(
+            value_node.file_path,
+            value_node.node_path_as_str,
+            bool,
+            type(value),
+            module=LOG_MODULE_STR,
+        ) from exc
     return value_as_bool
 
 
@@ -725,9 +823,13 @@ def parse_int_from_value_node(value_node: YamlNode) -> int:
     try:
         value_as_int = int(value)
     except ValueError as exc:
-        raise exceptions.InvalidParamTypeException(value_node.file_path,
-            value_node.node_path_as_str, int, type(value),
-            module=LOG_MODULE_STR) from exc
+        raise exceptions.InvalidParamTypeException(
+            value_node.file_path,
+            value_node.node_path_as_str,
+            int,
+            type(value),
+            module=LOG_MODULE_STR,
+        ) from exc
     return value_as_int
 
 
@@ -737,9 +839,13 @@ def parse_float_from_value_node(value_node: YamlNode) -> float:
     try:
         value_as_float = float(value)
     except ValueError as exc:
-        raise exceptions.InvalidParamTypeException(value_node.file_path,
-            value_node.node_path_as_str, float, type(value),
-            module=LOG_MODULE_STR) from exc
+        raise exceptions.InvalidParamTypeException(
+            value_node.file_path,
+            value_node.node_path_as_str,
+            float,
+            type(value),
+            module=LOG_MODULE_STR,
+        ) from exc
     return value_as_float
 
 
@@ -749,7 +855,11 @@ def parse_str_from_value_node(value_node: YamlNode) -> str:
     try:
         value_as_str = str(value)
     except ValueError as exc:
-        raise exceptions.InvalidParamTypeException(value_node.file_path,
-            value_node.node_path_as_str, str, type(value),
-            module=LOG_MODULE_STR) from exc
+        raise exceptions.InvalidParamTypeException(
+            value_node.file_path,
+            value_node.node_path_as_str,
+            str,
+            type(value),
+            module=LOG_MODULE_STR,
+        ) from exc
     return value_as_str

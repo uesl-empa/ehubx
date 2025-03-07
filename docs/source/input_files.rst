@@ -102,14 +102,14 @@ hubs.yaml
 * **cap_max** (*optional*, *default=* :math:`\infty`, *[CAP], per-year*): Maximal amount of installed capacity at this hub.
 * **last_inst_year** (*optional*, *default=* :math:`\infty`, *[1]*): Last year where installation of this technology is allowed at this hub.
 
-**Hub-speficic storage parameters**:
+**Hub-speficic storage technology parameters**:
 
 * **storage_params** (*optional, default={}*) Dictionary with parameters for the :ref:`storage model<storage_model>`.
 * **soc_init** (*optional*, *default=* :math:`\infty`, *[1]*): Initial state of charge at the beginning of each stage's time horizon, as a value between 0 and 1, relative to the total installed storage capacity. Alternatively, setting this value to :math:`\infty` lets the optimizer choose it without any restriction. Due to the periodicity constraint (see :ref:`storage model<storage_model>`), the initial state of charge will also be the stage of charge at the end of the time horizon.
 
-**Hub-specific conversion parameters**:
+**Hub-specific conversion technology parameters**:
 
-* **conversion_params** (*optional, default={}*) Dictionary with parameters for the :ref:`conversion model<conversion_model>`.
+* **conversion_params** (*optional, default={}*): Dictionary with parameters for the :ref:`conversion model<conversion_model>`.
 * **out_sum_min** (*optional, default=0, [kWh], per-year*): Minimal value for the summed-up output of the conversion technology's main output carrier across the time horizon.
 * **out_sum_max** (*optional*, *default=* :math:`\infty`, *[kWh], per-year*): Maximal value for the summed-up output of the conversion technology's main output carrier across the time horizon.
 * **availability** (*optional, default=1, [1], per-ts*): Multiplier for the conversion technology's availability to output energy. An availability of 1 means that the technology is able to operate at full capacity, an availability of 0 means that it is not able to produce any output.
@@ -119,7 +119,21 @@ hubs.yaml
     * *tech_id*: Technology id, only the currentivly active tech is parsed.
     * *profile_key*: Name of parameter for which time-dependent data is being defined. Only *availability* is parsed.
 
-**Hub-specific Electricity-Based Mobility (EBM) parameters**:
+**Hub-specific ATES technology parameters**:
+
+* **ates_params** (*optional, default=[]*): Dictionary with parameters for the :ref:`ates_model`.
+* **elec_per_energy_heat** (*optional, [1], per-year*): Electricity consumption (in kW) for each amount of heating output (in kW). If this parameter is not set, it will be calculated from the parameter *elec_per_flow_heat*.
+* **elec_per_energy_cool** (*optional, [1], per-year*): Electricity consumption (in kW) for each amount of cooling output (in kW). If this parameter is not set, it will be calculated from the parameter *elec_per_flow_cool*.
+* **schedule_params** (*optional, default = {}*): List with schedule-dependent parameters.
+* **schedule_id** (*mandatory each schedule block*): Id of ATES schedule (as defined in *ates_params* below).
+* **max_pump_rate_per_warm_well** (*optional, [m^3/s], per-year*): Maximal pumping rate for extraction from a warm well. If this parameter is not specified, the maximal pumping rate is calculated using the Theis equation, based on the parameters *well_radius*, *storativity_aquifer*, *hydraulic_conductivity_aquifer*, *thickness_aquifer*, and *max_drawdown*.
+* **max_pump_rate_per_cold_well** (*optional, [m^3/s], per-year*): Maximal pumping rate for extraction from a cold well. If this parameter is not specified, the maximal pumping rate is calculated using the Theis equation, based on the parameters *well_radius*, *storativity_aquifer*, *hydraulic_conductivity_aquifer*, *thickness_aquifer*, and *max_drawdown*.
+* **thermal_radius_per_warm_well** (*optional, [m], per-year*): Thermal radius, i.e.; approximation of the furthest distance from the well center at which the injection of warm fluid into the well still affects the underground thermal state. If this parameter is not specified, the thermal radius is calculated using the conductive and convective radii, based on the parameters *specific_heat_capacity_fluid*, *max_pump_rate_per_cold_well*, *specific_heat_capacity_aquifer*, *thickness_aquifer*, and *groundwater_velocity*.
+* **thermal_radius_per_cold_well** (*optional, [m], per-year*): Thermal radius, approximation of the furthest distance from the well center at which the injection of cold fluid into the well still affects the underground thermal state. If this parameter is not specified, the thermal radius is calculated using the conductive and convective radii, based on the parameters *specific_heat_capacity_fluid*, *max_pump_rate_per_warm_well*, *specific_heat_capacity_aquifer*, *thickness_aquifer*, and *groundwater_velocity*.
+* **max_heat_over_cool** (*optional, default=* :math:`\infty`, *[1], per-year*): Maximal quotient of total (i.e.; summed-up over time) ATES heating output over total ATES cooling output for this technology in this schedule. For feasibility reasons, the product between this parameter and *max_cool_over_heat* must not be smaller than one.
+* **max_cool_over_heat** (*optional, default=* :math:`\infty`, *[1], per-year*): Maximal quotient of total (i.e.; summed-up over time) ATES cooling output over total ATES heating output for this technology in this schedule. For feasibility reasons, the product between this parameter and *max_heat_over_cool* must not be smaller than one.
+
+**Hub-specific Electricity-Based Mobility (EBM) technology parameters**:
 
 * **ebm_params** (*mandatory for EBM techs*) Dictionary with parameters for the :ref:`EBM model<ebm_model>`.
 * **num_vehicles** (*mandatory, [1], per-year*): Number of vehicles in the EBM fleet.
@@ -133,17 +147,35 @@ hubs.yaml
     * *tech_id*: Technology id, only the currentivly active tech is parsed.
     * *profile_key*: Name of parameter for which time-dependent data is gathered. Only *demand_nominal* and *availability* are parsed.
 
-**Hub-specific heat pump parameters**:
+**Hub-specific heat pump technology parameters**:
 
 * **heatpump_params** (*mandatory for heat pump techs*): Dictionary with parameters for the :ref:`heat pump model<heatpump_model>`.
-* **cop** (*semi-mandatory, [1], per-ts*): Coefficient of performance for heat pump (see :ref:`heat pump model<heatpump_model>`). Either this parameter or *temp_heat_in* and *temp_heat_out* have to be specified.
-* **temp_heat_in** (*semi-mandatory, [°C], per-ts*): Temperature in Celcius of heating mode heat intake (i.e.; evaporator inlet temperature). Needs to be specified if *cop* is not specified to calculate the COP.
-* **temp_heat_out** (*semi-mandatory, [°C], per-ts*): Temperature in Celcius of heating mode heat outlet (i.e.; condenser outlet temperature). Needs to be specified if *cop* is not specified to calculate the COP.
+* **cop** (*optional, [1], per-ts*): Coefficient of performance for the heat pump. If this parameter is not specified, the COP is calculated using a dampened Carnot efficiency (see :ref:`heat pump model<heatpump_model>`) with the parameters *temp_heat_in*, *temp_heat_out* and *cop_factor*.
+* **temp_heat_in** (*optional, [°C], per-ts*): Temperature of heating mode heat inlet (i.e.; evaporator inlet temperature). This parameter becomes mandatory if the parameter *cop* is not set, since the inlet temperature is then used to calculate the COP.
+* **temp_heat_out** (*optional, [°C], per-ts*): Temperature of heating mode heat outlet (i.e.; condenser outlet temperature). This parameter becomes mandatory if the parameter *cop* is not set, since the outlet temperature is then used to calculate the COP.
 * **profile_path** (*optional, default=None, file*): File path (relative to hubs.yaml) of a time series file with time-specific data for the time-dependent heat pump parameters above. It has to contain the following headers:
     * *stage_id*: Stage id.
     * *hub_id*: Hub id, only the currently active hub is parsed.
     * *tech_id*: Technology id, only the currentivly active tech is parsed.
     * *profile_key*: Name of parameter for which time-dependent data is gathered. Only *cop*, *temp_heat_in* and *temp_heat_out* are parsed.
+
+**ATES parameters (technology-independent)**:
+
+* **ates_params** (*mandatory for hubs with ATES technologies*): Dictionary with ATES-specific parameters which are independent of technologies for this hub.
+* **groundwater_velocity** (*optional, [m/d]*): Groundwater (i.e.; Darcy) velocity. This parameter becomes mandatory if the parameters *thermal_radius_per_warm_well* or *thermal_radius_per_cold_well* are not set, since the groundwater velocity is then used to calculate these radii.
+* **specific_heat_capacity_aquifer** (*optional, [J/(kg*K)]*): Specific heat capacity of the aquifer. This parameter becomes mandatory if the parameters *thermal_radius_per_warm_well* or *thermal_radius_per_cold_well* are not set, since the specific heat capacity is then used to calculate these radii.
+* **thickness_aquifer** (*optional, [m]*): Thickness (i.e.; height) of the aquifer. This parameter becomes mandatory if the parameters *thermal_radius_per_warm_well* or *thermal_radius_per_cold_well* are not set, since the thickness is then used to calculate these radii.
+* **storativity_aquifer** (*optional, [1]*): Storativity (or storage coefficient) of the aquifer which is the volume of water released from storage per unit decline in hydraulic head in the aquifer, per unit area of the aquifer. This parameter becomes mandatory if the parameters *max_pump_rate_per_warm_well* or *max_pump_rate_per_cold_well* are not set, since the storativity is then used to calculate these rates.
+* **max_drawdown** (*optional, [m]*): Maximal allowed drawdown (i.e.; surface decline) at the border of an ATES well. This parameter becomes mandatory if the parameters *max_pump_rate_per_warm_well* or *max_pump_rate_per_cold_well* are not set, since the maximal drawdown is then used to calculate these rates.
+* **max_temperature_spread_warm** (*mandatory, [°C]*): Maximal allowed temperature spread between the natural aquifer temperature and the temperature of fluid in the warm wells.
+* **max_temperature_spread_cold** (*mandatory, [°C]*): Maximal allowed temperature spread between the natural aquifer temperature and the temperature of fluid in the cold wells.
+* **available_area** (*optional*, *default=* :math:`\infty, [m^2]`, per-year*): Available aquifer area for ATES installation.
+* **schedules** (*mandatory*): List of ATES schedules (see :ref:`ates_model`).
+* **schedule_id** (*mandatory*): Id of ATES schedule
+* **phase_w2c_start_id** (*mandatory*): Time id of the start of the warm-to-cold pumping phase.
+* **phase_w2c_end_id** (*mandatory*): Time id of the end of the warm-to-cold pumping phase.
+* **phase_c2w_start_id** (*mandatory*): Time id of the start of the cold-to-warm pumping phase.
+* **phase_c2w_end_id** (*mandatory*): Time id of the end of the cold-to-warm pumping phase.
 
 .. _network_links_yaml:
 
@@ -287,6 +319,20 @@ techs.yaml
 * **velo_nominal** (*mandatory for wind techs, [m/s], per-year*): TBD
 * **velo_cut_off** (*mandatory for wind techs, [m/s], per-year*): TBD
 * **curtail_max_rel** (*optional, default=1, [1], per-year*): Fraction of wind power that can be curtailed. A value of 0 means that all power has to be used while a value of 1 indicates that any part of the energy can be curtailed.
+
+**ATES parameters**
+
+* **ates_params** (*mandatory for ATES techs*): Dictionary with parameters for the :ref:`ates_model`
+* **ecs** (*mandatory*): Dictionary with ecs of the ATES technology.
+* **elec** (*mandatory*): Ec that models electricity consumption of the well pumps.
+* **heat** (*mandatory*): Ec that models heating energy extracted from the warm wells.
+* **cool** (*mandatory*): Ec that models cooling energy extracted from the cold wells.
+* **density_fluid** (*mandatory, [kg/m^3]*): Density of the fluid stored in the aquifer.
+* **specific_heat_capacity_fluid** (*mandatory, [J/(kg*K)]*): Specific heat capacity of the fluid stored in the aquifer.
+* **well_radius** (*optional, [m]*): Radius of a well. This parameter becomes mandatory if the parameters *max_pump_rate_per_warm_well* or *max_pump_rate_per_cold_well* in :ref:`hubs_yaml` are not specified, since the radius is then used to calculate these rates.
+* **well_pair_area_calc_method** (*optional, default="smallest rectangle"*): Calculation method for the area taken up by a well pair. Acceptable values are "two circles" and "smallest rectangle".
+* **elec_per_flow_heat** (*optional, default=0, [kWh/m^3], per-year*): Electricity consumption (in kW) for each amount of warm-to-cold volume flow (in :math:`m^3/h`). This parameter is used to calculate the ATES electricity consumption per amount of output heating energy if the parameter *elec_per_energy_heat* is not set.
+* **elec_per_flow_cool** (*optional, default=0, [kWh/m^3], per-year*): Electricity consumption (in kW) for each amount of cold-to-warm volume flow (in :math:`m^3/h`). This parameter is used to calculate the ATES electricity consumption per amount of output cooling energy if the parameter *elec_per_energy_cool* is not set.
 
 **Electricity-Based Mobility (EBM) parameters**
 

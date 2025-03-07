@@ -1,16 +1,19 @@
 """
 Hub data module
 """
+
 from enum import Enum
 from typing import List, Set
-from ehubx.data.index import Index, IndexKind
+
 from ehubx.data import exceptions
+from ehubx.data.index import Index, IndexKind
 
 
 class HubId(Index):
     """
     Hub index
     """
+
     def __init__(self, key: str):
         super().__init__(IndexKind.HUB, key)
 
@@ -19,6 +22,7 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the hub data module
     """
+
     ID_ADD = "adding to 'ids' of EnergyCarriers"
 
 
@@ -34,6 +38,7 @@ class Hubs:
     Class for hub data. It only manages hub ids and does not hold any
     additional data.
     """
+
     # ------------- #
     # Property: ids #
     # ------------- #
@@ -61,8 +66,9 @@ class Hubs:
         :type h: HubId
         """
         if h in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, h,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, h, module=LOG_MODULE_STR
+            )
         self._ids.add(h)
 
     # ----------- #
@@ -84,5 +90,4 @@ class Hubs:
     # ---------- #
     def _check_id(self, h: HubId, where: ExceptionKey) -> None:
         if h not in self._ids:
-            raise exceptions.UnknownIdException(where.value, h,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, h, module=LOG_MODULE_STR)

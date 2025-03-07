@@ -1,6 +1,0 @@
-[flake8]
-max-line-length = 79
-ignore = E128
-max-complexity = 18
-select = B,C,C9,E,F,N8,W,T4,B9
-exclude = docs/*, dist/*, htmlcov/* .venv/*

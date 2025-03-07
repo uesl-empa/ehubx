@@ -1,20 +1,22 @@
 """
 Technology data module
 """
+
 from enum import Enum
 from typing import Dict, List, Set, Tuple
-from ehubx.core import common
-from ehubx.core import logging
-from ehubx.data.index import Index, IndexKind
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
+
+from ehubx.core import common, logging
 from ehubx.data import exceptions
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.index import Index, IndexKind
+from ehubx.data.stage_data import StageId, Stages
 
 
 class TechId(Index):
     """
     Technology index
     """
+
     def __init__(self, key: str):
         super().__init__(IndexKind.TECH, key)
 
@@ -23,6 +25,7 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the technology data module
     """
+
     ID_ADD = "adding to 'ids' of Techs"
     ID_REMOVE = "removing from 'ids' of Techs"
     TECH_COPY = "copying tech of Techs"
@@ -69,8 +72,7 @@ class ExceptionKey(Enum):
     CAPMIN_SET = "setting 'cap_min' of Techs"
     CAPMIN_GET = "getting 'cap_min' from Techs"
     CAPMIN_VAL = "validating 'cap_min' of Techs"
-    CAPMINALLOWEDHUBS_VAL = ("validating 'cap_min' agains 'allowed_hubs' of "
-                             "Techs")
+    CAPMINALLOWEDHUBS_VAL = "validating 'cap_min' agains 'allowed_hubs' of Techs"
     CAPMAX_SET = "setting 'cap_max' of Techs"
     CAPMAX_GET = "getting 'cap_max' from Techs"
     CAPMAX_VAL = "validating 'cap_max' of Techs"
@@ -82,8 +84,9 @@ class ExceptionKey(Enum):
     COUPLEDCAPFACTOR_SET = "setting 'coupled_cap_factors' in Techs"
     COUPLEDCAPFACTOR_GET = "getting 'coupled_cap_factors' from Techs"
     COUPLEDCAPFACTOR_VAL = "validating 'coupled_cap_factors' in Techs"
-    COUPLEDCAPFACTOR_NOTASUB = "coupled_cap_factor' tech not a sub tech " + \
-        "in ConversionTechs"
+    COUPLEDCAPFACTOR_NOTASUB = (
+        "coupled_cap_factor' tech not a sub tech " + "in ConversionTechs"
+    )
     COPYOVERTECH = "copying tech from one Techs instance to another"
 
 
@@ -167,8 +170,9 @@ class Techs:
         :type x: TechId
         """
         if x in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, x,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, x, module=LOG_MODULE_STR
+            )
         self._ids.add(x)
 
     def remove_id(self, x: TechId) -> None:
@@ -179,8 +183,9 @@ class Techs:
         :type x: TechId
         """
         if x not in self._ids:
-            raise exceptions.MissingIdException(ExceptionKey.ID_REMOVE.value,
-                                                x, module=LOG_MODULE_STR)
+            raise exceptions.MissingIdException(
+                ExceptionKey.ID_REMOVE.value, x, module=LOG_MODULE_STR
+            )
         self._ids.remove(x)
         if x in self._allowed_stages:
             self._allowed_stages.pop(x)
@@ -190,37 +195,37 @@ class Techs:
             self._lifetime.pop(x)
         if x in self._interest_rate:
             self._interest_rate.pop(x)
-        for (s, x2) in list(self._unit_cap_min.keys()):
+        for s, x2 in list(self._unit_cap_min.keys()):
             if x == x2:
                 self._unit_cap_min.pop((s, x))
-        for (s, x2) in list(self._one_time_capex.keys()):
+        for s, x2 in list(self._one_time_capex.keys()):
             if x == x2:
                 self._one_time_capex.pop((s, x))
-        for (s, x2) in list(self._capex_per_cap.keys()):
+        for s, x2 in list(self._capex_per_cap.keys()):
             if x == x2:
                 self._capex_per_cap.pop((s, x))
-        for (s, x2) in list(self._one_time_opex.keys()):
+        for s, x2 in list(self._one_time_opex.keys()):
             if x == x2:
                 self._one_time_opex.pop((s, x))
-        for (s, x2) in list(self._opex_per_cap.keys()):
+        for s, x2 in list(self._opex_per_cap.keys()):
             if x == x2:
                 self._opex_per_cap.pop((s, x))
-        for (s, x2) in list(self._co2_per_cap.keys()):
+        for s, x2 in list(self._co2_per_cap.keys()):
             if x == x2:
                 self._co2_per_cap.pop((s, x))
-        for (h, x2) in list(self._last_instl_year.keys()):
+        for h, x2 in list(self._last_instl_year.keys()):
             if x == x2:
                 self._last_instl_year.pop((h, x))
-        for (h, x2) in list(self._cap_init.keys()):
+        for h, x2 in list(self._cap_init.keys()):
             if x == x2:
                 self._cap_init.pop((h, x))
-        for (h, x2) in list(self._age_init.keys()):
+        for h, x2 in list(self._age_init.keys()):
             if x == x2:
                 self._age_init.pop((h, x))
-        for (s, h, x2) in list(self._cap_min.keys()):
+        for s, h, x2 in list(self._cap_min.keys()):
             if x == x2:
                 self._cap_min.pop((s, h, x))
-        for (s, h, x2) in list(self._cap_max.keys()):
+        for s, h, x2 in list(self._cap_max.keys()):
             if x == x2:
                 self._cap_max.pop((s, h, x))
         for x_sub in list(self._coupled_main_tech.keys()):
@@ -245,11 +250,13 @@ class Techs:
         :type x_new: TechId
         """
         if x not in self._ids:
-            raise exceptions.MissingIdException(ExceptionKey.TECH_COPY.value,
-                                                x, module=LOG_MODULE_STR)
+            raise exceptions.MissingIdException(
+                ExceptionKey.TECH_COPY.value, x, module=LOG_MODULE_STR
+            )
         if x_new in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.TECH_COPY.value,
-                                                  x, module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.TECH_COPY.value, x, module=LOG_MODULE_STR
+            )
         self._ids.add(x_new)
         if x in self._allowed_stages:
             self._allowed_stages[x_new] = self._allowed_stages[x].copy()
@@ -259,37 +266,37 @@ class Techs:
             self._lifetime[x_new] = self._lifetime[x]
         if x in self._interest_rate:
             self._interest_rate[x_new] = self._interest_rate[x]
-        for (s, x_) in list(self._unit_cap_min):
+        for s, x_ in list(self._unit_cap_min):
             if x == x_:
                 self._unit_cap_min[s, x_new] = self._unit_cap_min[s, x]
-        for (s, x_) in list(self._one_time_capex):
+        for s, x_ in list(self._one_time_capex):
             if x == x_:
                 self._one_time_capex[s, x_new] = self._one_time_capex[s, x]
-        for (s, x_) in list(self._capex_per_cap):
+        for s, x_ in list(self._capex_per_cap):
             if x == x_:
                 self._capex_per_cap[s, x_new] = self._capex_per_cap[s, x]
-        for (s, x_) in list(self._one_time_opex):
+        for s, x_ in list(self._one_time_opex):
             if x == x_:
                 self._one_time_opex[s, x_new] = self._one_time_opex[s, x]
-        for (s, x_) in list(self._opex_per_cap):
+        for s, x_ in list(self._opex_per_cap):
             if x == x_:
                 self._opex_per_cap[s, x_new] = self._opex_per_cap[s, x]
-        for (s, x_) in list(self._co2_per_cap):
+        for s, x_ in list(self._co2_per_cap):
             if x == x_:
                 self._co2_per_cap[s, x_new] = self._co2_per_cap[s, x]
-        for (h, x_) in list(self._last_instl_year):
+        for h, x_ in list(self._last_instl_year):
             if x == x_:
                 self._last_instl_year[h, x_new] = self._last_instl_year[h, x]
-        for (h, x_) in list(self._cap_init):
+        for h, x_ in list(self._cap_init):
             if x == x_:
                 self._cap_init[h, x_new] = self._cap_init[h, x]
-        for (h, x_) in list(self._age_init):
+        for h, x_ in list(self._age_init):
             if x == x_:
                 self._age_init[h, x_new] = self._age_init[h, x]
-        for (s, h, x_) in list(self._cap_min):
+        for s, h, x_ in list(self._cap_min):
             if x == x_:
                 self._cap_min[s, h, x_new] = self._cap_min[s, h, x]
-        for (s, h, x_) in list(self._cap_max):
+        for s, h, x_ in list(self._cap_max):
             if x == x_:
                 self._cap_max[s, h, x_new] = self._cap_max[s, h, x]
         for x_sub in list(self._coupled_main_tech):
@@ -311,44 +318,45 @@ class Techs:
         :type x: TechId
         """
         if x not in self._ids:
-            raise exceptions.MissingIdException(ExceptionKey.TECH_REMOVE.value,
-                                                x, module=LOG_MODULE_STR)
+            raise exceptions.MissingIdException(
+                ExceptionKey.TECH_REMOVE.value, x, module=LOG_MODULE_STR
+            )
         self._ids.remove(x)
         self._allowed_stages.pop(x, None)
         self._allowed_hubs.pop(x, None)
         self._lifetime.pop(x, None)
         self._interest_rate.pop(x, None)
-        for (s, x_) in list(self._unit_cap_min):
+        for s, x_ in list(self._unit_cap_min):
             if x == x_:
                 self._unit_cap_min.pop((s, x))
-        for (s, x_) in list(self._one_time_capex):
+        for s, x_ in list(self._one_time_capex):
             if x == x_:
                 self._one_time_capex.pop((s, x))
-        for (s, x_) in list(self._capex_per_cap):
+        for s, x_ in list(self._capex_per_cap):
             if x == x_:
                 self._capex_per_cap.pop((s, x))
-        for (s, x_) in list(self._one_time_opex):
+        for s, x_ in list(self._one_time_opex):
             if x == x_:
                 self._one_time_opex.pop((s, x))
-        for (s, x_) in list(self._opex_per_cap):
+        for s, x_ in list(self._opex_per_cap):
             if x == x_:
                 self._opex_per_cap.pop((s, x))
-        for (s, x_) in list(self._co2_per_cap):
+        for s, x_ in list(self._co2_per_cap):
             if x == x_:
                 self._co2_per_cap.pop((s, x))
-        for (h, x_) in list(self._last_instl_year):
+        for h, x_ in list(self._last_instl_year):
             if x == x_:
                 self._last_instl_year.pop((h, x))
-        for (h, x_) in list(self._cap_init):
+        for h, x_ in list(self._cap_init):
             if x == x_:
                 self._cap_init.pop((h, x))
-        for (h, x_) in list(self._age_init):
+        for h, x_ in list(self._age_init):
             if x == x_:
                 self._age_init.pop((h, x))
-        for (s, h, x_) in list(self._cap_min):
+        for s, h, x_ in list(self._cap_min):
             if x == x_:
                 self._cap_min.pop((s, h, x))
-        for (s, h, x_) in list(self._cap_max):
+        for s, h, x_ in list(self._cap_max):
             if x == x_:
                 self._cap_max.pop((s, h, x))
         for x_sub, x_main in self._coupled_main_tech.items():
@@ -404,8 +412,7 @@ class Techs:
         if x not in self._allowed_stages:
             self._allowed_stages[x] = set()
         if s not in self._allowed_stages[x]:
-            msg = (f"Removing allowed_stage {s} for {x} which was already not "
-                   "allowed")
+            msg = f"Removing allowed_stage {s} for {x} which was already not allowed"
             logging.log_warning(msg, module=LOG_MODULE_STR)
             return
         self._allowed_stages[x].remove(s)
@@ -456,8 +463,7 @@ class Techs:
         if x not in self._allowed_hubs:
             self._allowed_hubs[x] = set()
         if h not in self._allowed_hubs[x]:
-            msg = (f"Removing allowed_hub {h} for {x} which was already not "
-                   "allowed")
+            msg = f"Removing allowed_hub {h} for {x} which was already not allowed"
             logging.log_warning(msg, module=LOG_MODULE_STR)
             return
         self._allowed_hubs[x].remove(h)
@@ -482,7 +488,8 @@ class Techs:
         lifetime = self._lifetime.get(x, None)
         if lifetime is None:
             raise exceptions.MissingIdException(
-                ExceptionKey.LIFETIME_GET.value, x, module=LOG_MODULE_STR)
+                ExceptionKey.LIFETIME_GET.value, x, module=LOG_MODULE_STR
+            )
         return lifetime
 
     def set_lifetime(self, x: TechId, lifetime: int) -> None:
@@ -521,7 +528,8 @@ class Techs:
         interest_rate = self._interest_rate.get(x, None)
         if interest_rate is None:
             raise exceptions.MissingIdException(
-                ExceptionKey.INTERESTRATE_GET.value, x, module=LOG_MODULE_STR)
+                ExceptionKey.INTERESTRATE_GET.value, x, module=LOG_MODULE_STR
+            )
         return interest_rate
 
     def set_interest_rate(self, x: TechId, interest_rate: float) -> None:
@@ -561,8 +569,7 @@ class Techs:
         self._check_id(x, ExceptionKey.UNITCAPMIN_GET)
         return self._unit_cap_min.get((s, x), DEF_UNITCAPMIN)
 
-    def set_unit_cap_min(self, s: StageId, x: TechId,
-                         unit_cap_min: float) -> None:
+    def set_unit_cap_min(self, s: StageId, x: TechId, unit_cap_min: float) -> None:
         """
         Set the parameter 'unit_cap_min' which denotes the minimal amount of
         technology capacity that has to be installed of a technology if any
@@ -599,8 +606,7 @@ class Techs:
         self._check_id(x, ExceptionKey.ONETIMECAPEX_GET)
         return self._one_time_capex.get((s, x), DEF_ONETIMECAPEX)
 
-    def set_one_time_capex(self, s: StageId, x: TechId,
-                           one_time_capex: float) -> None:
+    def set_one_time_capex(self, s: StageId, x: TechId, one_time_capex: float) -> None:
         """
         Set the parameter 'one_time_capex' which denotes a fixed amount of
         CAPEX cost that occurs if any amount of capacity is installed for this
@@ -635,8 +641,7 @@ class Techs:
         self._check_id(x, ExceptionKey.CAPEXPERCAP_GET)
         return self._capex_per_cap.get((s, x), DEF_CAPEXPERCAP)
 
-    def set_capex_per_cap(self, s: StageId, x: TechId,
-                          capex_per_cap: float) -> None:
+    def set_capex_per_cap(self, s: StageId, x: TechId, capex_per_cap: float) -> None:
         """
         Set the parameter 'capex_per_cap' which denotes the amount of
         CAPEX cost for the installation of one unit of capacity for that
@@ -672,8 +677,7 @@ class Techs:
         self._check_id(x, ExceptionKey.ONETIMEOPEX_GET)
         return self._one_time_opex.get((s, x), DEF_ONETIMEOPEX)
 
-    def set_one_time_opex(self, s: StageId, x: TechId,
-                          one_time_opex: float) -> None:
+    def set_one_time_opex(self, s: StageId, x: TechId, one_time_opex: float) -> None:
         """
         Set the parameter 'one_time_opex' which denotes a fixed amount of
         OPEX cost that arises if a technology is used at all during a stage.
@@ -710,8 +714,7 @@ class Techs:
         self._check_id(x, ExceptionKey.OPEXPERCAP_GET)
         return self._opex_per_cap.get((s, x), DEF_OPEXPERCAP)
 
-    def set_opex_per_cap(self, s: StageId, x: TechId,
-                         opex_per_cap: float) -> None:
+    def set_opex_per_cap(self, s: StageId, x: TechId, opex_per_cap: float) -> None:
         """
         Set the parameter 'opex_per_cap' which denotes the amount of
         OPEX cost for each unit of installed technology, arising if the
@@ -748,8 +751,7 @@ class Techs:
         self._check_id(x, ExceptionKey.CO2PERCAP_GET)
         return self._co2_per_cap.get((s, x), DEF_CO2PERCAP)
 
-    def set_co2_per_cap(self, s: StageId, x: TechId, co2_per_cap: float
-                        ) -> None:
+    def set_co2_per_cap(self, s: StageId, x: TechId, co2_per_cap: float) -> None:
         """
         Set the parameter 'co2_per_cap' which denotes the amount of embedded
         CO2 that arises for each unit of installed technology. This is an
@@ -785,8 +787,7 @@ class Techs:
         self._check_id(x, ExceptionKey.LASTINSTLYEAR_GET)
         return self._last_instl_year.get((h, x), DEF_LASTINSTLYEAR)
 
-    def set_last_instl_year(self, h: HubId, x: TechId, last_instl_year: float
-                            ) -> None:
+    def set_last_instl_year(self, h: HubId, x: TechId, last_instl_year: float) -> None:
         """
         Set the parameter 'last_instl_year' which denotes the last year in a
         hub when a technology is allowed to be installed. This is an optional
@@ -899,8 +900,7 @@ class Techs:
         self._check_id(x, ExceptionKey.CAPMIN_GET)
         return self._cap_min.get((s, h, x), DEF_CAPMIN)
 
-    def set_cap_min(self, s: StageId, h: HubId, x: TechId,
-                    cap_min: float) -> None:
+    def set_cap_min(self, s: StageId, h: HubId, x: TechId, cap_min: float) -> None:
         """
         Set the parameter 'cap_min' which denotes the minimal amount of
         capacity that has to be achieved through a combination of installation
@@ -941,8 +941,7 @@ class Techs:
         self._check_id(x, ExceptionKey.CAPMAX_GET)
         return self._cap_max.get((s, h, x), DEF_CAPMAX)
 
-    def set_cap_max(self, s: StageId, h: HubId, x: TechId,
-                    cap_max: float) -> None:
+    def set_cap_max(self, s: StageId, h: HubId, x: TechId, cap_max: float) -> None:
         """
         Set the parameter 'cap_max' which denotes the maximal amount of
         capacity that is permitted for the combination of installation and
@@ -1018,8 +1017,8 @@ class Techs:
         self._check_id(x, ExceptionKey.COUPLEDMAINTECH_GET)
         if x not in self._coupled_main_tech:
             raise exceptions.MissingIdException(
-                ExceptionKey.COUPLEDMAINTECH_GET.value, x,
-                module=LOG_MODULE_STR)
+                ExceptionKey.COUPLEDMAINTECH_GET.value, x, module=LOG_MODULE_STR
+            )
         return self._coupled_main_tech[x]
 
     def get_coupled_sub_techs(self, x: TechId) -> Set[TechId]:
@@ -1032,8 +1031,11 @@ class Techs:
         :rtype: Set[TechId]
         """
         self._check_id(x, ExceptionKey.COUPLEDSUBTECHS_GET)
-        return {x_sub for x_sub, main_tech in self._coupled_main_tech.items()
-                if main_tech == x}
+        return {
+            x_sub
+            for x_sub, main_tech in self._coupled_main_tech.items()
+            if main_tech == x
+        }
 
     def set_coupled_main_tech(self, x_sub: TechId, x_main: TechId) -> None:
         """
@@ -1070,15 +1072,15 @@ class Techs:
             if self.is_coupled_sub_tech(x):
                 return DEF_COUPLEDCAPFACTOR
             exc_key = ExceptionKey.COUPLEDCAPFACTOR_NOTASUB.value
-            msg = "Tried to get 'coupled_cap_factor' of ConversionTechs " + \
-                f"for {x.kind_as_str} id {x.key} which is not a " + \
-                "sub tech"
-            raise exceptions.DataException(exc_key, [x], msg,
-                                           module=LOG_MODULE_STR)
+            msg = (
+                "Tried to get 'coupled_cap_factor' of ConversionTechs "
+                + f"for {x.kind_as_str} id {x.key} which is not a "
+                + "sub tech"
+            )
+            raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
         return self._coupled_cap_factor[x]
 
-    def set_coupled_cap_factor(self, x: TechId,
-                               coupled_cap_factor: float) -> None:
+    def set_coupled_cap_factor(self, x: TechId, coupled_cap_factor: float) -> None:
         """
         Set the parameter 'cap_factor' for a coupled sub-technology. This
         denotes the fraction of the sub-technology'scapacity in relation to the
@@ -1154,8 +1156,9 @@ class Techs:
             # Lifetime has to be positive
             if lifetime <= 0:
                 msg = f"{lifetime} = lifetime[{x}] <= 0"
-                raise exceptions.DataException(ExceptionKey.LIFETIME_VAL.value,
-                                               [x], msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    ExceptionKey.LIFETIME_VAL.value, [x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_allowed_stages(self, stages: Stages) -> None:
         exc_key = ExceptionKey.ALLOWEDSTAGES_VAL.value
@@ -1164,8 +1167,9 @@ class Techs:
                 # Unknown stage
                 if s not in stages.ids:
                     msg = f"Unknown stage {s} in allowed_stages[{x}]"
-                    raise exceptions.DataException(exc_key, [s, x], msg,
-                                                   module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [s, x], msg, module=LOG_MODULE_STR
+                    )
         # Identify techs that are allowed nowhere
         for x in self.ids:
             if not self.get_allowed_stages(x):
@@ -1179,13 +1183,13 @@ class Techs:
                 # Unknown hub
                 if h not in hubs.ids:
                     msg = f"Unknown hub {h} in allowed_hubs[{x}]"
-                    raise exceptions.DataException(exc_key, [h, x], msg,
-                                                   module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [h, x], msg, module=LOG_MODULE_STR
+                    )
         # Identify techs that are allowed nowhere
         for x in self.ids:
             if not self.get_allowed_hubs(x):
-                msg = (f"{x} is not allowed in any hub (due to "
-                       "allowed_tech_lists)")
+                msg = f"{x} is not allowed in any hub (due to allowed_tech_lists)"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_interest_rate(self) -> None:
@@ -1194,8 +1198,8 @@ class Techs:
             if interest_rate < 0:
                 msg = f"{interest_rate} = interest_rate[{x}] < 0"
                 raise exceptions.DataException(
-                    ExceptionKey.INTERESTRATE_VAL.value, [x], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.INTERESTRATE_VAL.value, [x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_unit_cap_min(self, stages: Stages) -> None:
         exc_key = ExceptionKey.UNITCAPMIN_VAL.value
@@ -1203,14 +1207,18 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in unit_cap_min[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # unit_cap_min has to be nonnegative
             if unit_cap_min < 0:
                 msg = f"{unit_cap_min} = unit_cap_min[{s}, {x}] < 0"
                 raise exceptions.DataException(
-                    ExceptionKey.UNITCAPMIN_VAL.value, [s, x], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.UNITCAPMIN_VAL.value,
+                    [s, x],
+                    msg,
+                    module=LOG_MODULE_STR,
+                )
 
     def _validate_one_time_capex(self, stages: Stages) -> None:
         exc_key = ExceptionKey.ONETIMECAPEX_VAL.value
@@ -1218,8 +1226,9 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in one_time_capex[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # one_time_capex usually nonnegative
             if one_time_capex < 0:
                 msg = f"{one_time_capex} = one_time_capex[{s}, {x}] < 0"
@@ -1231,8 +1240,9 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in capex_per_cap[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # capex_per_cap usually nonnegative
             if capex_per_cap < 0:
                 msg = f"{capex_per_cap} = capex_per_cap[{s}, {x}] < 0"
@@ -1244,8 +1254,9 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in one_time_opex[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # one_time_opex usually nonnegative
             if one_time_opex < 0:
                 msg = f"{one_time_opex} = one_time_opex[{s}, {x}] < 0"
@@ -1257,8 +1268,9 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in opex_per_cap[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # opex_per_cap usually nonnegative
             if opex_per_cap < 0:
                 msg = f"{opex_per_cap} = opex_per_cap[{s}, {x}] < 0"
@@ -1270,8 +1282,9 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in co2_per_cap[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # co2_per_cap usually nonnegative
             if co2_per_cap < 0:
                 msg = f"{co2_per_cap} = co2_per_cap[{s}, {x}] < 0"
@@ -1283,13 +1296,13 @@ class Techs:
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in cap_init[{h}, {x}]"
-                raise exceptions.DataException(exc_key, [h], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
             # cap_init must be nonnegative
             if cap_init < 0:
                 msg = f"{cap_init} = cap_init[{h}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [h, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_age_init(self, hubs: Hubs) -> None:
         exc_key = ExceptionKey.AGEINIT_VAL.value
@@ -1297,18 +1310,17 @@ class Techs:
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in age_init[{h}, {x}]"
-                raise exceptions.DataException(exc_key, [h], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
             # age_init must be nonnegative
             if age_init < 0:
                 msg = f"{age_init} = age_init[{h}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [h, x], msg, module=LOG_MODULE_STR
+                )
             # age_init usually smaller than lifetime
             lifetime = self.get_lifetime(x)
             if age_init >= lifetime:
-                msg = (f"{age_init} = age_init[{h}, {x}] >= "
-                       f"lifetime[{x}] = {lifetime}")
+                msg = f"{age_init} = age_init[{h}, {x}] >= lifetime[{x}] = {lifetime}"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_cap_min(self, stages: Stages, hubs: Hubs) -> None:
@@ -1318,13 +1330,15 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in cap_min[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in cap_min[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # cap_min usually nonnegative
             if cap_min < 0:
                 msg = f"{cap_min} = cap_min[{s}, {h}, {x}] < 0"
@@ -1338,10 +1352,13 @@ class Techs:
                 continue
             # Cannot satisfy minimal capacity if tech is not allowed
             if h not in self.get_allowed_hubs(x):
-                msg = (f"0 < {cap_min} = cap_min[{s}, {h}, {x}] but {x} is "
-                       f"not allowed in {h}")
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"0 < {cap_min} = cap_min[{s}, {h}, {x}] but {x} is "
+                    f"not allowed in {h}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_cap_max(self, stages: Stages, hubs: Hubs) -> None:
         exc_key = ExceptionKey.CAPMAX_VAL.value
@@ -1349,18 +1366,21 @@ class Techs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in cap_max[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in cap_max[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # cap_max must be nonnegative
             if cap_max < 0:
                 msg = f"{cap_max} = cap_max[{s}, {h}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_last_instl_year(self, stages: Stages, hubs: Hubs) -> None:
         exc_key = ExceptionKey.LASTINSTLYEAR_VAL.value
@@ -1370,13 +1390,16 @@ class Techs:
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in last_instl_year[{h}, {x}]"
-                raise exceptions.DataException(exc_key, [h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [h, x], msg, module=LOG_MODULE_STR
+                )
             # last_instl_year earlier than start year
             if year < init_year:
-                msg = (f"{year} = last_instl_year[{x}] < "
-                       f"start_year[{init_stage}] = {init_year} "
-                       "which is the initial stage year")
+                msg = (
+                    f"{year} = last_instl_year[{x}] < "
+                    f"start_year[{init_stage}] = {init_year} "
+                    "which is the initial stage year"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_coupled_main_tech(self) -> None:
@@ -1385,10 +1408,11 @@ class Techs:
         for x in self.coupled_main_techs.intersection(self.coupled_sub_techs):
             subs = self.get_coupled_sub_techs(x)
             main = self.get_coupled_main_tech(x)
-            msg = (f"{x} is coupled main tech with sub techs {subs}. But it "
-                   f"is also a sub tech with main tech {main}")
-            raise exceptions.DataException(exc_key, [x], msg,
-                                           module=LOG_MODULE_STR)
+            msg = (
+                f"{x} is coupled main tech with sub techs {subs}. But it "
+                f"is also a sub tech with main tech {main}"
+            )
+            raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
 
     def _validate_coupled_cap_factor(self) -> None:
         exc_key = ExceptionKey.COUPLEDCAPFACTOR_VAL.value
@@ -1396,18 +1420,14 @@ class Techs:
             # Only sub techs get coupled_cap_factor values
             if not self.is_coupled_sub_tech(x):
                 msg = f"{x} in coupled_cap_factor[{x}] is not a sub tech"
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
             # coupled_cap_factor values have to be nonnegative
             if coupled_cap_factor < 0:
-                msg = (f"{coupled_cap_factor} = coupled_cap_factor"
-                       f"[{x}] < 0")
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"{coupled_cap_factor} = coupled_cap_factor[{x}] < 0"
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
             # coupled_cap_factor values usually positive
             if coupled_cap_factor < common.EPS_ZEROCHECK:
-                msg = (f"{coupled_cap_factor} = coupled_cap_factor"
-                       f"[{x}] ~ 0")
+                msg = f"{coupled_cap_factor} = coupled_cap_factor[{x}] ~ 0"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     # ---------- #
@@ -1415,12 +1435,12 @@ class Techs:
     # ---------- #
     def _check_id(self, x: TechId, where: ExceptionKey) -> None:
         if x not in self._ids:
-            raise exceptions.UnknownIdException(where.value, x,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, x, module=LOG_MODULE_STR)
 
 
-def copy_over_tech(x: TechId, src: Techs, tar: Techs, stages: Stages,
-                   hubs: Hubs) -> None:
+def copy_over_tech(
+    x: TechId, src: Techs, tar: Techs, stages: Stages, hubs: Hubs
+) -> None:
     """
     Copy a technology from one Techs data object to another
 
@@ -1437,15 +1457,25 @@ def copy_over_tech(x: TechId, src: Techs, tar: Techs, stages: Stages,
     """
     # id
     if x not in src.ids:
-        raise exceptions.DataException(ExceptionKey.COPYOVERTECH.value, [x],
-            (f"Failed to copy tech {x} from Techs instance because {x} is "
-             "not part of that Techs instance"),
-            module=LOG_MODULE_STR)
+        raise exceptions.DataException(
+            ExceptionKey.COPYOVERTECH.value,
+            [x],
+            (
+                f"Failed to copy tech {x} from Techs instance because {x} is "
+                "not part of that Techs instance"
+            ),
+            module=LOG_MODULE_STR,
+        )
     if x in tar.ids:
-        raise exceptions.DataException(ExceptionKey.COPYOVERTECH.value, [x],
-            (f"Failed to copy tech {x} to Techs instance because {x} is "
-             "already part of that Techs instance"),
-            module=LOG_MODULE_STR)
+        raise exceptions.DataException(
+            ExceptionKey.COPYOVERTECH.value,
+            [x],
+            (
+                f"Failed to copy tech {x} to Techs instance because {x} is "
+                "already part of that Techs instance"
+            ),
+            module=LOG_MODULE_STR,
+        )
     tar.add_id(x)
     # Allowed stages & hubs
     for s in src.get_allowed_stages(x):

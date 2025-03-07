@@ -1,16 +1,19 @@
 """
 Pareto front data module
 """
-from typing import Dict, List, Tuple
+
 from enum import Enum
-from ehubx.data.index import Index, IndexKind
+from typing import Dict, List, Tuple
+
 from ehubx.data import exceptions
+from ehubx.data.index import Index, IndexKind
 
 
 class ParetoId(Index):
     """
     Pareto point index
     """
+
     def __init__(self, pos: int):
         super().__init__(IndexKind.PARETOPOINT, str(pos))
         self.pos: int = pos
@@ -20,6 +23,7 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the Pareto front data module
     """
+
     POINT_GET = "getting 'point' from ParetoFront"
     POINT_SET = "setting 'point' of ParetoFront"
 
@@ -69,12 +73,14 @@ class ParetoFront:
         :rtype: Tuple[float, float]
         """
         if pareto_id not in self.ids:
-            raise exceptions.MissingIdException(ExceptionKey.POINT_GET.value,
-                pareto_id, module=LOG_MODULE_STR)
+            raise exceptions.MissingIdException(
+                ExceptionKey.POINT_GET.value, pareto_id, module=LOG_MODULE_STR
+            )
         return self._points[pareto_id]
 
-    def set_point(self, pareto_id: ParetoId, obj_val_1: float,
-                  obj_val_2: float) -> None:
+    def set_point(
+        self, pareto_id: ParetoId, obj_val_1: float, obj_val_2: float
+    ) -> None:
         """
         Set the two-dimensional objective coordinates of a point in the Pareto
         front

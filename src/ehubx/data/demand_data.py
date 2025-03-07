@@ -1,22 +1,25 @@
 """
 Demand data module
 """
-from typing import Dict, List, Set, Tuple
+
 from enum import Enum
-from ehubx.core.common import TimeSeriesKind
+from typing import Dict, List, Set, Tuple
+
 from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.ec_data import Ecs, EcId
-from ehubx.data.time_data import Times, TimeId
-from ehubx.data.time_series import TimeSeries
+from ehubx.core.common import TimeSeriesKind
 from ehubx.data import exceptions
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
 
 
 class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the demand data module
     """
+
     TUPLES_ADD = "adding to 'tuples' of Demands"
     TUPLES_REMOVE = "removing from 'tuples' of Demands"
     TUPLES_VAL = "validating 'tuples' of Demands"
@@ -66,8 +69,9 @@ class Demands:
         if (s, h, e) in self._tuples:
             exc_key = ExceptionKey.TUPLES_ADD.value
             msg = f"Trying to add already existing tuple ({s}, {h}, {e})."
-            raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                           module=LOG_MODULE_STR)
+            raise exceptions.DataException(
+                exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+            )
         self._tuples.add((s, h, e))
         self._demand[s, h, e] = TimeSeries()
         self._demand[s, h, e].def_value = DEF_DEMAND
@@ -85,8 +89,8 @@ class Demands:
         """
         if (s, h, e) not in self._tuples:
             raise exceptions.MissingIdsException(
-                ExceptionKey.TUPLES_REMOVE.value, [s, h, e],
-                module=LOG_MODULE_STR)
+                ExceptionKey.TUPLES_REMOVE.value, [s, h, e], module=LOG_MODULE_STR
+            )
         self._tuples.remove((s, h, e))
         if (s, h, e) in self._demand:
             self._demand.pop((s, h, e))
@@ -112,8 +116,9 @@ class Demands:
         self._check_ids(s, h, e, ExceptionKey.DEMAND_GET)
         return self._demand[s, h, e]
 
-    def set_demand(self, s: StageId, h: HubId, e: EcId, t: TimeId,
-                   demand: float) -> None:
+    def set_demand(
+        self, s: StageId, h: HubId, e: EcId, t: TimeId, demand: float
+    ) -> None:
         """
         At a specific time, set the parameter 'demand' which denotes the
         amount of power that is scheduled to be consumed by the system. This is
@@ -133,8 +138,7 @@ class Demands:
         self._check_ids(s, h, e, ExceptionKey.DEMAND_SET)
         self._demand[s, h, e].set_value(t, demand)
 
-    def set_demand_def(self, s: StageId, h: HubId, e: EcId,
-                       demand_def: float) -> None:
+    def set_demand_def(self, s: StageId, h: HubId, e: EcId, demand_def: float) -> None:
         """
         Set the default (with respect to time) value for the parameter 'demand'
         which denotes the amount of power that is scheduled to be consumed by
@@ -156,8 +160,9 @@ class Demands:
     # Secondary property: time_series #
     # ------------------------------- #
     @property
-    def time_series(self) -> List[Tuple[TimeSeriesKind, StageId,
-                                        Tuple[str, ...], TimeSeries]]:
+    def time_series(
+        self,
+    ) -> List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]]:
         """
         Time series profiles in the demands module. This is a list of tuples.
         Each list element has the following list entries: 1) ProfileKind of the
@@ -168,17 +173,22 @@ class Demands:
         :rtype: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
             TimeSeries]]
         """
-        all_series: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
-                               TimeSeries]] = []
+        all_series: List[
+            Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]
+        ] = []
         for (s, h, e), series in self._demand.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.DEMAND, s,
-                                   (h.key, e.key), series))
+                all_series.append((TimeSeriesKind.DEMAND, s, (h.key, e.key), series))
         return all_series
 
-    def set_time_series_val(self, kind: TimeSeriesKind, s: StageId,
-                            ids: Tuple[str, ...], t: TimeId, value: float
-                            ) -> None:
+    def set_time_series_val(
+        self,
+        kind: TimeSeriesKind,
+        s: StageId,
+        ids: Tuple[str, ...],
+        t: TimeId,
+        value: float,
+    ) -> None:
         """
         Set the value for a time series in the demand data class. The time
         series should be uniquely identified by the time series kind, the
@@ -210,8 +220,7 @@ class Demands:
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs,
-                 times: Times) -> None:
+    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs, times: Times) -> None:
         """
         Validate all demand data in this object. Apart from sense-checking
         parameter in terms of quantity, this includes checking whether the ids
@@ -229,25 +238,21 @@ class Demands:
         self._validate_tuples(stages, hubs, ecs)
         self._validate_demand(times)
 
-    def _validate_tuples(self, stages: Stages, hubs: Hubs,
-                         ecs: Ecs) -> None:
+    def _validate_tuples(self, stages: Stages, hubs: Hubs, ecs: Ecs) -> None:
         exc_key = ExceptionKey.TUPLES_VAL.value
-        for (s, h, e) in self._tuples:
+        for s, h, e in self._tuples:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in tuple ({s}, {h}, {e})"
-                raise exceptions.DataException(exc_key, [s], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [s], msg, module=LOG_MODULE_STR)
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in tuple ({s}, {h}, {e})"
-                raise exceptions.DataException(exc_key, [h], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
             # Unknown ec
             if e not in ecs.ids:
                 msg = f"Unknown ec {e} in tuple ({s}, {h}, {e})"
-                raise exceptions.DataException(exc_key, [e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [e], msg, module=LOG_MODULE_STR)
 
     def _validate_demand(self, times: Times) -> None:
         exc_key = ExceptionKey.DEMAND_VAL.value
@@ -258,8 +263,7 @@ class Demands:
             if demand.has_values:
                 for t in times.ids:
                     if demand.get_value(t) < 0:
-                        msg = (f"{demand.get_value(t)} = demand[{s}, {h}, {e}]"
-                            f"[{t}] < 0")
+                        msg = f"{demand.get_value(t)} = demand[{s}, {h}, {e}][{t}] < 0"
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # Price values usually nonnegative (default values)
@@ -273,10 +277,12 @@ class Demands:
     # ---------- #
     # Id checker #
     # ---------- #
-    def _check_ids(self, s: StageId, h: HubId, e: EcId,
-                   where: ExceptionKey) -> None:
+    def _check_ids(self, s: StageId, h: HubId, e: EcId, where: ExceptionKey) -> None:
         if (s, h, e) not in self._tuples:
-            msg = (f"Encountered tuple ({s}, {h}, {e}) which is not a demand "
-                   f"tuple. This happened while {where.value}")
-            raise exceptions.DataException(where.value, [s, h, e], msg,
-                                           module=LOG_MODULE_STR)
+            msg = (
+                f"Encountered tuple ({s}, {h}, {e}) which is not a demand "
+                f"tuple. This happened while {where.value}"
+            )
+            raise exceptions.DataException(
+                where.value, [s, h, e], msg, module=LOG_MODULE_STR
+            )

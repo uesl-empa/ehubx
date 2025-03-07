@@ -1,18 +1,21 @@
 """
 Stage data module
 """
+
+import collections
 from enum import Enum
 from typing import Dict, List, Set
-import collections
+
 from ehubx.core import logging
-from ehubx.data.index import Index, IndexKind
 from ehubx.data import exceptions
+from ehubx.data.index import Index, IndexKind
 
 
 class StageId(Index):
     """
     Stage index
     """
+
     def __init__(self, key: str):
         super().__init__(IndexKind.STAGE, key)
 
@@ -21,6 +24,7 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the stage data module
     """
+
     ID_ADD = "adding to 'ids' of Stages"
     STARTYEAR_SET = "setting 'start_year' of Stages"
     STARTYEAR_GET = "getting 'start_year' from Stages"
@@ -75,8 +79,7 @@ class Stages:
         """
         ids_as_list = list(self._ids)
         stage_years = [self.get_start_year(s) for s in ids_as_list]
-        sort_index = sorted(range(len(stage_years)),
-                            key=stage_years.__getitem__)
+        sort_index = sorted(range(len(stage_years)), key=stage_years.__getitem__)
         ids_in_order = [ids_as_list[i] for i in sort_index]
         return ids_in_order
 
@@ -88,8 +91,9 @@ class Stages:
         :type s: StageId
         """
         if s in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, s,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, s, module=LOG_MODULE_STR
+            )
         self._ids.add(s)
 
     # -------------------- #
@@ -109,7 +113,8 @@ class Stages:
         start_year = self._start_year.get(s, None)
         if start_year is None:
             raise exceptions.MissingIdException(
-                ExceptionKey.STARTYEAR_GET.value, s, module=LOG_MODULE_STR)
+                ExceptionKey.STARTYEAR_GET.value, s, module=LOG_MODULE_STR
+            )
         return start_year
 
     def set_start_year(self, s: StageId, start_year: int) -> None:
@@ -268,16 +273,23 @@ class Stages:
     def _validate_start_years(self) -> None:
         # Search for duplicate start years
         counts = collections.Counter(self._start_year.values())
-        dupes = {s: start_year
-                 for s, start_year in self._start_year.items()
-                 if counts[start_year] > 1}
+        dupes = {
+            s: start_year
+            for s, start_year in self._start_year.items()
+            if counts[start_year] > 1
+        }
         if len(dupes) > 0:
-            dupe_dict = {dupe_year: [s for s in self._ids
-                                     if dupes[s] == dupe_year]
-                         for dupe_year in set(dupes.values())}
+            dupe_dict = {
+                dupe_year: [s for s in self._ids if dupes[s] == dupe_year]
+                for dupe_year in set(dupes.values())
+            }
             msg = f"Duplicate start_years: {dupe_dict}"
-            raise exceptions.DataException(ExceptionKey.STARTYEAR_SET.value,
-                list(dupes.keys()), msg, module=LOG_MODULE_STR)
+            raise exceptions.DataException(
+                ExceptionKey.STARTYEAR_SET.value,
+                list(dupes.keys()),
+                msg,
+                module=LOG_MODULE_STR,
+            )
 
     def _validate_co2_price(self) -> None:
         for s, co2_price in self._co2_price.items():
@@ -306,13 +318,12 @@ class Stages:
             if co2_min > co2_max:
                 msg = f"{co2_min} = co2_min[{s}] > co2_max[{s}] = {co2_max}"
                 raise exceptions.DataException(
-                    ExceptionKey.CO2MINMAX_VAL.value, [s], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.CO2MINMAX_VAL.value, [s], msg, module=LOG_MODULE_STR
+                )
 
     # ---------- #
     # Id checker #
     # ---------- #
     def _check_id(self, x: StageId, where: ExceptionKey) -> None:
         if x not in self._ids:
-            raise exceptions.UnknownIdException(where.value, x,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, x, module=LOG_MODULE_STR)

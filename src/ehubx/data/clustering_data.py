@@ -1,8 +1,11 @@
 """
 Clustering data module
 """
-from typing import Dict, Tuple, Optional, Set
+
+from typing import Dict, Optional, Set, Tuple
+
 import pandas as pd
+
 from ehubx.data.time_data import TimeId
 
 

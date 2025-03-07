@@ -1,8 +1,12 @@
 """Stage submodel"""
-from pyomo.core import Model, Set
+
 from datetime import datetime
+
+from pyomo.core import Model, Set
+
 from ehubx.core import logging
 from ehubx.data.stage_data import Stages
+
 
 # -------- #
 # Literals #
@@ -27,10 +31,10 @@ def build(model: Model, stages: Stages) -> None:
     # Start measuring build time
     start = datetime.now()
     # [SET] Stages
-    setattr(model, SET_STAGE,
-            Set(initialize=[s.key for s in stages.ids]))
+    setattr(model, SET_STAGE, Set(initialize=[s.key for s in stages.ids]))
     # Log
     elapsed = datetime.now() - start
     logging.log_file(
-        "Built stage module. Elapsed time: "
-        f"{int(elapsed.total_seconds())}s", module=LOG_MODULE_STR)
+        f"Built stage module. Elapsed time: {int(elapsed.total_seconds())}s",
+        module=LOG_MODULE_STR,
+    )

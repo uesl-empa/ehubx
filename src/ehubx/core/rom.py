@@ -1,17 +1,19 @@
 """Reduced-order modeling module"""
-import os
-from typing import Dict, List, Optional, Tuple
-import csv
-from enum import Enum
+
 import copy
-from datetime import datetime
+import csv
 import math
+import os
+from datetime import datetime
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 import tsam.timeseriesaggregation as tsam  # type: ignore
+
+from ehubx.core import exceptions, logging
 from ehubx.core.common import TimeSeriesKind
-from ehubx.core import exceptions
-from ehubx.core import logging
 from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId
@@ -66,21 +68,24 @@ class RomSettings:
     @num_ts_target.setter
     def num_ts_target(self, num_ts_target: int) -> None:
         if num_ts_target <= 0:
-            msg = ("Tried to set nonpositive value num_ts_target="
-                   f"{num_ts_target}")
+            msg = f"Tried to set nonpositive value num_ts_target={num_ts_target}"
             raise exceptions.EhubXException(msg, module=LOG_MODULE_STR)
         self._num_ts_target = num_ts_target
 
-    def __init__(self,
-                 method: RomMethod = RomMethod.CLUSTER_TSAM,
-                 num_ts_target: int = 10) -> None:
+    def __init__(
+        self, method: RomMethod = RomMethod.CLUSTER_TSAM, num_ts_target: int = 10
+    ) -> None:
         self.method = method
         self.num_ts_target = num_ts_target
 
 
-def rom(energy_system: EnergySystem, rom_settings: RomSettings,
-        write_rom: bool = True, rom_dir_path: Optional[str] = None,
-        add_time_to_dir: bool = False) -> Optional[EnergySystem]:
+def rom(
+    energy_system: EnergySystem,
+    rom_settings: RomSettings,
+    write_rom: bool = True,
+    rom_dir_path: Optional[str] = None,
+    add_time_to_dir: bool = False,
+) -> Optional[EnergySystem]:
     """
     Perform reduced-order modeling on the energy system data. A reduced-
     order model is calculated based on the provided settings. Specifically,
@@ -105,8 +110,10 @@ def rom(energy_system: EnergySystem, rom_settings: RomSettings,
     # No ROM
     sys_rom: Optional[EnergySystem] = None
     if rom_settings.method == RomMethod.NONE:
-        msg = ("Called reduced-order modeling with the method set to "
-               "None in the ROM settings. Skipping ...")
+        msg = (
+            "Called reduced-order modeling with the method set to "
+            "None in the ROM settings. Skipping ..."
+        )
         logging.log_warning(msg, module=LOG_MODULE_STR)
         return sys_rom
 
@@ -114,17 +121,29 @@ def rom(energy_system: EnergySystem, rom_settings: RomSettings,
     if len(energy_system.load_shifting.ids) > 0:
         raise exceptions.EhubXException(
             "Can currently not perform reduced-order modeling under presence "
-            "of load shifting", module=LOG_MODULE_STR)
+            "of load shifting",
+            module=LOG_MODULE_STR,
+        )
 
     # Cut the time horizon after num_ts_target
     if rom_settings.method == RomMethod.CUT_TIME:
-        sys_rom = _cut_time(energy_system, rom_settings.num_ts_target,
-                            write_rom, rom_dir_path, add_time_to_dir)
+        sys_rom = _cut_time(
+            energy_system,
+            rom_settings.num_ts_target,
+            write_rom,
+            rom_dir_path,
+            add_time_to_dir,
+        )
 
     # Perform tsam clustering
     if rom_settings.method == RomMethod.CLUSTER_TSAM:
-        sys_rom = _cluster_tsam(energy_system, rom_settings.num_ts_target,
-                                write_rom, rom_dir_path, add_time_to_dir)
+        sys_rom = _cluster_tsam(
+            energy_system,
+            rom_settings.num_ts_target,
+            write_rom,
+            rom_dir_path,
+            add_time_to_dir,
+        )
 
     # Return
     return sys_rom
@@ -133,9 +152,13 @@ def rom(energy_system: EnergySystem, rom_settings: RomSettings,
 # -------------------- #
 # ROM method: Cut time #
 # -------------------- #
-def _cut_time(energy_system: EnergySystem, num_ts: int, write_rom: bool,
-              rom_dir_path: Optional[str], add_time_to_dir: bool
-              ) -> EnergySystem:
+def _cut_time(
+    energy_system: EnergySystem,
+    num_ts: int,
+    write_rom: bool,
+    rom_dir_path: Optional[str],
+    add_time_to_dir: bool,
+) -> EnergySystem:
     """
     Cut all time series in the full energy system
 
@@ -155,9 +178,11 @@ def _cut_time(energy_system: EnergySystem, num_ts: int, write_rom: bool,
 
     # Make a carbon copy of the energy system data
     start_time = datetime.now()
-    logging.log("Starting reduced-order modeling (cut-time strategy) to "
-                f"reduce the time horizon to the first {num_ts} time indices",
-                module=LOG_MODULE_STR)
+    logging.log(
+        "Starting reduced-order modeling (cut-time strategy) to "
+        f"reduce the time horizon to the first {num_ts} time indices",
+        module=LOG_MODULE_STR,
+    )
     sys = copy.deepcopy(energy_system)
 
     # Build the time map
@@ -183,24 +208,34 @@ def _cut_time(energy_system: EnergySystem, num_ts: int, write_rom: bool,
         if rom_dir_path is None:
             raise exceptions.EhubXException(
                 "Failed to write ROM because rom_dir_path is unspecified",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         __write_rom_time_map(time_map, rom_dir_path, add_time_to_dir)
         profile_dir_path = os.path.join(rom_dir_path, DIRNAME_PROFILES)
         write_data_time_series(sys, profile_dir_path)
 
     # Return the reduced energy system
     elapsed = datetime.now() - start_time
-    logging.log((f"Finished reduced-order modeling. Elapsed time: "
-                 f"{int(elapsed.total_seconds())}s"), module=LOG_MODULE_STR)
+    logging.log(
+        (
+            f"Finished reduced-order modeling. Elapsed time: "
+            f"{int(elapsed.total_seconds())}s"
+        ),
+        module=LOG_MODULE_STR,
+    )
     return sys
 
 
 # --------------------------- #
 # ROM method: tsam clustering #
 # --------------------------- #
-def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
-                  rom_dir_path: Optional[str], add_time_to_dir: bool
-                  ) -> Optional[EnergySystem]:
+def _cluster_tsam(
+    energy_system: EnergySystem,
+    num_ts: int,
+    write_rom: bool,
+    rom_dir_path: Optional[str],
+    add_time_to_dir: bool,
+) -> Optional[EnergySystem]:
     """
     Perform time clustering with the tsam package
 
@@ -219,17 +254,22 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
     """
     # Start
     start_time = datetime.now()
-    logging.log("Starting reduced-order modeling (clustering-tsam strategy) "
-                f"to reduce the time horizon to a targeted {num_ts} time "
-                "steps in the reduced system",
-                module=LOG_MODULE_STR)
+    logging.log(
+        "Starting reduced-order modeling (clustering-tsam strategy) "
+        f"to reduce the time horizon to a targeted {num_ts} time "
+        "steps in the reduced system",
+        module=LOG_MODULE_STR,
+    )
 
     # Clustering only makes sense with fewer clustered ts than horizon ts
     if num_ts >= energy_system.times.num_horizon_ts:
-        logging.log("Stopped clustering because target number of clustered "
-                    f"time steps ({num_ts}) is larger than number of horizon "
-                    f"time steps ({energy_system.times.num_horizon_ts}) "
-                    "in the model", module=LOG_MODULE_STR)
+        logging.log(
+            "Stopped clustering because target number of clustered "
+            f"time steps ({num_ts}) is larger than number of horizon "
+            f"time steps ({energy_system.times.num_horizon_ts}) "
+            "in the model",
+            module=LOG_MODULE_STR,
+        )
         return None
 
     # Make a carbon copy of the energy system data object and extract its time
@@ -240,19 +280,24 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
     # Need at least twice as many cluster time steps as number of time series
     if num_ts < 2 * len(df.columns):
         num_ts = 2 * len(df.columns)
-        logging.log("Changed target number of clustered time steps to "
-                    f"2 * num_series = {num_ts} because it was smaller than "
-                    "that before (num_series is the number of time series in "
-                    "the energy system data)", module=LOG_MODULE_STR)
+        logging.log(
+            "Changed target number of clustered time steps to "
+            f"2 * num_series = {num_ts} because it was smaller than "
+            "that before (num_series is the number of time series in "
+            "the energy system data)",
+            module=LOG_MODULE_STR,
+        )
 
     # Prepare per-stage attributes
     df_cl_per_stage: Dict[StageId, pd.DataFrame] = {}
     time_dict_per_stage: Dict[StageId, Dict[TimeId, TimeId]] = {}
     err_per_stage: Dict[StageId, pd.DataFrame] = {}
 
-    def __cluster_stage(s: StageId, num_ts_: int = num_ts,
-                        extreme_period_method: str = "new_cluster_center"
-                        ) -> None:
+    def __cluster_stage(
+        s: StageId,
+        num_ts_: int = num_ts,
+        extreme_period_method: str = "new_cluster_center",
+    ) -> None:
         """
         Perform time clustering for the time series in a specific stage
 
@@ -274,12 +319,16 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
             raise exceptions.EhubXException(
                 f"No time series data was detected for stage {s}. In order "
                 "for tsam clustering to work, time series data must be "
-                "present for every stage", module=LOG_MODULE_STR) from exc
+                "present for every stage",
+                module=LOG_MODULE_STR,
+            ) from exc
 
         # Log
-        logging.log_file(f"Started to calculate clustering for stage {s} "
-                         f"which has {len(df_s.columns)} time series ...",
-                         module=LOG_MODULE_STR)
+        logging.log_file(
+            f"Started to calculate clustering for stage {s} "
+            f"which has {len(df_s.columns)} time series ...",
+            module=LOG_MODULE_STR,
+        )
 
         # Calculate "roundOutput" for tsam which is the decimal to which the
         # output will be rounded
@@ -290,7 +339,8 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
             round_output = 2 - magnitude
 
         # Construct the tsam aggregation object
-        agg = tsam.TimeSeriesAggregation(df_s,
+        agg = tsam.TimeSeriesAggregation(
+            df_s,
             noTypicalPeriods=num_ts_,
             hoursPerPeriod=1,
             clusterMethod="hierarchical",
@@ -299,7 +349,8 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
             rescaleClusterPeriods=False,
             extremePeriodMethod=extreme_period_method,
             roundOutput=round_output,
-            representationMethod="durationRepresentation")
+            representationMethod="durationRepresentation",
+        )
 
         # Calculate the clustered time series
         df_cl_per_stage[s] = agg.createTypicalPeriods().reset_index(drop=True)
@@ -308,7 +359,8 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
         # Save results from stage clustering
         time_dict_per_stage[s] = {
             TimeId(t_full): TimeId(t_cl)
-            for t_full, t_cl in enumerate(agg.clusterOrder + 1, start=1)}
+            for t_full, t_cl in enumerate(agg.clusterOrder + 1, start=1)
+        }
         err_per_stage[s] = agg.accuracyIndicators()
 
     # Perform clustering in each stage
@@ -317,8 +369,9 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
 
     # Detect mismatch in num_ts between stages. All stages should have the
     # same amount of clustered timesteps now
-    num_ts_per_stage = {s: df_cl_per_stage[s].shape[0]
-                        for s in energy_system.stages.ids}
+    num_ts_per_stage = {
+        s: df_cl_per_stage[s].shape[0] for s in energy_system.stages.ids
+    }
     num_ts_max = max(num_ts_per_stage.values())
     for s, num_ts_s in num_ts_per_stage.items():
         if num_ts_s != num_ts_max:
@@ -326,22 +379,26 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
             logging.log(
                 f"Restarting clustering in stage {s} to synchronize stages."
                 f"{s} had {num_ts_s} cluster time steps, maximum across "
-                f"stages is {num_ts_max}", module=LOG_MODULE_STR)
-            __cluster_stage(s, num_ts_=num_ts_max,
-                            extreme_period_method="None")
+                f"stages is {num_ts_max}",
+                module=LOG_MODULE_STR,
+            )
+            __cluster_stage(s, num_ts_=num_ts_max, extreme_period_method="None")
     num_ts = num_ts_max
 
     # Build the time map
     time_map: List[Tuple[StageId, TimeId, Optional[TimeId]]] = []
-    time_map = [(s, t_full, time_dict_per_stage[s][t_full])
-                for s in energy_system.stages.ids
-                for t_full in energy_system.times.ids_horizon]
+    time_map = [
+        (s, t_full, time_dict_per_stage[s][t_full])
+        for s in energy_system.stages.ids
+        for t_full in energy_system.times.ids_horizon
+    ]
 
     # Modify the time data
     sys.times.clear_ids()
     for s, time_dict in time_dict_per_stage.items():
         for t_cl in set(time_dict.values()):
-            sys.times.add_id(t_cl)
+            if t_cl not in sys.times.ids:
+                sys.times.add_id(t_cl)
             weight = list(time_dict.values()).count(t_cl)
             sys.times.set_weight(s, t_cl, weight)
         for t_full, t_cl in time_dict.items():
@@ -350,7 +407,7 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
     # Redistribute profiles
     for _, _, _, series in sys.time_series:
         series.clear()
-    df_cl = pd.concat(df_cl_per_stage).reset_index(drop=True)
+    df_cl = pd.concat(df_cl_per_stage.values(), axis=1).reset_index(drop=True)
     df_cl.index += 1
     __df_to_series(df_cl, sys)
 
@@ -359,15 +416,21 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
         if rom_dir_path is None:
             raise exceptions.EhubXException(
                 "Failed to write ROM because rom_dir_path is unspecified",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         __write_rom_time_map(time_map, rom_dir_path, add_time_to_dir)
         profile_dir_path = os.path.join(rom_dir_path, DIRNAME_PROFILES)
         write_data_time_series(sys, profile_dir_path)
 
     # Return the reduced energy system
     elapsed = datetime.now() - start_time
-    logging.log((f"Finished reduced-order modeling. Elapsed time: "
-                 f"{int(elapsed.total_seconds())}s"), module=LOG_MODULE_STR)
+    logging.log(
+        (
+            f"Finished reduced-order modeling. Elapsed time: "
+            f"{int(elapsed.total_seconds())}s"
+        ),
+        module=LOG_MODULE_STR,
+    )
     return sys
 
 
@@ -375,15 +438,19 @@ def _cluster_tsam(energy_system: EnergySystem, num_ts: int, write_rom: bool,
 # Write ROM #
 # --------- #
 def __write_rom_time_map(
-        time_map: List[Tuple[StageId, TimeId, Optional[TimeId]]],
-        rom_dir_path: str, add_time_to_dir: bool) -> None:
+    time_map: List[Tuple[StageId, TimeId, Optional[TimeId]]],
+    rom_dir_path: str,
+    add_time_to_dir: bool,
+) -> None:
     # Directories and files
-    rom_dir_path_new = create_dir(rom_dir_path,
-        add_time_to_dir=add_time_to_dir, dir_desc="ROM")
+    rom_dir_path_new = create_dir(
+        rom_dir_path, add_time_to_dir=add_time_to_dir, dir_desc="ROM"
+    )
     if rom_dir_path_new is None:
         raise exceptions.EhubXException(
-            "Could not write ROM data because the directory "
-            "could not be created", module=LOG_MODULE_STR)
+            "Could not write ROM data because the directory could not be created",
+            module=LOG_MODULE_STR,
+        )
     rom_dir_path = rom_dir_path_new
     time_map_path = os.path.join(rom_dir_path, FILENAME_TIMEMAP)
 
@@ -392,15 +459,14 @@ def __write_rom_time_map(
         with open(time_map_path, "w", newline="", encoding="utf8") as file:
             csv_writer = csv.writer(file)
             csv_writer.writerow(["stage_id", "ts_full", "ts_cluster"])
-            for (s, t_full, t_cluster) in time_map:
+            for s, t_full, t_cluster in time_map:
                 t_cluster_key: Optional[int] = None
                 if t_cluster:
                     t_cluster_key = t_cluster.key_as_int
                 csv_writer.writerow([s.key, t_full.key_as_int, t_cluster_key])
 
     # Log
-    logging.log(f"Written ROM time data to {rom_dir_path}",
-                module=LOG_MODULE_STR)
+    logging.log(f"Written ROM time data to {rom_dir_path}", module=LOG_MODULE_STR)
 
 
 def __series_to_df(sys: EnergySystem) -> pd.DataFrame:
@@ -430,8 +496,7 @@ def __series_to_df(sys: EnergySystem) -> pd.DataFrame:
     # Do this for every stage
     df_data: Dict[Tuple[str, ...], List[float]] = {}
     for kind, stage_id, ids, series in all_series:
-        col_id = ((kind.value, stage_id.key) + ids
-                  + ("", ) * (dim_col_id - len(ids) - 2))
+        col_id = (kind.value, stage_id.key) + ids + ("",) * (dim_col_id - len(ids) - 2)
         df_data[col_id] = [series.get_value(t) for t in horizon_ids]
 
     # Build the dataframe and make the index start at 1 instead of 0

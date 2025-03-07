@@ -1,6 +1,7 @@
 """
 Index module
 """
+
 from enum import Enum
 from typing import Any
 
@@ -8,14 +9,15 @@ from typing import Any
 class IndexKind(Enum):
     STAGE = "stage"
     HUB = "hub"
+    NETLINK = "net_link"
     TECH = "tech"
+    NETTECH = "net tech"
     EC = "ec"
+    LOADSHIFT = "load shift"
     TIME = "time"
     WINDPARK = "windpark"
-    LOADSHIFT = "load shift"
-    NETTECH = "net tech"
-    NETLINK = "net_link"
     PARETOPOINT = "pareto_point"
+    ATESSCHEDULE = "ates_schedule"
 
 
 # Main index class

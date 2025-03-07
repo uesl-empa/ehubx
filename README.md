@@ -9,7 +9,13 @@ ehubX is a Python platform for optimization-based energy system models. Its inpu
 
 ## Installation
 
-ehubX installation is managed through [Poetry](https://python-poetry.org/). Inside the ehubX repository directory, running `poetry install` installs ehubX and all its dependencies. Additionally, ehubX requires an optimization solver: [GLPK](https://www.gnu.org/software/glpk/) can be installed e.g.; using Anaconda with `conda install -c conda-forge glpk`. Alternatively, [Gurobi](https://www.gurobi.com/) can be used.
+### Installation (local)
+
+Installation instructions are available as a video [here](https://empach.sharepoint.com/:v:/s/external-project_EXTEhubDevelopment/EVAizIAJ7KdAoS2KFGS_l6oBMQ6tDdA6JPNV5J_Tb7olwA?e=8anU48) (TODO: access currently Empa-internal)
+
+## Installation (devcontainer)
+
+Installation instructions are available as a video [here](https://empach.sharepoint.com/:v:/s/external-project_EXTEhubDevelopment/ETZmXKry2k9DrbPzJ-SGD1EBNIZGGlBNKQPGqyqAcqzHQw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=VrHD8O) (TODO: access currently Empa-internal)
 
 ## Documentation
 
@@ -21,7 +27,7 @@ in a terminal and the documentation will be available under docs/build/html
 
 ## Examples
 
-The examples directory contains demo projects that give an impression on how to work with ehubX models.
+The examples directory contains demo projects that give an impression on how to work with ehubX models. The most academic example and a good place to start is the *toy_model*.
 
 ## Project Info
 - Main contact: [Dennis Beermann](dennis.beermann@empa.ch)

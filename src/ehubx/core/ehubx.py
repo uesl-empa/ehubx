@@ -1,23 +1,23 @@
 """
 ehubX module. Contains top-level UI functionality
 """
+
 import os
-from typing import Callable, Dict, Optional
 from datetime import datetime
+from typing import Callable, Dict, Optional
+
 from pyomo import environ  # noqa: F401
 from pyomo.core import Model
+
+from ehubx.core import exceptions, logging, optimizer, rom
 from ehubx.core.common import MultiObjMethod, ObjectiveType, SolverKind
-from ehubx.core import exceptions
-from ehubx.core import logging
-from ehubx.core import optimizer
-from ehubx.core import rom
-from ehubx.core.solver import Solver, Gurobi, Glpk
+from ehubx.core.solver import Glpk, Gurobi, Solver
 from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.pareto_front_data import ParetoFront
-from ehubx.parser import energy_system_parser
 from ehubx.model import energy_system_model
-from ehubx.writer.common_writer import create_dir, FileGranularity
+from ehubx.parser import energy_system_parser
 from ehubx.writer import energy_system_writer
+from ehubx.writer.common_writer import FileGranularity, create_dir
 from ehubx.writer.pareto_writer import save_pareto_front
 
 
@@ -52,11 +52,15 @@ FILENAME_OPTVARS_SINGLEOBJ: str = "opt_vars.csv"
 
 # Dictionary translating from solver kind to type
 SOLVER_KIND_TO_TYPE: Dict[SolverKind, type] = {
-    SolverKind.GUROBI: Gurobi, SolverKind.GLPK: Glpk}
+    SolverKind.GUROBI: Gurobi,
+    SolverKind.GLPK: Glpk,
+}
 
 # Dictionary translating from type to solver kind
 SOLVER_TYPE_TO_KIND: Dict[type, SolverKind] = {
-    Gurobi: SolverKind.GUROBI, Glpk: SolverKind.GLPK}
+    Gurobi: SolverKind.GUROBI,
+    Glpk: SolverKind.GLPK,
+}
 
 
 class EhubX:
@@ -114,12 +118,12 @@ class EhubX:
         if not os.path.isdir(model_dir_path):
             raise exceptions.EhubXException(
                 f"Cannot set model directory to {model_dir_path}: Directory "
-                "does not exist")
+                "does not exist"
+            )
         # Set the path
         logging.set_logfile_path(os.path.join(model_dir_path, "ehubX.log"))
         self._model_dir_path = model_dir_path
-        logging.log(f"Model path set to {model_dir_path}",
-                    module=LOG_MODULE_STR)
+        logging.log(f"Model path set to {model_dir_path}", module=LOG_MODULE_STR)
 
     @property
     def lp_file_path(self) -> str:
@@ -168,12 +172,12 @@ class EhubX:
         :type solver: Optional[Solver]
         """
         if solver is None:
-            logging.log("Externally set ehubX solver to None",
-                        module=LOG_MODULE_STR)
+            logging.log("Externally set ehubX solver to None", module=LOG_MODULE_STR)
         if solver is not None:
-            logging.log(("Externally set a "
-                         f"{SOLVER_TYPE_TO_KIND[type(solver)].value} solver"),
-                        module=LOG_MODULE_STR)
+            logging.log(
+                (f"Externally set a {SOLVER_TYPE_TO_KIND[type(solver)].value} solver"),
+                module=LOG_MODULE_STR,
+            )
         self._solver = solver
 
     def create_solver(self, solver_kind: SolverKind) -> None:
@@ -202,8 +206,12 @@ class EhubX:
     # ---------------------- #
     # Reduced-order modeling #
     # ---------------------- #
-    def rom(self, rom_settings: rom.RomSettings = rom.RomSettings(),
-            write_rom: bool = True, add_time_to_dir: bool = False) -> None:
+    def rom(
+        self,
+        rom_settings: rom.RomSettings = rom.RomSettings(),
+        write_rom: bool = True,
+        add_time_to_dir: bool = False,
+    ) -> None:
         """
         Perform reduced-order modeling on the energy system data. A reduced-
         order model is calculated based on the provided settings. Specifically,
@@ -221,18 +229,23 @@ class EhubX:
         :type add_time_to_dir: bool
         """
         # Create subdirectory for ROM
-        sys_rom = rom.rom(self.energy_system, rom_settings,
-                          write_rom=write_rom,
-                          rom_dir_path=self.rom_dir_path,
-                          add_time_to_dir=add_time_to_dir)
+        sys_rom = rom.rom(
+            self.energy_system,
+            rom_settings,
+            write_rom=write_rom,
+            rom_dir_path=self.rom_dir_path,
+            add_time_to_dir=add_time_to_dir,
+        )
         if sys_rom is not None:
             self._energy_system_rom = sys_rom
 
     def delete_rom(self) -> None:
         """Delete the reduced-order energy system model (if it exists)"""
         if not self.energy_system_rom:
-            msg = ("Tried to undo reduced-order modeling when no reduced "
-                   "energy system model exists. Skipping ...")
+            msg = (
+                "Tried to undo reduced-order modeling when no reduced "
+                "energy system model exists. Skipping ..."
+            )
             logging.log_warning(msg, module=LOG_MODULE_STR)
         self._energy_system_rom = None
 
@@ -275,14 +288,15 @@ class EhubX:
     # Solve single-objective problem #
     # ------------------------------ #
     def solve_single_obj(
-            self,
-            obj_type: ObjectiveType = ObjectiveType.COST,
-            solver_kind: SolverKind = SolverKind.GUROBI,
-            write_model: bool = True,
-            model_lp_path: Optional[str] = None,
-            opt_vars_filename: Optional[str] = FILENAME_OPTVARS_SINGLEOBJ,
-            file_granularity: FileGranularity = FileGranularity.DEFAULT,
-            results_dir_path: str = "results") -> None:
+        self,
+        obj_type: ObjectiveType = ObjectiveType.COST,
+        solver_kind: SolverKind = SolverKind.GUROBI,
+        write_model: bool = True,
+        model_lp_path: Optional[str] = None,
+        opt_vars_filename: Optional[str] = FILENAME_OPTVARS_SINGLEOBJ,
+        file_granularity: FileGranularity = FileGranularity.DEFAULT,
+        results_dir_path: str = "results",
+    ) -> None:
         """
         Bundled method to perform single-objective optimization on the built
         energy system model. This routines sets an objective function,
@@ -318,13 +332,14 @@ class EhubX:
         if model is None:
             raise exceptions.EhubXException(
                 "Tried to solve single-objective problem but no model exists",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         # Select objective and write model to file
         optimizer.set_objective(model, obj_type)
         if write_model:
             self.write_lp(lp_file_path=model_lp_path)
         # Create new solver if necessary
-        if not isinstance(self.solver, SOLVER_KIND_TO_TYPE[solver_kind]):
+        if self.solver is None:
             self.create_solver(solver_kind)
         solver: Solver = self.solver  # type: ignore
         # Set directory where results should be placed
@@ -333,32 +348,38 @@ class EhubX:
             logging.log_warning(
                 f"Failed to create results directory at {results_dir_path}. "
                 "Stopping double-objective solving procedure ...",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
             return
         # Pass to optimization methods
-        optimizer.solve_single_obj(model, solver, results_dir_path,
-                                   opt_vars_filename=opt_vars_filename)
+        optimizer.solve_single_obj(
+            model, solver, results_dir_path, opt_vars_filename=opt_vars_filename
+        )
         # Write results
         energy_system = self._energy_system
         if self._model_built_from_rom:
             assert self._energy_system_rom is not None
             energy_system = self._energy_system_rom
-        energy_system_writer.write_all(energy_system, self._model,
-                                       results_dir_path,
-                                       file_granularity=file_granularity)
+        energy_system_writer.write_all(
+            energy_system,
+            self._model,
+            results_dir_path,
+            file_granularity=file_granularity,
+        )
 
     # ------------------------------------------ #
     # Bundled double-objective solving procedure #
     # ------------------------------------------ #
     def solve_double_obj(
-            self,
-            obj_type_1: ObjectiveType = ObjectiveType.COST,
-            obj_type_2: ObjectiveType = ObjectiveType.CO2,
-            method: MultiObjMethod = MultiObjMethod.EPSCONSTRAINT,
-            num_pareto_points: int = 4,
-            solver_kind: SolverKind = SolverKind.GUROBI,
-            write_model: bool = True,
-            results_dir_path: str = "results") -> None:
+        self,
+        obj_type_1: ObjectiveType = ObjectiveType.COST,
+        obj_type_2: ObjectiveType = ObjectiveType.CO2,
+        method: MultiObjMethod = MultiObjMethod.EPSCONSTRAINT,
+        num_pareto_points: int = 4,
+        solver_kind: SolverKind = SolverKind.GUROBI,
+        write_model: bool = True,
+        results_dir_path: str = "results",
+    ) -> None:
         """
         Bundled method to perform double-objective (bicriterial) optimization
         on the built energy system model. This routines sets two objective
@@ -400,49 +421,68 @@ class EhubX:
         if model is None:
             raise exceptions.EhubXException(
                 "Tried to solve single-objective problem but no model exists",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         # Make sure cost functions are distinct
         if obj_type_1 == obj_type_2:
             raise exceptions.EhubXException(
-                (f"Identical objective type {obj_type_1} for both "
-                 "objective functions in double-objective solver"),
-                module=LOG_MODULE_STR)
+                (
+                    f"Identical objective type {obj_type_1} for both "
+                    "objective functions in double-objective solver"
+                ),
+                module=LOG_MODULE_STR,
+            )
         # Create subdirectory for results
         results_dir_path = os.path.join(self.model_dir_path, results_dir_path)
         mo_results_dir_path = os.path.join(results_dir_path, "mo_results")
-        if not create_dir(mo_results_dir_path,
-                          dir_desc="multiobjective results"):
+        if not create_dir(mo_results_dir_path, dir_desc="multiobjective results"):
             logging.log(
                 "Failed to create multiobjective results directory at "
                 f"{mo_results_dir_path}. Stopping double-objective solving "
                 "procedure ...",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
             return
         # Select first objective and write model to file once
         optimizer.set_objective(model, obj_type_1)
         if write_model:
-            self.write_lp(lp_file_path=os.path.join(mo_results_dir_path,
-                f"model_obj_{obj_type_1.value}.lp"))
+            self.write_lp(
+                lp_file_path=os.path.join(
+                    mo_results_dir_path, f"model_obj_{obj_type_1.value}.lp"
+                )
+            )
         # Create new solver if necessary
-        if (not self._solver
-                or not isinstance(self._solver,
-                                  SOLVER_KIND_TO_TYPE[solver_kind])):
+        if self._solver is None:
             self.create_solver(solver_kind)
         solver: Solver = self._solver  # type: ignore
         # Pass to multiobjective optimizer
-        logging.log(("Starting to solve a double-objective optimization "
-                     f"problem with objectives ({obj_type_1.value}, "
-                     f"{obj_type_2.value}) ..."),
-                    module=LOG_MODULE_STR)
+        logging.log(
+            (
+                "Starting to solve a double-objective optimization "
+                f"problem with objectives ({obj_type_1.value}, "
+                f"{obj_type_2.value}) ..."
+            ),
+            module=LOG_MODULE_STR,
+        )
         pareto_front: ParetoFront = ParetoFront()
         if method == MultiObjMethod.WEIGHTEDSUM:
             pareto_front = optimizer.weighted_sum_method(
-                model, solver, obj_type_1, obj_type_2,
-                num_pareto_points, mo_results_dir_path)
+                model,
+                solver,
+                obj_type_1,
+                obj_type_2,
+                num_pareto_points,
+                mo_results_dir_path,
+            )
         if method == MultiObjMethod.EPSCONSTRAINT:
             pareto_front = optimizer.eps_constraint_method(
-                model, solver, obj_type_1, obj_type_2, num_pareto_points,
-                mo_results_dir_path)
+                model,
+                solver,
+                obj_type_1,
+                obj_type_2,
+                num_pareto_points,
+                mo_results_dir_path,
+            )
         # Outputs
         save_pareto_front(pareto_front, mo_results_dir_path)
 
@@ -458,17 +498,18 @@ class EhubX:
         :type lp_file_path: Optional[str], optional
         """
         if self._model is None:
-            raise exceptions.EhubXException(("Cannot write LP file: No model "
-                                             "exists"))
+            raise exceptions.EhubXException(("Cannot write LP file: No model exists"))
         if lp_file_path is not None:
             lp_file_path = os.path.join(self.model_dir_path, lp_file_path)
         if lp_file_path is None:
             lp_file_path = self.lp_file_path
-        logging.log(f"Start writing model to LP file: {lp_file_path}",
-                    module=LOG_MODULE_STR)
+        logging.log(
+            f"Start writing model to LP file: {lp_file_path}", module=LOG_MODULE_STR
+        )
         start = datetime.now()
-        self._model.write(lp_file_path,
-                          io_options={"symbolic_solver_labels": True})
+        self._model.write(lp_file_path, io_options={"symbolic_solver_labels": True})
         elapsed_seconds = int((datetime.now() - start).total_seconds())
-        logging.log("Finished model writing. Elapsed time: "
-                    f"{elapsed_seconds}s", module=LOG_MODULE_STR)
+        logging.log(
+            f"Finished model writing. Elapsed time: {elapsed_seconds}s",
+            module=LOG_MODULE_STR,
+        )

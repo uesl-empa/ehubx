@@ -36,8 +36,10 @@
 #   - H14 (ebm): Import E0 which is the ec of an EBM fleet with its own demand
 #                and availability profiles.
 import os
+
 from pyomo.core import Constraint, Model, NonNegativeReals, Var
-from ehubx import EhubX, SolverKind, ObjectiveType, FileGranularity
+
+from ehubx import EhubX, FileGranularity, Gurobi, ObjectiveType
 
 
 # Function for custom model modifications, used in step 4 of main method
@@ -66,13 +68,19 @@ if __name__ == "__main__":
     ehubx.build()
     # Step 4 (optional): Add custom model modifications
     ehubx.modify_model(my_modifications)
-    # Step 5: Solve the model.
-    ehubx.solve_single_obj(obj_type=ObjectiveType.COST,
-                           file_granularity=FileGranularity.MIN,
-                           solver_kind=SolverKind.GLPK)
-    ehubx.solve_double_obj(obj_type_1=ObjectiveType.COST,
-                           obj_type_2=ObjectiveType.CO2,
-                           num_pareto_points=10,
-                           solver_kind=SolverKind.GLPK)
-    # Step 6 (optional): EhubX object can still be used to perform actions,
+    # Step 5 (optional): Manually set a solver and specify options
+    solver = Gurobi()
+    solver.set_mip_focus(1)
+    solver.set_option_by_key("Method", 0)
+    ehubx.set_solver(solver)
+    # Step 6: Solve the model.
+    ehubx.solve_single_obj(
+        obj_type=ObjectiveType.COST, file_granularity=FileGranularity.MIN
+    )
+    ehubx.solve_double_obj(
+        obj_type_1=ObjectiveType.COST,
+        obj_type_2=ObjectiveType.CO2,
+        num_pareto_points=10,
+    )
+    # Step 7 (optional): EhubX object can still be used to perform actions,
     #                    e.g.; modifying parameters and rebuilding the model

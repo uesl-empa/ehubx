@@ -1,5 +1,6 @@
 from ehubx.core import logging
-from ehubx.data.time_data import Times, TimeId
+from ehubx.data.time_data import TimeId, Times
+
 
 # Literals
 LOG_MODULE_STR: str = "pars/time"
@@ -14,5 +15,7 @@ def parse(num_times_horizon: int) -> Times:
 
 
 def _log(times: Times) -> None:
-    logging.log_file((f"Parsed time horizon with {times.num_horizon_ts} "
-                      "horizon time steps"), module=LOG_MODULE_STR)
+    logging.log_file(
+        (f"Parsed time horizon with {times.num_horizon_ts} horizon time steps"),
+        module=LOG_MODULE_STR,
+    )

@@ -1,8 +1,12 @@
 """Hub submodel"""
-from pyomo.core import Model, Set
+
 from datetime import datetime
+
+from pyomo.core import Model, Set
+
 from ehubx.core import logging
 from ehubx.data.hub_data import Hubs
+
 
 # -------- #
 # Literals #
@@ -27,10 +31,10 @@ def build(model: Model, hubs: Hubs) -> None:
     # Start measuring build time
     start = datetime.now()
     # [SET] Hubs
-    setattr(model, SET_HUB,
-            Set(initialize=[h.key for h in hubs.ids]))
+    setattr(model, SET_HUB, Set(initialize=[h.key for h in hubs.ids]))
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
-        "Built hub module. Elapsed time: "
-        f"{int(elapsed.total_seconds())}s", module=LOG_MODULE_STR)
+        f"Built hub module. Elapsed time: {int(elapsed.total_seconds())}s",
+        module=LOG_MODULE_STR,
+    )

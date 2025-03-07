@@ -1,7 +1,9 @@
 """Model exceptions module"""
+
 from typing import List
-from ehubx.data.index import Index
+
 from ehubx.core.exceptions import EhubXException
+from ehubx.data.index import Index
 
 
 class ModelException(EhubXException):
@@ -12,8 +14,7 @@ class ModelException(EhubXException):
     list of indices for which the exception was thrown.
     """
 
-    def __init__(self, key: str, indices: List[Index], msg: str,
-                 module: str = ""):
+    def __init__(self, key: str, indices: List[Index], msg: str, module: str = ""):
         self.key = key
         self.indices = indices
         super().__init__(msg, module)

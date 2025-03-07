@@ -1,17 +1,18 @@
 """
 Wind technology data module
 """
-from typing import Dict, List, Set, Tuple
+
 from enum import Enum
-from ehubx.core import common
-from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
+from typing import Dict, List, Set, Tuple
+
+from ehubx.core import common, logging
+from ehubx.data import exceptions
+from ehubx.data.conv_tech_data import ConversionTechs
 from ehubx.data.hub_data import Hubs
 from ehubx.data.import_data import Imports
-from ehubx.data.tech_data import Techs, TechId
-from ehubx.data.conv_tech_data import ConversionTechs
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.wind_data import WindData
-from ehubx.data import exceptions
 
 
 class ExceptionKey(Enum):
@@ -19,6 +20,7 @@ class ExceptionKey(Enum):
     Key strings for exception messages occuring in the wind technology data
     module
     """
+
     ID_ADD = "adding to 'ids' of WindTechs"
     ID_REMOVE = "removing from 'ids' of WindTechs"
     ID_VAL = "validating 'ids' of WindTechs"
@@ -39,13 +41,17 @@ class ExceptionKey(Enum):
     VELOCUTOFF_SET = "setting 'velo_cut_off' of WindTechs"
     VELOCUTOFF_GET = "getting 'velo_cut_off' from WindTechs"
     VELOCUTOFF_VAL = "validating 'velo_cut_off' of WindTechs"
-    VELOS_VAL = ("validating 'velo_cut_in', 'velo_nominal' and 'velo_cut_off"
-                 "of WindTechs against each other")
+    VELOS_VAL = (
+        "validating 'velo_cut_in', 'velo_nominal' and 'velo_cut_off"
+        "of WindTechs against each other"
+    )
     CURTAILMAXREL_SET = "setting 'curtail_max_rel' of WindTechs"
     CURTAILMAXREL_GET = "getting 'curtail_max_rel' from WindTechs"
     CURTAILMAXREL_VAL = "validating 'curtail_max_rel' of WindTechs"
-    CAPMININITAREA_VAL = ("validating 'cap_min' and 'cap_init' of Techs "
-                          "against 'windpark_area' of WindData")
+    CAPMININITAREA_VAL = (
+        "validating 'cap_min' and 'cap_init' of Techs "
+        "against 'windpark_area' of WindData"
+    )
 
 
 # -------- #
@@ -93,8 +99,9 @@ class WindTechs:
         :type x: TechId
         """
         if x in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, x,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, x, module=LOG_MODULE_STR
+            )
         self._ids.add(x)
 
     # --------------------------- #
@@ -105,12 +112,13 @@ class WindTechs:
         turbine_footprint = self._turbine_footprint.get((s, x), None)
         if turbine_footprint is None:
             raise exceptions.MissingIdsException(
-                ExceptionKey.TURBINEFOOTPRINT_GET.value, [s, x],
-                module=LOG_MODULE_STR)
+                ExceptionKey.TURBINEFOOTPRINT_GET.value, [s, x], module=LOG_MODULE_STR
+            )
         return turbine_footprint
 
-    def set_turbine_footprint(self, s: StageId, x: TechId,
-                              turbine_footprint: float) -> None:
+    def set_turbine_footprint(
+        self, s: StageId, x: TechId, turbine_footprint: float
+    ) -> None:
         self._check_id(x, ExceptionKey.TURBINEFOOTPRINT_SET)
         self._turbine_footprint[s, x] = turbine_footprint
 
@@ -122,8 +130,8 @@ class WindTechs:
         rotor_area = self._rotor_area.get((s, x), None)
         if rotor_area is None:
             raise exceptions.MissingIdsException(
-                ExceptionKey.ROTORAREA_GET.value, [s, x],
-                module=LOG_MODULE_STR)
+                ExceptionKey.ROTORAREA_GET.value, [s, x], module=LOG_MODULE_STR
+            )
         return rotor_area
 
     def set_rotor_area(self, s: StageId, x: TechId, rotor_area: float) -> None:
@@ -138,12 +146,11 @@ class WindTechs:
         velo_cut_in = self._velo_cut_in.get((s, x), None)
         if velo_cut_in is None:
             raise exceptions.MissingIdsException(
-                ExceptionKey.VELOCUTIN_GET.value, [s, x],
-                module=LOG_MODULE_STR)
+                ExceptionKey.VELOCUTIN_GET.value, [s, x], module=LOG_MODULE_STR
+            )
         return velo_cut_in
 
-    def set_velo_cut_in(self, s: StageId, x: TechId,
-                        velo_cut_in: float) -> None:
+    def set_velo_cut_in(self, s: StageId, x: TechId, velo_cut_in: float) -> None:
         self._check_id(x, ExceptionKey.VELOCUTIN_SET)
         self._velo_cut_in[s, x] = velo_cut_in
 
@@ -155,12 +162,11 @@ class WindTechs:
         velo_cut_off = self._velo_cut_off.get((s, x), None)
         if velo_cut_off is None:
             raise exceptions.MissingIdsException(
-                ExceptionKey.VELOCUTOFF_GET.value, [s, x],
-                module=LOG_MODULE_STR)
+                ExceptionKey.VELOCUTOFF_GET.value, [s, x], module=LOG_MODULE_STR
+            )
         return velo_cut_off
 
-    def set_velo_cut_off(self, s: StageId, x: TechId,
-                         velo_cut_off: float) -> None:
+    def set_velo_cut_off(self, s: StageId, x: TechId, velo_cut_off: float) -> None:
         self._check_id(x, ExceptionKey.VELOCUTOFF_SET)
         self._velo_cut_off[s, x] = velo_cut_off
 
@@ -172,12 +178,11 @@ class WindTechs:
         velo_nominal = self._velo_nominal.get((s, x), None)
         if velo_nominal is None:
             raise exceptions.MissingIdsException(
-                ExceptionKey.VELONOMINAL_GET.value, [s, x],
-                module=LOG_MODULE_STR)
+                ExceptionKey.VELONOMINAL_GET.value, [s, x], module=LOG_MODULE_STR
+            )
         return velo_nominal
 
-    def set_velo_nominal(self, s: StageId, x: TechId,
-                         velo_nominal: float) -> None:
+    def set_velo_nominal(self, s: StageId, x: TechId, velo_nominal: float) -> None:
         self._check_id(x, ExceptionKey.VELONOMINAL_SET)
         self._velo_nominal[s, x] = velo_nominal
 
@@ -188,8 +193,9 @@ class WindTechs:
         self._check_id(x, ExceptionKey.CURTAILMAXREL_GET)
         return self._curtail_max_rel.get((s, x), DEF_CURTAILMAXREL)
 
-    def set_curtail_max_rel(self, s: StageId, x: TechId,
-                            curtail_max_rel: float) -> None:
+    def set_curtail_max_rel(
+        self, s: StageId, x: TechId, curtail_max_rel: float
+    ) -> None:
         self._check_id(x, ExceptionKey.CURTAILMAXREL_SET)
         self._curtail_max_rel[s, x] = curtail_max_rel
 
@@ -208,9 +214,15 @@ class WindTechs:
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, imports: Imports,
-                 techs: Techs, conv_techs: ConversionTechs,
-                 wind_data: WindData) -> None:
+    def validate(
+        self,
+        stages: Stages,
+        hubs: Hubs,
+        imports: Imports,
+        techs: Techs,
+        conv_techs: ConversionTechs,
+        wind_data: WindData,
+    ) -> None:
         """
         Validate all wind technology data in this object. Apart from sense-
         checking parameter in terms of quantity, this includes checking whether
@@ -238,8 +250,7 @@ class WindTechs:
         self._validate_velo_cut_off(stages)
         self._validate_velos()
         self._validate_curtail_max_rel(stages)
-        self._validate_capmininit_area(stages, hubs, techs, conv_techs,
-                                       wind_data)
+        self._validate_capmininit_area(stages, hubs, techs, conv_techs, wind_data)
 
     def _validate_ids(self, conv_techs: ConversionTechs) -> None:
         exc_key = ExceptionKey.ID_VAL.value
@@ -247,25 +258,24 @@ class WindTechs:
             # solar_tech not in conv_techs
             if x not in conv_techs.ids:
                 msg = f"wind_tech {x} not part of conv_techs"
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
 
-    def _validate_in_ecs(self, conv_techs: ConversionTechs,
-                         wind_data: WindData) -> None:
+    def _validate_in_ecs(
+        self, conv_techs: ConversionTechs, wind_data: WindData
+    ) -> None:
         exc_key = ExceptionKey.INECS_VAL.value
         for x in self.ids:
             in_ecs = conv_techs.get_in_ecs(x)
             # Wind techs must have exactly one input ec
             if len(in_ecs) != 1:
-                msg = (f"{x} has more than one input ec. Input ecs are: "
-                       f"{in_ecs}")
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"{x} has more than one input ec. Input ecs are: {in_ecs}"
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
             in_ec = list(in_ecs)[0]
             if in_ec not in wind_data.ecs:
                 msg = f"{x} has input ec {in_ec} which is not a wind ec"
-                raise exceptions.DataException(exc_key, [x, in_ec], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [x, in_ec], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_out_ecs(self, conv_techs: ConversionTechs) -> None:
         exc_key = ExceptionKey.OUTECS_VAL.value
@@ -273,21 +283,21 @@ class WindTechs:
             out_ecs = conv_techs.get_out_ecs(x)
             # Wind techs must have exactly one output ec
             if len(out_ecs) != 1:
-                msg = (f"{x} has more than one output ec. Output ecs are: "
-                       f"{out_ecs}")
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"{x} has more than one output ec. Output ecs are: {out_ecs}"
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
 
-    def _validate_ec_importability(self, techs: Techs,
-                                   conv_techs: ConversionTechs,
-                                   imports: Imports) -> None:
+    def _validate_ec_importability(
+        self, techs: Techs, conv_techs: ConversionTechs, imports: Imports
+    ) -> None:
         for x in self.ids:
             in_ec = conv_techs.get_in_ec_main(x)
             for s in techs.get_allowed_stages(x):
                 for h in techs.get_allowed_hubs(x):
                     if (s, h, in_ec) not in imports.tuples:
-                        msg = (f"{x} is allowed in stage {s} and hub {h} but "
-                               f"its in_ec {in_ec} is not importable there")
+                        msg = (
+                            f"{x} is allowed in stage {s} and hub {h} but "
+                            f"its in_ec {in_ec} is not importable there"
+                        )
                         logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_turbine_footprint(self, stages: Stages) -> None:
@@ -296,13 +306,15 @@ class WindTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in turbine_footprint[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # turbine_footprint must be nonnegative
             if turbine_footprint < 0:
                 msg = f"{turbine_footprint} = turbine_footprint[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # turbine_footprint is usually positive
             if turbine_footprint < common.EPS_ZEROCHECK:
                 msg = f"{turbine_footprint} = turbine_footprint[{s}, {x}] ~ 0"
@@ -314,13 +326,15 @@ class WindTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in rotor_area[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # rotor_area must be nonnegative
             if rotor_area < 0:
                 msg = f"{rotor_area} = rotor_area[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # rotor_area is usually positive
             if rotor_area < common.EPS_ZEROCHECK:
                 msg = f"{rotor_area} = rotor_area[{s}, {x}] ~ 0"
@@ -332,13 +346,15 @@ class WindTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in velo_cut_in[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # velo_cut_in must be nonnegative
             if velo_cut_in < 0:
                 msg = f"{velo_cut_in} = velo_cut_in[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_velo_nominal(self, stages: Stages) -> None:
         exc_key = ExceptionKey.ROTORAREA_VAL.value
@@ -346,13 +362,15 @@ class WindTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in velo_nominal[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # velo_nominal must be nonnegative
             if velo_nominal < 0:
                 msg = f"{velo_nominal} = velo_nominal[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # velo_nominal is usually positive
             if velo_nominal < common.EPS_ZEROCHECK:
                 msg = f"{velo_nominal} = velo_nominal[{s}, {x}] ~ 0"
@@ -364,13 +382,15 @@ class WindTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in velo_cut_off[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # velo_cut_off must be nonnegative
             if velo_cut_off < 0:
                 msg = f"{velo_cut_off} = velo_cut_off[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # velo_cut_off is usually positive
             if velo_cut_off < common.EPS_ZEROCHECK:
                 msg = f"{velo_cut_off} = velo_cut_off[{s}, {x}] ~ 0"
@@ -379,24 +399,30 @@ class WindTechs:
     def _validate_velos(self) -> None:
         exc_key = ExceptionKey.VELOS_VAL.value
         keys = set(self._velo_cut_in.keys()).union(
-            set(self._velo_nominal.keys()).union(
-                set(self._velo_cut_off)))
-        for (s, x) in keys:
+            set(self._velo_nominal.keys()).union(set(self._velo_cut_off))
+        )
+        for s, x in keys:
             velo_cut_in = self.get_velo_cut_in(s, x)
             velo_nominal = self.get_velo_nominal(s, x)
             velo_cut_off = self.get_velo_cut_off(s, x)
             # velo_cut_in must not be larger than velo_nominal
             if velo_cut_in > velo_nominal:
-                msg = (f"{velo_cut_in} = velo_cut_in[{s}, {x}] > "
-                       f"velo_nominal[{s}, {x}] = {velo_nominal}")
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"{velo_cut_in} = velo_cut_in[{s}, {x}] > "
+                    f"velo_nominal[{s}, {x}] = {velo_nominal}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # velo_nominal must not be larger than velo_cut_off
             if velo_nominal > velo_cut_off:
-                msg = (f"{velo_nominal} = velo_nominal[{s}, {x}] > "
-                       f"velo_cut_off[{s}, {x}] = {velo_cut_off}")
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"{velo_nominal} = velo_nominal[{s}, {x}] > "
+                    f"velo_cut_off[{s}, {x}] = {velo_cut_off}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_curtail_max_rel(self, stages: Stages) -> None:
         exc_key = ExceptionKey.CURTAILMAXREL_VAL.value
@@ -404,22 +430,30 @@ class WindTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in curtail_max_rel[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # curtail_max_rel must be nonnegative
             if curtail_max_rel < 0:
                 msg = f"{curtail_max_rel} = curtail_max_rel[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # curtail_max_rel must not be larger than 1
             if curtail_max_rel > 1:
                 msg = f"{curtail_max_rel} = curtail_max_rel[{s}, {x}] > 1"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
 
-    def _validate_capmininit_area(self, stages: Stages, hubs: Hubs,
-                                  techs: Techs, conv_techs: ConversionTechs,
-                                  wind_data: WindData) -> None:
+    def _validate_capmininit_area(
+        self,
+        stages: Stages,
+        hubs: Hubs,
+        techs: Techs,
+        conv_techs: ConversionTechs,
+        wind_data: WindData,
+    ) -> None:
         exc_key = ExceptionKey.CAPMININITAREA_VAL.value
         # Minimal capacity and area
         for s in stages.ids:
@@ -428,19 +462,24 @@ class WindTechs:
                     area_min = sum(
                         techs.get_cap_min(s, h, x)
                         for x in self.ids
-                        if conv_techs.get_in_ec_main(x) == e)
+                        if conv_techs.get_in_ec_main(x) == e
+                    )
                     area_available = sum(
                         wind_data.get_windpark_area(s, h, wp)
                         for wp in wind_data.windpark_ids
-                        if e in wind_data.get_windpark_ecs(wp))
+                        if e in wind_data.get_windpark_ecs(wp)
+                    )
                     # area_min must not be larger than area_available
                     if area_min > area_available:
-                        msg = (f"For stage {s}, hub {h} and ec {e}, only "
-                               f"an area of {area_available} is available "
-                               f"for capacity. But due to cap_min values, an "
-                               f"area of at least {area_min} must be covered.")
-                        raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                                       module=LOG_MODULE_STR)
+                        msg = (
+                            f"For stage {s}, hub {h} and ec {e}, only "
+                            f"an area of {area_available} is available "
+                            f"for capacity. But due to cap_min values, an "
+                            f"area of at least {area_min} must be covered."
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                        )
         # Initial capacity and area
         for s in stages.ids:
             current_year = stages.get_start_year(s)
@@ -453,27 +492,29 @@ class WindTechs:
                         tech_lifetime = techs.get_lifetime(x)
                         age_init = techs.get_age_init(h, x)
                         # If tech is still alive, initial capacity remains
-                        if (current_year - stages.init_year
-                                < tech_lifetime - age_init):
+                        if current_year - stages.init_year < tech_lifetime - age_init:
                             area_init += techs.get_cap_init(h, x)
                     area_available = sum(
                         wind_data.get_windpark_area(s, h, wp)
                         for wp in wind_data.windpark_ids
-                        if e in wind_data.get_windpark_ecs(wp))
+                        if e in wind_data.get_windpark_ecs(wp)
+                    )
                     # area_init must not be larger than area_available
                     if area_init > area_available:
-                        msg = (f"For stage {s}, hub {h} and ec {e}, only "
-                               f"an area of {area_available} is available "
-                               "for capacity. But due to cap_init values, an "
-                               f"area of at least {area_init} must be "
-                               "covered.")
-                        raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                                       module=LOG_MODULE_STR)
+                        msg = (
+                            f"For stage {s}, hub {h} and ec {e}, only "
+                            f"an area of {area_available} is available "
+                            "for capacity. But due to cap_init values, an "
+                            f"area of at least {area_init} must be "
+                            "covered."
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                        )
 
     # ---------- #
     # Id checker #
     # ---------- #
     def _check_id(self, x: TechId, key: ExceptionKey) -> None:
         if x not in self._ids:
-            raise exceptions.UnknownIdException(key.value, x,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(key.value, x, module=LOG_MODULE_STR)

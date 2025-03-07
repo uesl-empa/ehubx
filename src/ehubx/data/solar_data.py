@@ -1,22 +1,25 @@
 """
 Solar data module
 """
-from typing import Dict, List, Set, Tuple
+
 from enum import Enum
-from ehubx.core.common import TimeSeriesKind, EPS_ZEROCHECK
+from typing import Dict, List, Set, Tuple
+
 from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.ec_data import Ecs, EcId
-from ehubx.data.time_data import Times, TimeId
-from ehubx.data.time_series import TimeSeries
+from ehubx.core.common import EPS_ZEROCHECK, TimeSeriesKind
 from ehubx.data import exceptions
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
 
 
 class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the solar data module
     """
+
     ECS_VAL = "validating 'ecs' of SolarData"
     IRRADIATION_SET = "setting 'irradiation' of SolarData"
     IRRADIATION_VAL = "validating 'irradiation' of SolarData"
@@ -74,8 +77,9 @@ class SolarData:
             return series
         return self._irradiation[s, e]
 
-    def set_irradiation(self, s: StageId, e: EcId, t: TimeId,
-                        irradiation: float) -> None:
+    def set_irradiation(
+        self, s: StageId, e: EcId, t: TimeId, irradiation: float
+    ) -> None:
         """
         Set the irradiation level for a solar ec at a specific time step. This
         is an optional parameter with a default value of 0.
@@ -95,8 +99,7 @@ class SolarData:
         self._irradiation[s, e].set_value(t, irradiation)
         self._ecs.add(e)
 
-    def set_irradiation_def(self, s: StageId, e: EcId,
-                            irradiation_def: float) -> None:
+    def set_irradiation_def(self, s: StageId, e: EcId, irradiation_def: float) -> None:
         """
         Set the default (with respect to time) irradiation level for a solar
         ec. This is an optional parameter with a default value of 0.
@@ -117,7 +120,7 @@ class SolarData:
         """
         Clear all irradiation profiles from the data object
         """
-        for (s, e) in self._irradiation:
+        for s, e in self._irradiation:
             self._irradiation[s, e].clear()
 
     # -------------- #
@@ -162,8 +165,9 @@ class SolarData:
     # Secondary property: time_series #
     # ------------------------------- #
     @property
-    def time_series(self) -> List[Tuple[TimeSeriesKind, StageId,
-                                        Tuple[str, ...], TimeSeries]]:
+    def time_series(
+        self,
+    ) -> List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]]:
         """
         Time series profiles in the solar module. This is a list of tuples.
         Each list element has the following list entries: 1) ProfileKind of
@@ -174,18 +178,23 @@ class SolarData:
         :rtype: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
             TimeSeries]]
         """
-        all_series: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
-                               TimeSeries]] = []
+        all_series: List[
+            Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]
+        ] = []
         # irradiation
         for (s, e), series in self._irradiation.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.SOLARIRRAD, s,
-                                   (e.key, ), series))
+                all_series.append((TimeSeriesKind.SOLARIRRAD, s, (e.key,), series))
         return all_series
 
-    def set_time_series_val(self, kind: TimeSeriesKind, s: StageId,
-                            ids: Tuple[str, ...], t: TimeId, value: float
-                            ) -> None:
+    def set_time_series_val(
+        self,
+        kind: TimeSeriesKind,
+        s: StageId,
+        ids: Tuple[str, ...],
+        t: TimeId,
+        value: float,
+    ) -> None:
         """
         Set the value for a time series in the solar data class. The time
         series should be uniquely identified by the time series kind, the
@@ -217,8 +226,7 @@ class SolarData:
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs,
-                 times: Times) -> None:
+    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs, times: Times) -> None:
         """
         Validate all solar data in this object. Apart from sense- checking
         parameter in terms of quantity, this includes checking whether
@@ -243,23 +251,23 @@ class SolarData:
             # Unknown EC
             if e not in ecs.ids:
                 msg = f"Unknown ec {e} in solar ecs"
-                raise exceptions.DataException(exc_key, [e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [e], msg, module=LOG_MODULE_STR)
 
-    def _validate_irradiation(self, stages: Stages, ecs: Ecs,
-                              times: Times) -> None:
+    def _validate_irradiation(self, stages: Stages, ecs: Ecs, times: Times) -> None:
         exc_key = ExceptionKey.IRRADIATION_VAL.value
         for (s, e), irradiation in self._irradiation.items():
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in irradiation[{s}, {e}]"
-                raise exceptions.DataException(exc_key, [s, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, e], msg, module=LOG_MODULE_STR
+                )
             # Unknown ec
             if e not in ecs.ids:
                 msg = f"Unknown ec {e} in irradiation[{s}, {e}]"
-                raise exceptions.DataException(exc_key, [s, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, e], msg, module=LOG_MODULE_STR
+                )
             # Time values
             if irradiation.has_values:
                 # Unknown time ids
@@ -267,24 +275,26 @@ class SolarData:
                 # irradiation must not be negative
                 for t in times.ids:
                     if irradiation.get_value(t) < 0:
-                        msg = (f"{irradiation.get_value(t)} = "
-                            f"irradiation[{s}, {e}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [s, e, t], msg,
-                                                       module=LOG_MODULE_STR)
+                        msg = (
+                            f"{irradiation.get_value(t)} = "
+                            f"irradiation[{s}, {e}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, e, t], msg, module=LOG_MODULE_STR
+                        )
             # Default value
             if not irradiation.has_values:
                 irradiation_def = irradiation.def_value
                 assert irradiation_def is not None
                 # irradiation must not be negative
                 if irradiation_def < 0:
-                    msg = (f"{irradiation_def} = "
-                           f"irradiation_def[{s}, {e}] < 0")
-                    raise exceptions.DataException(exc_key, [s, e], msg,
-                                                   module=LOG_MODULE_STR)
+                    msg = f"{irradiation_def} = irradiation_def[{s}, {e}] < 0"
+                    raise exceptions.DataException(
+                        exc_key, [s, e], msg, module=LOG_MODULE_STR
+                    )
                 # irradiation usually not all-zero
                 if irradiation_def < EPS_ZEROCHECK:
-                    msg = (f"{irradiation_def} = "
-                           f"irradiation_def[{s}, {e}] ~ 0")
+                    msg = f"{irradiation_def} = irradiation_def[{s}, {e}] ~ 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_area(self, stages: Stages, hubs: Hubs, ecs: Ecs) -> None:
@@ -293,20 +303,24 @@ class SolarData:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in area[{s}, {h}, {e}]"
-                raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                )
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in area[{s}, {h}, {e}]"
-                raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                )
             # Unknown ec
             if e not in ecs.ids:
                 msg = f"Unknown ec {e} in area[{s}, {h}, {e}]"
-                raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                )
             # area must not be negative
             if area < 0:
                 msg = f"{area} = area[{s}, {h}, {e}] < 0"
-                raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                )

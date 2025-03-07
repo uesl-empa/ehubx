@@ -89,6 +89,15 @@ Parameter table
       - :code:`start_hubs[ID]/end_hubs[id]/links[id]/ec_params[id]/availability`, :code:`start_hubs[ID]/end_hubs[id]/links[id]/ec_params[id]/profile_path`
       - :ref:`network_links.yaml<network_links_yaml>`
 
+    * - **Available area** (ates)
+      - ✖
+      - :math:`\infty`
+      - :math:`m^2`
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/ates_params/available_area`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Bidirectional** (link)
       - ✖
       - False
@@ -188,6 +197,15 @@ Parameter table
       - ✖
       - :code:`stages[ID]/co2_price`
       - :ref:`stages.yaml<stages_yaml>`
+
+    * - **Cool** (ates)
+      - **✓**
+      -
+      -
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params/ecs`
+      - :ref:`techs.yaml<techs_yaml>`
 
     * - **Cut-in velocity** (wind)
       - **✓**
@@ -297,6 +315,42 @@ Parameter table
       - :code:`windparks[ID]/ecs`
       - :ref:`ecs.yaml<ecs_yaml>`
 
+    * - **Elec** (ates)
+      - **✓**
+      -
+      -
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params/ecs`
+      - :ref:`techs.yaml<techs_yaml>`
+
+    * - **Electricity consumption per cooling energy** (ates)
+      - **(✓)**
+      -
+      - 1
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params/elec_per_energy_cool`
+      - :ref:`techs.yaml<techs_yaml>`
+
+    * - **Electricity consumption per heating energy** (ates)
+      - **(✓)**
+      -
+      - 1
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params/elec_per_energy_heat`
+      - :ref:`techs.yaml<techs_yaml>`
+
+    * - **Electricity consumption per heating flow** (ates)
+      - ✖
+      -
+      - 1
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params/elec_per_energy_heat`
+      - :ref:`techs.yaml<techs_yaml>`
+
     * - **Enabled** (load_shedding)
       - ✖
       - True
@@ -305,6 +359,24 @@ Parameter table
       - ✖
       - :code:`load_shedding/preset/enabled`, :code:`load_shedding/manual[pos]/enabled`
       - :ref:`demands.yaml<demands_yaml>`
+
+    * - **End of cold-to-warm phase** (ates)
+      - **✓**
+      -
+      -
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/schedules[ID]/phase_c2w_end_id`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **End of warm-to-cold phase** (ates)
+      - **✓**
+      -
+      -
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/schedules[ID]/phase_w2c_end_id`
+      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **Energy cost** (load_shedding)
       - ✖
@@ -341,6 +413,42 @@ Parameter table
       - **✓**
       - :code:`load_shifting[ID]/fix_cost`, :code:`load_shifting[ID]/profile_path`
       - :ref:`demands.yaml<demands_yaml>`
+
+    * - **Fluid density** (ates)
+      - **✓**
+      -
+      - :math:`kg/m^3`
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params`
+      - :ref:`techs.yaml<techs_yaml>`
+
+    * - **Fluid specific heat capacity** (ates)
+      - **✓**
+      -
+      - :math:`J/(kg*K)`
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params`
+      - :ref:`techs.yaml<techs_yaml>`
+
+    * - **Groundwater velocity** (ates)
+      - (**✓**)
+      -
+      - :math:`m/d`
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/groundwater_velocity`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Heat** (ates)
+      - **✓**
+      -
+      -
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params/ecs`
+      - :ref:`techs.yaml<techs_yaml>`
 
     * - **Hubs** (load_shedding)
       - **✓**
@@ -666,6 +774,33 @@ Parameter table
       - :code:`hubs[ID]/techs[ID]/storage_params/discharge_max`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **Maximal drawdown of aquifer** (ates)
+      - (**✓**)
+      -
+      - :math:`m`
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/max_drawdown`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Maximal total heating over cooling** (ates)
+      - ✖
+      - :math:`\infty`
+      - 1
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_heat_over_cool`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Maximal total cooling over heating** (ates)
+      - ✖
+      - :math:`\infty`
+      - 1
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_cool_over_heat`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Maximal load shedding, absolute** (load_shedding)
       - ✖
       - :math:`\infty`
@@ -720,6 +855,24 @@ Parameter table
       - :code:`load_shifting[ID]/max_below_rel`, :code:`load_shifting[ID]/profile_path`
       - :ref:`demands.yaml<demands_yaml>`
 
+    * - **Maximal pumping rate per cold well** (ates)
+      - ✖
+      -
+      - :math:`m^3/s`
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_pump_rate_per_cold_well`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Maximal pumping rate per warm well** (ates)
+      - ✖
+      -
+      - :math:`m^3/s`
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_pump_rate_per_warm_well`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Maximal stage of charge** (storage)
       - ✖
       - 1
@@ -730,6 +883,69 @@ Parameter table
       - :ref:`techs.yaml<techs_yaml>`
 
     * - **Maximal summed-up backward transport** (link)
+      - ✖
+      - :math:`\infty`
+      - kWh
+      - **✓**
+      - ✖
+      - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_max_backward`
+      - :ref:`links.yaml<network_links_yaml>`
+
+    * - **Maximal summed-up forward transport** (link)
+      - ✖
+      - :math:`\infty`
+      - kWh
+      - **✓**
+      - ✖
+      - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_max_forward`
+      - :ref:`links.yaml<network_links_yaml>`
+
+    * - **Maximal summed-up imports/exports** (import/export)
+      - ✖
+      - :math:`\infty`
+      - kWh
+      - ✖
+      - ✖
+      - :code:`stages[ID]/hubs[ID]/ecs[ID]/sum_max`
+      - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
+
+    * - **Maximal summed-up output** (conversion)
+      - ✖
+      - :math:`\infty`
+      - kWh
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/conversion_params/out_sum_max`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Maximal temperature spread for cold wells** (ates)
+      - **✓**
+      -
+      - :math:`°C`
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/max_temperature_spread_cold`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Maximal temperature spread for warm wells** (ates)
+      - **✓**
+      -
+      - :math:`°C`
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/max_temperature_spread_warm`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Min** (import/export)
+      - ✖
+      - 0
+      - kW
+      - ✖
+      - **✓**
+      - :code:`stages[ID]/hubs[ID]/ecs[ID]/min`, :code:`stages[ID]/hubs[ID]/ecs[ID]/profile_path`
+      - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
+
+    * - **Minimal summed-up backward transport** (link)
       - ✖
       - :math:`\infty`
       - kWh
@@ -963,6 +1179,15 @@ Parameter table
       - :code:`net_techs[ID]/costs/opex_per_cap`
       - :ref:`net_techs.yaml<network_techs_yaml>`
 
+    * - **OPEX per output energy** (conversion)
+      - ✖
+      - 0
+      - CHF/kWh
+      - **✓**
+      - ✖
+      - :code:`techs[ID]/costs/opex_per_energy`
+      - :ref:`techs.yaml<techs_yaml>`
+
     * - **OPEX per transported energy** (net_tech)
       - ✖
       - 0
@@ -1044,6 +1269,15 @@ Parameter table
       - :code:`hubs[ID]/techs[ID]/wind_params/rotor_area`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **Specific heat capacity of aquifer** (ates)
+      - (**✓**)
+      -
+      - :math:`J/(kg*K)`
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/specific_heat_capacity_aquifer`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Solar area** (solar)
       - ✖
       - 0
@@ -1080,6 +1314,24 @@ Parameter table
       - :code:`load_shifting[ID]/stages`
       - :ref:`demands.yaml<demands_yaml>`
 
+    * - **Start of cold-to-warm phase** (ates)
+      - **✓**
+      -
+      -
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/schedules[ID]/phase_c2w_start_id`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Start of warm-to-cold phase** (ates)
+      - **✓**
+      -
+      -
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/schedules[ID]/phase_w2c_start_id`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Start year** (stage)
       - **✓**
       -
@@ -1115,6 +1367,42 @@ Parameter table
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/storage_cap`
       - :ref:`techs.yaml<techs_yaml>`
+
+    * - **Storativity of aquifer** (ates)
+      - (**✓**)
+      -
+      - :math:`1`
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/storativity_aquifer`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Thermal radius per cold well** (ates)
+      - ✖
+      -
+      - :math:`m`
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/thermal_radius_per_cold_well`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Thermal radius per warm well** (ates)
+      - ✖
+      -
+      - :math:`m`
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/thermal_radius_per_warm_well`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Thickness of aquifer** (ates)
+      - (**✓**)
+      -
+      - :math:`m`
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/thickness_aquifer`
+      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **Transmission loss** (net_tech)
       - ✖
@@ -1161,13 +1449,22 @@ Parameter table
       - :code:`hubs[ID]/techs[ID]/wind_params/turbine_footprint`
       - :ref:`techs.yaml<techs_yaml>`
 
-    * - **OPEX per output energy** (conversion)
+    * - **Well pair area calculation method** (ates)
       - ✖
-      - 0
-      - CHF/kWh
-      - **✓**
+      - "smallest rectangle"
+      -
       - ✖
-      - :code:`techs[ID]/costs/opex_per_energy`
+      - ✖
+      - :code:`techs[ID]/ates_params/well_pair_area_calc_method`
+      - :ref:`techs.yaml<techs_yaml>`
+
+    * - **Well radius** (ates)
+      - (**✓**)
+      -
+      - :math:`m`
+      - ✖
+      - ✖
+      - :code:`techs[ID]/ates_params/well_radius`
       - :ref:`techs.yaml<techs_yaml>`
 
     * - **Wind area** (wind)

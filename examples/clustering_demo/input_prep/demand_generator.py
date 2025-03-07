@@ -1,14 +1,15 @@
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 
-def generate_electrical_demand(base_demand=500, seasonal_variation=100,
-                               daily_variation=50, randomness=30):
+def generate_electrical_demand(
+    base_demand=500, seasonal_variation=100, daily_variation=50, randomness=30
+):
     # Generate hourly timestamps for the year
-    date_rng = pd.date_range(start='2023-01-01 00:00', end='2023-12-31 23:00',
-                             freq='H')
+    date_rng = pd.date_range(start="2023-01-01 00:00", end="2023-12-31 23:00", freq="H")
 
     # Time indices for seasonal and daily cycles
     hours_in_year = len(date_rng)
@@ -20,8 +21,9 @@ def generate_electrical_demand(base_demand=500, seasonal_variation=100,
     seasonal_component = seasonal_variation * np.cos(t_seasonal)
 
     # Daily variation (higher demand in morning and evening)
-    daily_cycle = (np.tile(np.sin(t_daily) + 1, hours_in_year // 24)
-                   * (daily_variation / 2))
+    daily_cycle = np.tile(np.sin(t_daily) + 1, hours_in_year // 24) * (
+        daily_variation / 2
+    )
 
     # Random noise to simulate fluctuations
     noise = np.random.normal(0, randomness, hours_in_year)
@@ -30,7 +32,7 @@ def generate_electrical_demand(base_demand=500, seasonal_variation=100,
     demand = base_demand + seasonal_component + daily_cycle + noise
 
     # Create DataFrame
-    demand_profile = pd.DataFrame({'datetime': date_rng, 'demand_MW': demand})
+    demand_profile = pd.DataFrame({"datetime": date_rng, "demand_MW": demand})
     demand_profile.index += 1
 
     return demand_profile

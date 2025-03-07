@@ -1,16 +1,19 @@
 """Common writer module, responsible for recurring tasks having to do with file
 and directory management"""
+
 import os
 import shutil
-from typing import Optional, Union
 from datetime import datetime
 from enum import Enum
+from typing import Optional, Union
+
 import pandas as pd
-from ehubx.core import exceptions
-from ehubx.core import logging
+
+from ehubx.core import exceptions, logging
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import Times
 from ehubx.data.time_series import TimeSeries
+
 
 # -------- #
 # Literals #
@@ -34,6 +37,7 @@ COL_NETLINKDIR: str = "Net Link Direction"
 COL_NETTECH: str = "Net Tech"
 COL_WINDPARK: str = "Windpark"
 COL_LOADSHIFT: str = "Load shift"
+COL_ATESSCHEDULE: str = "ATES schedule"
 COL_SOURCE: str = "Source"
 COL_INPUTORRESULT: str = "Input/Result"
 KEY_TIME: str = "Time"
@@ -61,8 +65,9 @@ class FileGranularity(Enum):
     created for demands, load shedding and load shifting respectively. """
 
 
-def create_dir(dir_path: str, add_time_to_dir: bool = False,
-               dir_desc: Optional[str] = None) -> Optional[str]:
+def create_dir(
+    dir_path: str, add_time_to_dir: bool = False, dir_desc: Optional[str] = None
+) -> Optional[str]:
     """
     Creates a directory. Checks whether this folder already exists and whether
     to add a timestamp to the directory name.
@@ -89,11 +94,12 @@ def create_dir(dir_path: str, add_time_to_dir: bool = False,
     desc = f"{dir_desc} " if dir_desc else ""
     # Parent directory must exist
     if not os.path.isdir(par_path):
-        if not os.path.isdir(
-                os.path.abspath(os.path.join(par_path, os.pardir))):
-            msg = (f"Failed to create {desc}directory at {dir_path} "
-                   f"since {par_path} does not exist, and neither does its "
-                   "parent directory")
+        if not os.path.isdir(os.path.abspath(os.path.join(par_path, os.pardir))):
+            msg = (
+                f"Failed to create {desc}directory at {dir_path} "
+                f"since {par_path} does not exist, and neither does its "
+                "parent directory"
+            )
             raise exceptions.EhubXException(msg, module=LOG_MODULE_STR)
         os.mkdir(par_path)
     # If directory already exists, ask for confirmation
@@ -102,8 +108,10 @@ def create_dir(dir_path: str, add_time_to_dir: bool = False,
             os.rmdir(dir_path)
         else:
             logging.pause_console_log(write_console_entry=False)
-            query_str = (f"{desc}directory {dir_path} already exists and is "
-                         "nonempty. Delete files? [y/n]: ")
+            query_str = (
+                f"{desc}directory {dir_path} already exists and is "
+                "nonempty. Delete files? [y/n]: "
+            )
             answer = ""
             while answer not in {"y", "n"}:
                 answer = input(query_str)
@@ -111,24 +119,28 @@ def create_dir(dir_path: str, add_time_to_dir: bool = False,
             if answer == "n":
                 logging.log(
                     "User decision: Do not overwrite existing "
-                    f"{desc}directory {dir_path}", module=LOG_MODULE_STR)
+                    f"{desc}directory {dir_path}",
+                    module=LOG_MODULE_STR,
+                )
                 return None
             logging.log(
-                f"User decision: Overwrite existing {desc}directory "
-                f"{dir_path}", module=LOG_MODULE_STR)
+                f"User decision: Overwrite existing {desc}directory {dir_path}",
+                module=LOG_MODULE_STR,
+            )
             while os.path.exists(dir_path):
                 try:
                     shutil.rmtree(dir_path)
                 except PermissionError:
                     logging.pause_console_log(write_console_entry=False)
-                    input(f"Failed to remove existing {desc}directory "
-                          f"{dir_path}. Maybe one of its files is open in "
-                          "another program? Press Enter to try again ...")
+                    input(
+                        f"Failed to remove existing {desc}directory "
+                        f"{dir_path}. Maybe one of its files is open in "
+                        "another program? Press Enter to try again ..."
+                    )
                     logging.resume_console_log(write_console_entry=False)
     # Create directory
     os.mkdir(dir_path)
-    logging.log(f"Created {desc}directory {dir_path}",
-                module=LOG_MODULE_STR)
+    logging.log(f"Created {desc}directory {dir_path}", module=LOG_MODULE_STR)
     # Return directory path
     return dir_path
 
@@ -137,95 +149,187 @@ def create_dir(dir_path: str, add_time_to_dir: bool = False,
 # Static (time-independent) dataframe #
 # ----------------------------------- #
 def init_df_st() -> pd.DataFrame:
-    df = pd.DataFrame(columns=[COL_ENTRY,
-                               COL_VALUE,
-                               COL_UNIT,
-                               COL_STAGE,
-                               COL_HUB,
-                               COL_EC,
-                               COL_TECH,
-                               COL_NETLINK,
-                               COL_NETLINKDIR,
-                               COL_NETTECH,
-                               COL_WINDPARK,
-                               COL_LOADSHIFT,
-                               COL_SOURCE,
-                               COL_INPUTORRESULT])
+    df = pd.DataFrame(
+        columns=[
+            COL_ENTRY,
+            COL_VALUE,
+            COL_UNIT,
+            COL_STAGE,
+            COL_HUB,
+            COL_EC,
+            COL_TECH,
+            COL_NETLINK,
+            COL_NETLINKDIR,
+            COL_NETTECH,
+            COL_WINDPARK,
+            COL_LOADSHIFT,
+            COL_ATESSCHEDULE,
+            COL_SOURCE,
+            COL_INPUTORRESULT,
+        ]
+    )
     return df
 
 
-def add_to_df_st(df: pd.DataFrame, entry: str, value: Union[str, float, bool],
-                 unit: str = "", stage: str = "", hub: str = "", ec: str = "",
-                 tech: str = "", net_link: str = "", net_link_dir: str = "",
-                 net_tech: str = "", windpark: str = "", load_shift: str = "",
-                 source: str = "", in_res: str = "") -> None:
-    df.loc[df.shape[0]] = [entry, value, unit, stage, hub, ec, tech, net_link,
-                           net_link_dir, net_tech, windpark, load_shift,
-                           source, in_res]
+def add_to_df_st(
+    df: pd.DataFrame,
+    entry: str,
+    value: Union[str, float, bool],
+    unit: str = "",
+    stage: str = "",
+    hub: str = "",
+    ec: str = "",
+    tech: str = "",
+    net_link: str = "",
+    net_link_dir: str = "",
+    net_tech: str = "",
+    windpark: str = "",
+    load_shift: str = "",
+    ates_schedule: str = "",
+    source: str = "",
+    in_res: str = "",
+) -> None:
+    df.loc[df.shape[0]] = [
+        entry,
+        value,
+        unit,
+        stage,
+        hub,
+        ec,
+        tech,
+        net_link,
+        net_link_dir,
+        net_tech,
+        windpark,
+        load_shift,
+        ates_schedule,
+        source,
+        in_res,
+    ]
 
 
 # ------------------------- #
 # Time-dependent dataframes #
 # ------------------------- #
 def init_df_ts_hor(times: Times) -> pd.DataFrame:
-    col_ids = pd.MultiIndex.from_tuples([],
-                                        names=[COL_ENTRY,
-                                               COL_UNIT,
-                                               COL_STAGE,
-                                               COL_HUB,
-                                               COL_EC,
-                                               COL_TECH,
-                                               COL_NETLINK,
-                                               COL_NETTECH,
-                                               COL_LOADSHIFT,
-                                               COL_SOURCE,
-                                               COL_INPUTORRESULT])
+    col_ids = pd.MultiIndex.from_tuples(
+        [],
+        names=[
+            COL_ENTRY,
+            COL_UNIT,
+            COL_STAGE,
+            COL_HUB,
+            COL_EC,
+            COL_TECH,
+            COL_NETLINK,
+            COL_NETTECH,
+            COL_LOADSHIFT,
+            COL_ATESSCHEDULE,
+            COL_SOURCE,
+            COL_INPUTORRESULT,
+        ],
+    )
     df = pd.DataFrame(columns=col_ids)
     df.index = [t.key_as_int for t in times.ids_horizon_in_order]
     return df
 
 
 def init_df_ts_cl(times: Times) -> pd.DataFrame:
-    col_ids = pd.MultiIndex.from_tuples([],
-                                        names=[COL_ENTRY,
-                                               COL_UNIT,
-                                               COL_STAGE,
-                                               COL_HUB,
-                                               COL_EC,
-                                               COL_TECH,
-                                               COL_NETLINK,
-                                               COL_NETTECH,
-                                               COL_LOADSHIFT,
-                                               COL_SOURCE,
-                                               COL_INPUTORRESULT])
+    col_ids = pd.MultiIndex.from_tuples(
+        [],
+        names=[
+            COL_ENTRY,
+            COL_UNIT,
+            COL_STAGE,
+            COL_HUB,
+            COL_EC,
+            COL_TECH,
+            COL_NETLINK,
+            COL_NETTECH,
+            COL_LOADSHIFT,
+            COL_ATESSCHEDULE,
+            COL_SOURCE,
+            COL_INPUTORRESULT,
+        ],
+    )
     df = pd.DataFrame(columns=col_ids)
     df.index = [t.key_as_int for t in times.ids_in_order]
     return df
 
 
-def add_to_df_ts_hor(df_ts_hor: pd.DataFrame,
-        times: Times, entry: str, series: TimeSeries, unit: str = "",
-        stage: str = "", hub: str = "", ec: str = "", tech: str = "",
-        net_link: str = "", net_tech: str = "", source: str = "",
-        load_shift: str = "", in_res: str = "") -> None:
-    new_id = (entry, unit, stage, hub, ec, tech, net_link, net_tech,
-              load_shift, source, in_res)
+def add_to_df_ts_hor(
+    df_ts_hor: pd.DataFrame,
+    times: Times,
+    entry: str,
+    series: TimeSeries,
+    unit: str = "",
+    stage: str = "",
+    hub: str = "",
+    ec: str = "",
+    tech: str = "",
+    net_link: str = "",
+    net_tech: str = "",
+    source: str = "",
+    load_shift: str = "",
+    ates_schedule: str = "",
+    in_res: str = "",
+) -> None:
+    new_id = (
+        entry,
+        unit,
+        stage,
+        hub,
+        ec,
+        tech,
+        net_link,
+        net_tech,
+        load_shift,
+        ates_schedule,
+        source,
+        in_res,
+    )
 
     if new_id in df_ts_hor:
         raise exceptions.EhubXException(
             "Cannot add time series for output formating because of a "
-            "duplicate id issue", module=LOG_MODULE_STR)
-    df_ts_hor[new_id] = [series.get_value(t)
-                         for t in times.ids_horizon_in_order]
+            "duplicate id issue",
+            module=LOG_MODULE_STR,
+        )
+    df_ts_hor[new_id] = [series.get_value(t) for t in times.ids_horizon_in_order]
 
 
-def add_to_df_ts_cl(df_ts_hor: pd.DataFrame,
-        df_ts_cl: Optional[pd.DataFrame], times: Times, entry: str,
-        series: TimeSeries, unit: str = "", stage: str = "", hub: str = "",
-        ec: str = "", tech: str = "", net_link: str = "", net_tech: str = "",
-        load_shift: str = "", source: str = "", in_res: str = "") -> None:
-    new_id = (entry, unit, stage, hub, ec, tech, net_link, net_tech,
-              load_shift, source, in_res)
+def add_to_df_ts_cl(
+    df_ts_hor: pd.DataFrame,
+    df_ts_cl: Optional[pd.DataFrame],
+    times: Times,
+    entry: str,
+    series: TimeSeries,
+    unit: str = "",
+    stage: str = "",
+    hub: str = "",
+    ec: str = "",
+    tech: str = "",
+    net_link: str = "",
+    net_tech: str = "",
+    load_shift: str = "",
+    ates_schedule: str = "",
+    source: str = "",
+    in_res: str = "",
+) -> None:
+    new_id = (
+        entry,
+        unit,
+        stage,
+        hub,
+        ec,
+        tech,
+        net_link,
+        net_tech,
+        load_shift,
+        ates_schedule,
+        source,
+        in_res,
+    )
 
     if times.is_clustered:
         # Clustering exists => Clustered series to clustered df and horizon df
@@ -233,22 +337,28 @@ def add_to_df_ts_cl(df_ts_hor: pd.DataFrame,
         if new_id in df_ts_cl:
             raise exceptions.EhubXException(
                 "Cannot add time series for output formating because of a "
-                "duplicate id issue", module=LOG_MODULE_STR)
-        df_ts_cl[new_id] = [series.get_value(t)
-                            for t in times.ids_in_order]
+                "duplicate id issue",
+                module=LOG_MODULE_STR,
+            )
+        df_ts_cl[new_id] = [series.get_value(t) for t in times.ids_in_order]
 
         if new_id in df_ts_hor:
             raise exceptions.EhubXException(
                 "Cannot add time series for output formating because of a "
-                "duplicate id issue", module=LOG_MODULE_STR)
+                "duplicate id issue",
+                module=LOG_MODULE_STR,
+            )
         df_ts_hor[new_id] = [
             series.get_value(times.get_cluster_ts(StageId(stage), t_hor))
-            for t_hor in times.ids_horizon_in_order]
+            for t_hor in times.ids_horizon_in_order
+        ]
 
     if not times.is_clustered:
         # No clustering => Save time series to horizon dataframe
         if new_id in df_ts_hor:
             raise exceptions.EhubXException(
                 "Cannot add time series for output formating because of a "
-                "duplicate id issue", module=LOG_MODULE_STR)
+                "duplicate id issue",
+                module=LOG_MODULE_STR,
+            )
         df_ts_hor[new_id] = [series.get_value(t) for t in times.ids_in_order]

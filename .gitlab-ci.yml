@@ -1,0 +1,50 @@
+image: "python:3.11-buster"
+
+before_script:
+  - pip3 install poetry
+  - poetry install
+
+stages:
+  - Build
+
+static_tests:
+  stage: Build
+  allow_failure: false
+  script:
+  - poetry run ruff check src --output-format=github --output-file=ruff-report.txt --ignore C901
+  - poetry run mypy src --junit-xml mypy-report.xml
+  artifacts:
+    paths:
+    - ruff-report.txt
+    - mypy-report.xml
+    expire_in: 1 week
+    when: always
+  timeout: 5 minutes
+
+unit_test:
+  stage: Build
+  script:
+  - apt-get update
+  - apt-get install -y glpk-utils
+  - glpsol --help
+  - poetry run pytest --cov --html=unit_test_report.html --self-contained-html
+  - poetry run coverage html
+  artifacts:
+    paths:
+    - unit_test_report.html
+    - ./htmlcov
+    expire_in: 1 week
+    when: always
+  timeout: 20 minutes
+
+
+pages:
+  stage: Build
+  script:
+    - poetry run sphinx-apidoc -o docs/source src/ehubx
+    - rm docs/source/modules.rst
+    - sed -i '/modules/c\   ehubx' docs/source/index.rst
+    - poetry run sphinx-build -M html docs/source docs/build
+  artifacts:
+    paths:
+      - docs/build/html

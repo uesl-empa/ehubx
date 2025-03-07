@@ -1,8 +1,12 @@
 """Energy carrier (ec) submodel"""
-from pyomo.core import Model, Set
+
 from datetime import datetime
+
+from pyomo.core import Model, Set
+
 from ehubx.core import logging
 from ehubx.data.ec_data import Ecs
+
 
 # -------- #
 # Literals #
@@ -32,5 +36,6 @@ def build(model: Model, ecs: Ecs) -> None:
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
-        "Built ec module. Elapsed time: "
-        f"{int(elapsed.total_seconds())}s", module=LOG_MODULE_STR)
+        f"Built ec module. Elapsed time: {int(elapsed.total_seconds())}s",
+        module=LOG_MODULE_STR,
+    )

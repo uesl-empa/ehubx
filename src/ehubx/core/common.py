@@ -1,6 +1,7 @@
 """
 Common module. Contains repeating functionality and centralized parameters
 """
+
 import os
 from enum import Enum
 
@@ -234,3 +235,51 @@ def kelvin_to_celcius(temp_k: float) -> float:
     :rtype: float
     """
     return temp_k - 273.15
+
+
+def hours_to_days(timespan_h: float) -> float:
+    """
+    Convert a timespan given in hours to days
+
+    :param timespan_h: Timespan in h
+    :type timespan_h: float
+    :return: Timespan in d
+    :rtype: float
+    """
+    return timespan_h / 24
+
+
+def days_to_hours(timespan_d: float) -> float:
+    """
+    Convert a timespan given in days to hours
+
+    :param timespan_d: Timespan in d
+    :type timespan_ds: float
+    :return: Timespan in h
+    :rtype: float
+    """
+    return timespan_d * 24
+
+
+def hours_to_seconds(timespan_h: float) -> float:
+    """
+    Convert a timespan given in hours to seconds
+
+    :param timespan_h: Timespan in h
+    :type timespan_h: float
+    :return: Timespan in s
+    :rtype: float
+    """
+    return timespan_h * 3600
+
+
+def seconds_to_hours(timespan_s: float) -> float:
+    """
+    Convert a timespan given in seconds to hours
+
+    :param timespan_s: Timespan in s
+    :type timespan_s: float
+    :return: Timespan in h
+    :rtype: float
+    """
+    return timespan_s / 3600

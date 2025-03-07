@@ -1,6 +1,6 @@
 tech_lists:
 - tech_list_id: TechList1
-  techs: [X1, X2, X3, X4, X5, X6]
+  techs: [X1, X2, X3, X4, X5, X6, X7, X8]
 
 hubs:
 - hub_id: H1
@@ -23,6 +23,19 @@ hubs:
       availability: [[2020, 0.8], [[2025, 0.9]]]
       profile_path: hub_profiles.csv
 
+  - tech_id: X4
+    ates_params:
+      elec_per_energy_heat: [[2020, 0.1], [2025, 0.09]]
+      elec_per_energy_cool: [[2020, 0.08], [2025, 0.07]]
+      schedule_params:
+      - schedule_id: AS1
+        max_pump_rate_per_warm_well: [[2020, 1.2], [2025, 1.1]]
+        max_pump_rate_per_cold_well: [[2020, 1.1], [2025, 1.0]]
+        thermal_radius_per_warm_well: [[2020, 150], [2025, 145]]
+        thermal_radius_per_cold_well: [[2020, 140], [2025, 135]]
+        max_heat_over_cool: 1.5
+        max_cool_over_heat: 1.5
+
   - tech_id: X5
     ebm_params:
       demand_modifier: [[2020, 200], [2025, 600]]
@@ -43,6 +56,23 @@ hubs:
       soc_init: 0.5
       demand_modifier: 1
       profiles: ebm_profiles.csv
+
+  ates_params:
+    groundwater_velocity: 1
+    specific_heat_capacity_aquifer: 0.15
+    thickness_aquifer: 30
+    hydraulic_conductivity_aquifer: 10
+    storativity_aquifer: 0.25
+    max_drawdown: 1
+    max_temperature_spread_warm: 6
+    max_temperature_spread_cold: 6.5
+    available_area: 1000
+    schedules:
+    - schedule_id: AS1
+      phase_w2c_start_id: 10
+      phase_w2c_end_id: 3
+      phase_c2w_start_id: 4
+      phase_c2w_end_id: 9
 
 - hub_id: H2
   allowed_tech_lists: []

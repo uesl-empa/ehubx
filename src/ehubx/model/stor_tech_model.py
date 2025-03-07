@@ -1,18 +1,19 @@
 """Storage technology submodel"""
+
 from datetime import datetime
-from pyomo.core import Any, Constraint, Model, NonNegativeReals, Param, Set, \
-    Var
-from ehubx.core import common
-from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
+
+from pyomo.core import Any, Constraint, Model, NonNegativeReals, Param, Set, Var
+
+from ehubx.core import common, logging
 from ehubx.data.hub_data import HubId
-from ehubx.data.tech_data import Techs, TechId
+from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.stor_tech_data import StorageTechs
-from ehubx.data.time_data import Times, TimeId
+from ehubx.data.tech_data import TechId, Techs
+from ehubx.data.time_data import TimeId, Times
 from ehubx.model.demand_model import PAR_BIGMGENERIC
-from ehubx.model.tech_model import SET_TECH, SET_TECHTUPLE, VAR_TECHCAP, \
-    VAR_YTECHUSED
+from ehubx.model.tech_model import SET_TECH, SET_TECHTUPLE, VAR_TECHCAP, VAR_YTECHUSED
 from ehubx.model.times_model import SET_TIME, SET_TIMEHORIZON
+
 
 # -------- #
 # Literals #
@@ -67,8 +68,9 @@ CON_STORTECHENERGYINIT: str = "C_StorTechEnergyInit"
 parameter 'soc_init'"""
 
 
-def build(model: Model, stages: Stages, techs: Techs,
-          stor_techs: StorageTechs, times: Times) -> None:
+def build(
+    model: Model, stages: Stages, techs: Techs, stor_techs: StorageTechs, times: Times
+) -> None:
     """
     Builds the storage technology submodel. For a mathematical description
     in thorough detail, please refer to the section 'Storage model' in the
@@ -91,44 +93,79 @@ def build(model: Model, stages: Stages, techs: Techs,
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
-        "Built storage tech module. Elapsed time: "
-        f"{int(elapsed.total_seconds())}s", module=LOG_MODULE_STR)
+        f"Built storage tech module. Elapsed time: {int(elapsed.total_seconds())}s",
+        module=LOG_MODULE_STR,
+    )
 
 
-def _build_base(model: Model, stages: Stages, techs: Techs,
-                stor_techs: StorageTechs, times: Times) -> None:
+def _build_base(
+    model: Model, stages: Stages, techs: Techs, stor_techs: StorageTechs, times: Times
+) -> None:
     # [SET] Storage techs
-    setattr(model, SET_STORTECH,
-            Set(within=getattr(model, SET_TECH),
-                initialize=[x.key for x in stor_techs.ids]))
+    setattr(
+        model,
+        SET_STORTECH,
+        Set(
+            within=getattr(model, SET_TECH), initialize=[x.key for x in stor_techs.ids]
+        ),
+    )
     # [SET] Storage techs tuples
-    setattr(model, SET_STORTECHTUPLE,
-            Set(within=getattr(model, SET_TECHTUPLE),
-                initialize=[(s, h, x)
-                            for (s, h, x) in getattr(model, SET_TECHTUPLE)
-                            if x in getattr(model, SET_STORTECH)]))
+    setattr(
+        model,
+        SET_STORTECHTUPLE,
+        Set(
+            within=getattr(model, SET_TECHTUPLE),
+            initialize=[
+                (s, h, x)
+                for (s, h, x) in getattr(model, SET_TECHTUPLE)
+                if x in getattr(model, SET_STORTECH)
+            ],
+        ),
+    )
     # [PAR] Stored ec
-    setattr(model, PAR_STORTECHEC,
-            Param(getattr(model, SET_STORTECH), within=Any,
-                  initialize={x.key: stor_techs.get_ec(x).key
-                              for x in stor_techs.ids}))
+    setattr(
+        model,
+        PAR_STORTECHEC,
+        Param(
+            getattr(model, SET_STORTECH),
+            within=Any,
+            initialize={x.key: stor_techs.get_ec(x).key for x in stor_techs.ids},
+        ),
+    )
     # [VAR] Storage inflow
-    setattr(model, VAR_STORTECHINFLOW,
-            Var(getattr(model, SET_STORTECHTUPLE), getattr(model, SET_TIME),
-                domain=NonNegativeReals))
+    setattr(
+        model,
+        VAR_STORTECHINFLOW,
+        Var(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIME),
+            domain=NonNegativeReals,
+        ),
+    )
     # [VAR] Storage outflow
-    setattr(model, VAR_STORTECHOUTFLOW,
-            Var(getattr(model, SET_STORTECHTUPLE), getattr(model, SET_TIME),
-                domain=NonNegativeReals))
+    setattr(
+        model,
+        VAR_STORTECHOUTFLOW,
+        Var(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIME),
+            domain=NonNegativeReals,
+        ),
+    )
     # [CON] Respect maximal inflow and outflow (based on capacity)
     _con_stor_tech_inoutflow_max(model, stor_techs)
     # [CON] Tech usage (monitored over sum summed-up sum of inflow and outflow)
     _con_stor_tech_used(model, techs, stor_techs, times)
     # [VAR] Storage energy
-    setattr(model, VAR_STORTECHENERGY,
-            Var(getattr(model, SET_STORTECHTUPLE),
-                getattr(model, SET_TIMEHORIZON),
-                domain=NonNegativeReals))
+    setattr(
+        model,
+        VAR_STORTECHENERGY,
+        Var(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIMEHORIZON),
+            domain=NonNegativeReals,
+        ),
+    )
     # [CON] Charging dynamic: Energy level changes from one horizon_ts to the
     #       next based on flow and standby loss. A cyclical SOC approach is
     #       used so that the flow at the last horizon_ts charges the first
@@ -143,9 +180,7 @@ def _build_base(model: Model, stages: Stages, techs: Techs,
     _con_stor_tech_energy_init(model, stages, stor_techs)
 
 
-def _con_stor_tech_inoutflow_max(model: Model,
-                                 stor_techs: StorageTechs) -> None:
-
+def _con_stor_tech_inoutflow_max(model: Model, stor_techs: StorageTechs) -> None:
     def __rule_stor_tech_inflow_max(model, s, h, x, t):
         # Get parameter
         charge_max = stor_techs.get_charge_max(StageId(s), TechId(x))
@@ -166,18 +201,29 @@ def _con_stor_tech_inoutflow_max(model: Model,
         # Set constraint
         return getattr(model, VAR_STORTECHOUTFLOW)[s, h, x, t] <= outflow_max
 
-    setattr(model, CON_STORTECHINFLOWMAX,
-            Constraint(getattr(model, SET_STORTECHTUPLE),
-                       getattr(model, SET_TIME),
-                       rule=__rule_stor_tech_inflow_max))
-    setattr(model, CON_STORTECHOUTFLOWMAX,
-            Constraint(getattr(model, SET_STORTECHTUPLE),
-                       getattr(model, SET_TIME),
-                       rule=__rule_stor_tech_outflow_max))
+    setattr(
+        model,
+        CON_STORTECHINFLOWMAX,
+        Constraint(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIME),
+            rule=__rule_stor_tech_inflow_max,
+        ),
+    )
+    setattr(
+        model,
+        CON_STORTECHOUTFLOWMAX,
+        Constraint(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIME),
+            rule=__rule_stor_tech_outflow_max,
+        ),
+    )
 
 
-def _con_stor_tech_used(model: Model, techs: Techs, stor_techs: StorageTechs,
-                        times: Times) -> None:
+def _con_stor_tech_used(
+    model: Model, techs: Techs, stor_techs: StorageTechs, times: Times
+) -> None:
     # Get length of full time horizon
     num_horizon_ts = times.num_horizon_ts
 
@@ -191,32 +237,37 @@ def _con_stor_tech_used(model: Model, techs: Techs, stor_techs: StorageTechs,
         if cap_max < float("inf"):
             inflow_max = cap_max * min(charge_max, 1)
             outflow_max = cap_max * min(discharge_max, 1)
-            big_m = (common.EPS_BIGM
-                     + (inflow_max + outflow_max) * num_horizon_ts)
+            big_m = common.EPS_BIGM + (inflow_max + outflow_max) * num_horizon_ts
         else:
             logging.log_file_warning(
                 f"cap_max[{s}, {h}, {x}] not available to calculate a big-M "
                 "value for maximal storage tech inflow/outflow. Using generic "
                 f"big-M value {getattr(model, PAR_BIGMGENERIC).value} based "
                 "on demands instead",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         # Calculate total summed-up flow in both directions
         flow_abs_sum = sum(
             times.get_weight(StageId(s), TimeId(t))
-            * (getattr(model, VAR_STORTECHINFLOW)[s, h, x, t]
-               + getattr(model, VAR_STORTECHOUTFLOW)[s, h, x, t])
-            for t in getattr(model, SET_TIME))
+            * (
+                getattr(model, VAR_STORTECHINFLOW)[s, h, x, t]
+                + getattr(model, VAR_STORTECHOUTFLOW)[s, h, x, t]
+            )
+            for t in getattr(model, SET_TIME)
+        )
         # Set constraint
         return flow_abs_sum <= big_m * getattr(model, VAR_YTECHUSED)[s, h, x]
 
-    setattr(model, CON_STORTECHUSED,
-            Constraint(getattr(model, SET_STORTECHTUPLE),
-                       rule=__rule_stor_tech_used))
+    setattr(
+        model,
+        CON_STORTECHUSED,
+        Constraint(getattr(model, SET_STORTECHTUPLE), rule=__rule_stor_tech_used),
+    )
 
 
-def _con_stor_tech_charging_dynamic(model: Model, stor_techs: StorageTechs,
-                                    times: Times) -> None:
-
+def _con_stor_tech_charging_dynamic(
+    model: Model, stor_techs: StorageTechs, times: Times
+) -> None:
     # Get first and last full-horizon timesteps
     t_hor_first = getattr(model, SET_TIMEHORIZON).first()
     t_hor_last = getattr(model, SET_TIMEHORIZON).last()
@@ -228,31 +279,33 @@ def _con_stor_tech_charging_dynamic(model: Model, stor_techs: StorageTechs,
         out_eff = stor_techs.get_out_eff(StageId(s), TechId(x))
         standby_loss = stor_techs.get_standby_loss(StageId(s), TechId(x))
         # Calculate energy flow (for the storage tech) at this timestep
-        energy_flow = (in_eff
-                       * getattr(model, VAR_STORTECHINFLOW)[s, h, x, t]
-                       - getattr(model, VAR_STORTECHOUTFLOW)[s, h, x, t]
-                       / out_eff)
+        energy_flow = (
+            in_eff * getattr(model, VAR_STORTECHINFLOW)[s, h, x, t]
+            - getattr(model, VAR_STORTECHOUTFLOW)[s, h, x, t] / out_eff
+        )
         # Calulate energy level at next horizon_ts
-        energy_next = ((1 - standby_loss)
-                       * getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor]
-                       + energy_flow)
+        energy_next = (1 - standby_loss) * getattr(model, VAR_STORTECHENERGY)[
+            s, h, x, t_hor
+        ] + energy_flow
         # Get next horizon_ts (cycle back to start if at the end)
         t_hor_next = t_hor_first
         if t_hor != t_hor_last:
             t_hor_next = getattr(model, SET_TIMEHORIZON).next(t_hor)
         # Set the constraint
-        return (getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_next]
-                == energy_next)
+        return getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_next] == energy_next
 
-    setattr(model, CON_STORTECHCHARGINGDYNAMIC,
-            Constraint(getattr(model, SET_STORTECHTUPLE),
-                       getattr(model, SET_TIMEHORIZON),
-                       rule=__rule_stor_tech_charging_dynamic))
+    setattr(
+        model,
+        CON_STORTECHCHARGINGDYNAMIC,
+        Constraint(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIMEHORIZON),
+            rule=__rule_stor_tech_charging_dynamic,
+        ),
+    )
 
 
-def _con_stor_tech_energy_minmax(model: Model,
-                                 stor_techs: StorageTechs) -> None:
-
+def _con_stor_tech_energy_minmax(model: Model, stor_techs: StorageTechs) -> None:
     def __rule_stor_tech_energy_min(model, s, h, x, t):
         # Get parameter
         soc_min = stor_techs.get_soc_min(StageId(s), TechId(x))
@@ -269,18 +322,29 @@ def _con_stor_tech_energy_minmax(model: Model,
         # Set constraint
         return getattr(model, VAR_STORTECHENERGY)[s, h, x, t] <= energy_max
 
-    setattr(model, CON_STORTECHENERGYMIN,
-            Constraint(getattr(model, SET_STORTECHTUPLE),
-                       getattr(model, SET_TIMEHORIZON),
-                       rule=__rule_stor_tech_energy_min))
-    setattr(model, CON_STORTECHENERGYMAX,
-            Constraint(getattr(model, SET_STORTECHTUPLE),
-                       getattr(model, SET_TIMEHORIZON),
-                       rule=__rule_stor_tech_energy_max))
+    setattr(
+        model,
+        CON_STORTECHENERGYMIN,
+        Constraint(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIMEHORIZON),
+            rule=__rule_stor_tech_energy_min,
+        ),
+    )
+    setattr(
+        model,
+        CON_STORTECHENERGYMAX,
+        Constraint(
+            getattr(model, SET_STORTECHTUPLE),
+            getattr(model, SET_TIMEHORIZON),
+            rule=__rule_stor_tech_energy_max,
+        ),
+    )
 
 
-def _con_stor_tech_energy_init(model: Model, stages: Stages,
-                               stor_techs: StorageTechs) -> None:
+def _con_stor_tech_energy_init(
+    model: Model, stages: Stages, stor_techs: StorageTechs
+) -> None:
     # Get initial stage and first full-horizon timestep
     s_0 = stages.init_stage
     t_hor_0 = getattr(model, SET_TIMEHORIZON).first()
@@ -290,16 +354,23 @@ def _con_stor_tech_energy_init(model: Model, stages: Stages,
         soc_init = stor_techs.get_soc_init(HubId(h), TechId(x))
         # Case 1: Not first stage => Set to same initial energy as first stage
         if StageId(s) != s_0:
-            return (getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_0]
-                    == getattr(model, VAR_STORTECHENERGY
-                               )[s_0.key, h, x, t_hor_0])
+            return (
+                getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_0]
+                == getattr(model, VAR_STORTECHENERGY)[s_0.key, h, x, t_hor_0]
+            )
         # Case 2: soc_init is a real value => Set the SOC of first stage
         if soc_init < float("inf"):
-            return (getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_0]
-                    == soc_init * getattr(model, VAR_TECHCAP)[s, h, x])
+            return (
+                getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_0]
+                == soc_init * getattr(model, VAR_TECHCAP)[s, h, x]
+            )
         # Case 3: soc_init is infinite => Let optimizer choose the value
         return Constraint.Skip
 
-    setattr(model, CON_STORTECHENERGYINIT,
-            Constraint(getattr(model, SET_STORTECHTUPLE),
-                       rule=__rule_stor_tech_energy_init))
+    setattr(
+        model,
+        CON_STORTECHENERGYINIT,
+        Constraint(
+            getattr(model, SET_STORTECHTUPLE), rule=__rule_stor_tech_energy_init
+        ),
+    )

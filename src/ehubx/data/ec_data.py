@@ -1,16 +1,19 @@
 """
 ec (energy carrier) data module
 """
-from typing import Dict, List, Set
+
 from enum import Enum
-from ehubx.data.index import Index, IndexKind
+from typing import Dict, List, Set
+
 from ehubx.data import exceptions
+from ehubx.data.index import Index, IndexKind
 
 
 class EcId(Index):
     """
     ec (energy carrier) index
     """
+
     def __init__(self, key: str):
         super().__init__(IndexKind.EC, key)
 
@@ -36,6 +39,7 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the ec data module
     """
+
     ID_ADD = "adding to 'ids' of Ecs"
     IMPEXPTYPE_SET = "setting 'imp_exp_type' of Ecs"
     IMPEXPTYPE_GET = "getting 'imp_exp_type' from Ecs"
@@ -89,8 +93,9 @@ class Ecs:
         :type e: EcId
         """
         if e in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, e,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, e, module=LOG_MODULE_STR
+            )
         self._ids.add(e)
 
     # ---------------------- #
@@ -190,5 +195,4 @@ class Ecs:
     # ---------- #
     def _check_id(self, e: EcId, where: ExceptionKey) -> None:
         if e not in self._ids:
-            raise exceptions.UnknownIdException(where.value, e,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, e, module=LOG_MODULE_STR)

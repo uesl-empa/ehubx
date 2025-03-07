@@ -1,23 +1,26 @@
 """
 Wind data module
 """
-from typing import Dict, List, Set, Tuple
+
 from enum import Enum
-from ehubx.core.common import TimeSeriesKind, EPS_ZEROCHECK
+from typing import Dict, List, Set, Tuple
+
 from ehubx.core import logging
-from ehubx.data.index import Index, IndexKind
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.ec_data import Ecs, EcId
-from ehubx.data.time_data import Times, TimeId
-from ehubx.data.time_series import TimeSeries
+from ehubx.core.common import EPS_ZEROCHECK, TimeSeriesKind
 from ehubx.data import exceptions
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.index import Index, IndexKind
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
 
 
 class WindparkId(Index):
     """
     Windpark index
     """
+
     def __init__(self, key: str) -> None:
         super().__init__(IndexKind.WINDPARK, key)
 
@@ -27,6 +30,7 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the wind data module
     """
+
     WINDPARKID_ADD = "adding to 'windpark_ids' of WindData"
     VELOCITY_SET = "setting 'velocity' of WindData"
     VELOCITY_VAL = "validating 'velocity' of WindData"
@@ -77,8 +81,8 @@ class WindData:
         """
         if w in self._windpark_ids:
             raise exceptions.DuplicateIdException(
-                ExceptionKey.WINDPARKID_ADD.value, w,
-                module=LOG_MODULE_STR)
+                ExceptionKey.WINDPARKID_ADD.value, w, module=LOG_MODULE_STR
+            )
         self._windpark_ids.add(w)
         self._windpark_ecs[w] = set()
 
@@ -120,9 +124,7 @@ class WindData:
         :return: Set of ecs that belong to a windpark
         :rtype: Set[EcId]
         """
-        return set(e
-                   for wp in self.windpark_ids
-                   for e in self._windpark_ecs[wp])
+        return set(e for wp in self.windpark_ids for e in self._windpark_ecs[wp])
 
     # ----------------------- #
     # Property: windpark_area #
@@ -144,8 +146,9 @@ class WindData:
         self._check_id(wp, ExceptionKey.WINDPARKAREA_GET)
         return self._windpark_area.get((s, h, wp), DEF_WINDPARKAREA)
 
-    def set_windpark_area(self, s: StageId, h: HubId, wp: WindparkId,
-                          windpark_area: float) -> None:
+    def set_windpark_area(
+        self, s: StageId, h: HubId, wp: WindparkId, windpark_area: float
+    ) -> None:
         """
         Set the amount of available area in a windpark and hub. This value
         may change over time so it is stage-dependent
@@ -182,8 +185,7 @@ class WindData:
             return series
         return self._velocity[s, e]
 
-    def set_velocity(self, s: StageId, e: EcId, t: TimeId,
-                     velocity: float) -> None:
+    def set_velocity(self, s: StageId, e: EcId, t: TimeId, velocity: float) -> None:
         """
         Set the wind velocity for a wind ec at a specific time
 
@@ -201,8 +203,7 @@ class WindData:
             self._velocity[s, e].def_value = DEF_VELOCITY
         self._velocity[s, e].set_value(t, velocity)
 
-    def set_velocity_def(self, s: StageId, e: EcId,
-                         velocity_def: float) -> None:
+    def set_velocity_def(self, s: StageId, e: EcId, velocity_def: float) -> None:
         """
         Set the default (with respect to time) wind velocity for a wind ec
 
@@ -221,15 +222,16 @@ class WindData:
         """
         Remove all data for the parameter 'velocity' from wind data
         """
-        for (s, e) in self._velocity:
+        for s, e in self._velocity:
             self._velocity[s, e].clear()
 
     # ------------------------------- #
     # Secondary property: time_series #
     # ------------------------------- #
     @property
-    def time_series(self) -> List[Tuple[TimeSeriesKind, StageId,
-                                        Tuple[str, ...], TimeSeries]]:
+    def time_series(
+        self,
+    ) -> List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]]:
         """
         Time series profiles in the solar module. This is a list of tuples.
         Each list element has the following list entries: 1) ProfileKind of
@@ -240,18 +242,23 @@ class WindData:
         :rtype: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
             TimeSeries]]
         """
-        all_series: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
-                               TimeSeries]] = []
+        all_series: List[
+            Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]
+        ] = []
         # velocity
         for (s, e), series in self._velocity.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.WINDVELOCITY, s,
-                                   (e.key, ), series))
+                all_series.append((TimeSeriesKind.WINDVELOCITY, s, (e.key,), series))
         return all_series
 
-    def set_time_series_val(self, kind: TimeSeriesKind, s: StageId,
-                            ids: Tuple[str, ...], t: TimeId, value: float
-                            ) -> None:
+    def set_time_series_val(
+        self,
+        kind: TimeSeriesKind,
+        s: StageId,
+        ids: Tuple[str, ...],
+        t: TimeId,
+        value: float,
+    ) -> None:
         """
         Set the value for a time series in the wind data class. The time
         series should be uniquely identified by the time series kind, the
@@ -278,15 +285,13 @@ class WindData:
     def __init__(self) -> None:
         self._windpark_ids: Set[WindparkId] = set()
         self._windpark_ecs: Dict[WindparkId, Set[EcId]] = {}
-        self._windpark_area: Dict[Tuple[StageId, HubId, WindparkId],
-                                  float] = {}
+        self._windpark_area: Dict[Tuple[StageId, HubId, WindparkId], float] = {}
         self._velocity: Dict[Tuple[StageId, EcId], TimeSeries] = {}
 
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs,
-                 times: Times) -> None:
+    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs, times: Times) -> None:
         """
         Validate all wind data in this object. Apart from sense-checking
         parameter in terms of quantity, this includes checking whether
@@ -316,8 +321,9 @@ class WindData:
                 # Unknown windpark_ec
                 if e not in ecs.ids:
                     msg = f"Unknown ec {e} in windpark_ecs[{wp}]"
-                    raise exceptions.DataException(exc_key, [wp, e], msg,
-                                                   module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [wp, e], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_windpark_area(self, stages: Stages, hubs: Hubs) -> None:
         exc_key = ExceptionKey.WINDPARKAREA_VAL.value
@@ -325,33 +331,37 @@ class WindData:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in windpark_area[{s}, {h}, {wp}]"
-                raise exceptions.DataException(exc_key, [s, h, wp], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, wp], msg, module=LOG_MODULE_STR
+                )
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in windpark_area[{s}, {h}, {wp}]"
-                raise exceptions.DataException(exc_key, [s, h, wp], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, wp], msg, module=LOG_MODULE_STR
+                )
             # area must not not be negative
             if area < 0:
                 msg = f"{area} = windpark_area[{s}, {h}, {wp}] < 0"
-                raise exceptions.DataException(exc_key, [s, h, wp], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, wp], msg, module=LOG_MODULE_STR
+                )
 
-    def _validate_velocity(self, stages: Stages, ecs: Ecs,
-                           times: Times) -> None:
+    def _validate_velocity(self, stages: Stages, ecs: Ecs, times: Times) -> None:
         exc_key = ExceptionKey.VELOCITY_VAL.value
         for (s, e), velocity in self._velocity.items():
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in velocity[{s}, {e}]"
-                raise exceptions.DataException(exc_key, [s, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, e], msg, module=LOG_MODULE_STR
+                )
             # Not a wind ec
             if e not in self.ecs:
                 msg = f"ec {e} in velocity[{s}, {e}] is not a wind ec"
-                raise exceptions.DataException(exc_key, [s, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, e], msg, module=LOG_MODULE_STR
+                )
             # Time values
             if velocity.has_values:
                 # Unknown time ids
@@ -359,24 +369,23 @@ class WindData:
                 # velocity must not be negative
                 for t in times.ids:
                     if velocity.get_value(t) < 0:
-                        msg = (f"{velocity.get_value(t)} = "
-                            f"velocity[{s}, {e}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [s, e, t], msg,
-                                                       module=LOG_MODULE_STR)
+                        msg = f"{velocity.get_value(t)} = velocity[{s}, {e}][{t}] < 0"
+                        raise exceptions.DataException(
+                            exc_key, [s, e, t], msg, module=LOG_MODULE_STR
+                        )
             # Default value
             if not velocity.has_values:
                 velocity_def = velocity.def_value
                 assert velocity_def is not None
                 # velocity must not be negative
                 if velocity_def < 0:
-                    msg = (f"{velocity_def} = "
-                           f"velocity_def[{s}, {e}] < 0")
-                    raise exceptions.DataException(exc_key, [s, e], msg,
-                                                   module=LOG_MODULE_STR)
+                    msg = f"{velocity_def} = velocity_def[{s}, {e}] < 0"
+                    raise exceptions.DataException(
+                        exc_key, [s, e], msg, module=LOG_MODULE_STR
+                    )
                 # velocity usually not all-zero
                 if velocity_def < EPS_ZEROCHECK:
-                    msg = (f"{velocity_def} = "
-                           f"velocity[{s}, {e}] ~ 0")
+                    msg = f"{velocity_def} = velocity[{s}, {e}] ~ 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
 
     # ------------------- #
@@ -384,5 +393,4 @@ class WindData:
     # ------------------- #
     def _check_id(self, wp: WindparkId, where: ExceptionKey) -> None:
         if wp not in self._windpark_ids:
-            raise exceptions.UnknownIdException(where.value, wp,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, wp, module=LOG_MODULE_STR)

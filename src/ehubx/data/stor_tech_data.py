@@ -1,15 +1,16 @@
 """
 Storage technology data module
 """
+
 from enum import Enum
 from typing import Dict, List, Set, Tuple
-from ehubx.core import common
-from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.tech_data import Techs, TechId
-from ehubx.data.ec_data import Ecs, EcId
+
+from ehubx.core import common, logging
 from ehubx.data import exceptions
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.tech_data import TechId, Techs
 
 
 class ExceptionKey(Enum):
@@ -17,6 +18,7 @@ class ExceptionKey(Enum):
     Key strings for exception messages occuring in the storage technology data
     module
     """
+
     ID_ADD = "adding to 'ids' of StorageTechs"
     ID_REMOVE = "removing from 'ids' of StorageTechs"
     ID_VAL = "validating 'id' of StorageTechs"
@@ -48,8 +50,9 @@ class ExceptionKey(Enum):
     SOCINIT_SET = "setting 'soc_init' of StorageTechs"
     SOCINIT_GET = "getting 'soc_init' from StorageTechs"
     SOCINIT_VAL = "validating 'soc_init' of StorageTechs"
-    SOCINITMINMAX_VAL = ("validating 'soc_init' against 'soc_min' and "
-                         "'soc_max' of StorageTechs")
+    SOCINITMINMAX_VAL = (
+        "validating 'soc_init' against 'soc_min' and 'soc_max' of StorageTechs"
+    )
 
 
 # -------- #
@@ -126,8 +129,9 @@ class StorageTechs:
         :type x: TechId
         """
         if x in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, x,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, x, module=LOG_MODULE_STR
+            )
         self._ids.add(x)
 
     # ------------ #
@@ -146,8 +150,9 @@ class StorageTechs:
         self._check_id(x, ExceptionKey.EC_GET)
         ec = self._ec.get(x, None)
         if ec is None:
-            raise exceptions.MissingIdException(ExceptionKey.EC_GET.value, x,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.MissingIdException(
+                ExceptionKey.EC_GET.value, x, module=LOG_MODULE_STR
+            )
         return ec
 
     def set_ec(self, x: TechId, e: EcId) -> None:
@@ -299,8 +304,7 @@ class StorageTechs:
         self._check_id(x, ExceptionKey.DISCHARGEMAX_GET)
         return self._discharge_max.get((s, x), DEF_DISCHARGEMAX)
 
-    def set_discharge_max(self, s: StageId, x: TechId,
-                          discharge_max: float) -> None:
+    def set_discharge_max(self, s: StageId, x: TechId, discharge_max: float) -> None:
         """
         Set the parameter 'discharge_max' which denotes the maximal relative
         discharging rate of a storage technology. A maximal discharging rate of
@@ -337,8 +341,7 @@ class StorageTechs:
         self._check_id(x, ExceptionKey.STANDBYLOSS_GET)
         return self._standby_loss.get((s, x), DEF_STANDBYLOSS)
 
-    def set_standby_loss(self, s: StageId, x: TechId,
-                         standby_loss: float) -> None:
+    def set_standby_loss(self, s: StageId, x: TechId, standby_loss: float) -> None:
         """
         Set the parameter 'standby_loss' for a technology which denotes the
         relative loss rate of stored energy per time step. This is an optional
@@ -497,8 +500,7 @@ class StorageTechs:
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs,
-                 techs: Techs) -> None:
+    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs, techs: Techs) -> None:
         """
         Validate all storage technology data in this object. Apart from sense-
         checking parameter in terms of quantity, this includes checking whether
@@ -532,8 +534,7 @@ class StorageTechs:
             # stor_tech not in techs
             if x not in techs.ids:
                 msg = f"stor_tech {x} not part of techs"
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
 
     def _validate_ec(self, ecs: Ecs) -> None:
         exc_key = ExceptionKey.EC_VAL.value
@@ -541,8 +542,9 @@ class StorageTechs:
             # Unknown ec
             if e not in ecs.ids:
                 msg = f"Unknown ec in ec[{x}] = {e}"
-                raise exceptions.DataException(exc_key, [x, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [x, e], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_in_eff(self, stages: Stages) -> None:
         exc_key = ExceptionKey.INEFF_VAL.value
@@ -550,13 +552,15 @@ class StorageTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in in_eff[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # in_eff must be nonnegative
             if in_eff < 0:
                 msg = f"{in_eff} = in_eff[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # in_eff usually not zero
             if in_eff < common.EPS_ZEROCHECK:
                 msg = f"{in_eff} = in_eff[{s}, {x}] ~ 0"
@@ -572,13 +576,15 @@ class StorageTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in out_eff[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # out_eff must be nonnegative
             if out_eff < 0:
                 msg = f"{out_eff} = out_eff[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # out_eff usually not zero
             if out_eff < common.EPS_ZEROCHECK:
                 msg = f"{out_eff} = out_eff[{s}, {x}] ~ 0"
@@ -594,13 +600,15 @@ class StorageTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in charge_max[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # charge_max must be nonnegative
             if charge_max < 0:
                 msg = f"{charge_max} = charge_max[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # charge_max usually not zero
             if charge_max < common.EPS_ZEROCHECK:
                 msg = f"{charge_max} = charge_max[{s}, {x}] ~ 0"
@@ -616,13 +624,15 @@ class StorageTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in discharge_max[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # discharge_max must be nonnegative
             if discharge_max < 0:
                 msg = f"{discharge_max} = discharge_max[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # discharge_max usually not zero
             if discharge_max < common.EPS_ZEROCHECK:
                 msg = f"{discharge_max} = discharge_max[{s}, {x}] ~ 0"
@@ -638,18 +648,21 @@ class StorageTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in standby_loss[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # standby_loss must be nonnegative
             if standby_loss < 0:
                 msg = f"{standby_loss} = standby_loss[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # standby_loss must not be larger than zero
             if standby_loss > 1:
                 msg = f"{standby_loss} = standby_loss[{s}, {x}] > 1"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # standby_loss usually not one
             if standby_loss > 1 - common.EPS_ZEROCHECK:
                 msg = f"{standby_loss} = standby_loss[{s}, {x}] ~ 1"
@@ -661,8 +674,9 @@ class StorageTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in soc_min[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # soc_min usually nonnegative
             if soc_min < 0:
                 msg = f"{soc_min} = soc_min[{s}, {x}] < 0"
@@ -670,8 +684,9 @@ class StorageTechs:
             # soc_min must not be larger than one
             if soc_min > 1:
                 msg = f"{soc_min} = soc_min[{s}, {x}] > 1"
-                raise exceptions.DataException(exc_key, [s, x],
-                                               msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_soc_max(self, stages: Stages) -> None:
         exc_key = ExceptionKey.SOCMAX_VAL.value
@@ -679,13 +694,15 @@ class StorageTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in soc_max[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # soc_max must be nonnegative
             if soc_max < 0:
                 msg = f"{soc_max} = soc_max[{s}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, x],
-                                               msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
             # soc_max usually larger than one
             if soc_max > 1:
                 msg = f"{soc_max} = soc_max[{s}, {x}] > 1"
@@ -694,15 +711,15 @@ class StorageTechs:
     def _validate_soc_minmax(self) -> None:
         exc_key = ExceptionKey.SOCMINMAX_VAL.value
         keys = set(self._soc_min.keys()).union(set(self._soc_max.keys()))
-        for (s, x) in keys:
+        for s, x in keys:
             soc_min = self.get_soc_min(s, x)
             soc_max = self.get_soc_max(s, x)
             # soc_min must not be larger than soc_max
             if soc_min > soc_max:
-                msg = (f"{soc_min} = soc_min[{s}, {x}] > "
-                       f"soc_max[{s}, {x}] = {soc_max}")
-                raise exceptions.DataException(exc_key, [s, x],
-                                               msg, module=LOG_MODULE_STR)
+                msg = f"{soc_min} = soc_min[{s}, {x}] > soc_max[{s}, {x}] = {soc_max}"
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_soc_init(self, hubs: Hubs) -> None:
         exc_key = ExceptionKey.SOCINIT_VAL.value
@@ -710,46 +727,53 @@ class StorageTechs:
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in soc_init[{h}, {x}]"
-                raise exceptions.DataException(exc_key, [h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [h, x], msg, module=LOG_MODULE_STR
+                )
             # soc_init must be nonnegative
             if soc_init < 0:
                 msg = f"{soc_init} = soc_init[{h}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [h, x],
-                                               msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [h, x], msg, module=LOG_MODULE_STR
+                )
             # soc_init must not be larger than one
             if soc_init > 1:
                 msg = f"{soc_init} = soc_init[{h}, {x}] > 1"
-                raise exceptions.DataException(exc_key, [h, x],
-                                               msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [h, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_soc_initminmax(self) -> None:
         exc_key = ExceptionKey.SOCINITMINMAX_VAL.value
-        tuples_minmax = set(self._soc_min.keys()
-                            ).union(set(self._soc_max.keys()))
+        tuples_minmax = set(self._soc_min.keys()).union(set(self._soc_max.keys()))
         for (h, x), soc_init in self._soc_init.items():
-            for (s, x2) in tuples_minmax:
+            for s, x2 in tuples_minmax:
                 if x2 != x:
                     continue
                 soc_min = self.get_soc_min(s, x)
                 soc_max = self.get_soc_max(s, x)
                 # soc_init must not be smaller than soc_min
                 if soc_init < soc_min:
-                    msg = (f"{soc_init} = soc_init[{h}, {x}] < "
-                           f"soc_min[{s}, {x}] = {soc_min}")
-                    raise exceptions.DataException(exc_key, [s, h, x],
-                                                   msg, module=LOG_MODULE_STR)
+                    msg = (
+                        f"{soc_init} = soc_init[{h}, {x}] < "
+                        f"soc_min[{s}, {x}] = {soc_min}"
+                    )
+                    raise exceptions.DataException(
+                        exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                    )
                 # soc_init must not be larger than soc_max
                 if soc_init > soc_max:
-                    msg = (f"{soc_init} = soc_init[{h}, {x}] > "
-                           f"soc_max[{s}, {x}] = {soc_max}")
-                    raise exceptions.DataException(exc_key, [s, h, x],
-                                                   msg, module=LOG_MODULE_STR)
+                    msg = (
+                        f"{soc_init} = soc_init[{h}, {x}] > "
+                        f"soc_max[{s}, {x}] = {soc_max}"
+                    )
+                    raise exceptions.DataException(
+                        exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                    )
 
     # ---------- #
     # Id checker #
     # ---------- #
     def _check_id(self, x: TechId, key: ExceptionKey) -> None:
         if x not in self._ids:
-            raise exceptions.UnknownIdException(key.value, x,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(key.value, x, module=LOG_MODULE_STR)

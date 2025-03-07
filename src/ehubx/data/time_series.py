@@ -1,16 +1,19 @@
 """
 Time series data module
 """
-from typing import Dict, Optional
+
 from enum import Enum
-from ehubx.data.time_data import Times, TimeId
+from typing import Dict, Optional
+
 from ehubx.data import exceptions
+from ehubx.data.time_data import TimeId, Times
 
 
 class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the time series data module
     """
+
     VALUE_GET = "getting 'value' from Times"
     VALUE_REMOVE = "removing 'value' from Times"
 
@@ -46,8 +49,9 @@ class TimeSeries:
         value = self._value.get(t, self._def_value)
         if value is not None:
             return value
-        raise exceptions.MissingIdException(ExceptionKey.VALUE_GET.value, t,
-                                            module=LOG_MODULE_STR)
+        raise exceptions.MissingIdException(
+            ExceptionKey.VALUE_GET.value, t, module=LOG_MODULE_STR
+        )
 
     def set_value(self, t: TimeId, value: float) -> None:
         """

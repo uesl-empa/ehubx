@@ -1,7 +1,8 @@
 import os
 from typing import Optional, Tuple
+
 from ehubx.core import logging
-from ehubx.data.hub_data import Hubs, HubId
+from ehubx.data.hub_data import HubId, Hubs
 from ehubx.parser import yaml_parser
 
 
@@ -17,8 +18,7 @@ FILENAME_HUBS = "hubs.yaml"
 FILETYPE_HUBS = "hubs"
 
 
-def parse_primary(basic_subpath: str
-                  ) -> Tuple[Hubs, Optional[yaml_parser.YamlNode]]:
+def parse_primary(basic_subpath: str) -> Tuple[Hubs, Optional[yaml_parser.YamlNode]]:
     hubs = Hubs()
     hubs_file_path = os.path.join(basic_subpath, FILENAME_HUBS)
     if not os.path.isfile(hubs_file_path):
@@ -40,11 +40,13 @@ def parse_primary(basic_subpath: str
 def _parse_hub(hub_node: yaml_parser.YamlDictNode, hubs: Hubs) -> None:
     # id
     hub_id_str = yaml_parser.parse_mandatory_str_value_from_dict_node(
-        hub_node, YAMLKEY_HUBID)
+        hub_node, YAMLKEY_HUBID
+    )
     hub_id = HubId(hub_id_str)
     hubs.add_id(hub_id)
 
 
 def _log(hubs: Hubs) -> None:
-    logging.log_file(f"Parsed {len(hubs.ids)} hub(s): {hubs.ids}",
-                     module=LOG_MODULE_STR)
+    logging.log_file(
+        f"Parsed {len(hubs.ids)} hub(s): {hubs.ids}", module=LOG_MODULE_STR
+    )

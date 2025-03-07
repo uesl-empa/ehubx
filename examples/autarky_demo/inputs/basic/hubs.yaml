@@ -11,11 +11,3 @@ hubs:
       cap_max: 20
     conversion_params:
       out_sum_max: 50
-- hub_id: H2
-  allowed_tech_lists: TL1
-  techs:
-  - tech_id: XConv
-    tech_params:
-      cap_max: 20
-    conversion_params:
-      out_sum_max: 50

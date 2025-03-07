@@ -1,17 +1,19 @@
 """
 Conversion technology data module
 """
+
 from enum import Enum
 from typing import Dict, List, Set, Tuple
-from ehubx.core.common import TimeSeriesKind, EPS_ZEROCHECK
+
 from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.tech_data import Techs, TechId
-from ehubx.data.ec_data import Ecs, EcId
-from ehubx.data.time_data import Times, TimeId
-from ehubx.data.time_series import TimeSeries
+from ehubx.core.common import EPS_ZEROCHECK, TimeSeriesKind
 from ehubx.data import exceptions
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.tech_data import TechId, Techs
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
 
 
 class ExceptionKey(Enum):
@@ -19,6 +21,7 @@ class ExceptionKey(Enum):
     Key strings for exception messages occuring in the conversion technology
     data module
     """
+
     ID_ADD = "adding to 'ids' of ConversionTechs"
     ID_REMOVE = "removing from 'ids' of ConversionTechs"
     ID_VAL = "validating 'ids' of ConversionTechs"
@@ -50,14 +53,14 @@ class ExceptionKey(Enum):
     OUTSUMMAX_SET = "setting 'out_sum_max' of ConversionTechs"
     OUTSUMMAX_GET = "getting 'out_sum_max' from ConversionTechs"
     OUTSUMMAX_VAL = "validating 'out_sum_max' of ConversionTechs"
-    OUTSUMMINMAX_VAL = ("validating 'out_sum_min' against 'out_sum_max' "
-                        "of ConversionTechs")
+    OUTSUMMINMAX_VAL = (
+        "validating 'out_sum_min' against 'out_sum_max' of ConversionTechs"
+    )
     AVAILABILITY_SET = "setting 'availability' of ConversionTechs"
     AVAILABILITY_DEFSET = "setting default 'availability' of ConversionTechs"
     AVAILABILITY_GET = "getting 'availability' from ConversionTechs"
     AVAILABILITY_VAL = "validating 'availability' of ConversionTechs"
-    COPYOVERTECH = ("copying conv_tech from one ConversionTechs instance "
-                    "to another")
+    COPYOVERTECH = "copying conv_tech from one ConversionTechs instance to another"
 
 
 # -------- #
@@ -122,8 +125,9 @@ class ConversionTechs:
         :type x: TechId
         """
         if x in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, x,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, x, module=LOG_MODULE_STR
+            )
         self._ids.add(x)
 
     def remove_id(self, x: TechId) -> None:
@@ -134,33 +138,34 @@ class ConversionTechs:
         :type x: TechId
         """
         if x not in self._ids:
-            raise exceptions.MissingIdException(ExceptionKey.ID_REMOVE.value,
-                                                x, module=LOG_MODULE_STR)
+            raise exceptions.MissingIdException(
+                ExceptionKey.ID_REMOVE.value, x, module=LOG_MODULE_STR
+            )
         self._ids.remove(x)
         if x in self._in_ecs:
             self._in_ecs.pop(x)
         if x in self._in_ec_main:
             self._in_ec_main.pop(x)
-        for (s, x2, e) in list(self._in_part.keys()):
+        for s, x2, e in list(self._in_part.keys()):
             if x == x2:
                 self._in_part.pop((s, x, e))
         if x in self._out_ecs:
             self._out_ecs.pop(x)
         if x in self._out_ec_main:
             self._out_ec_main.pop(x)
-        for (s, x2, e) in list(self._out_eff.keys()):
+        for s, x2, e in list(self._out_eff.keys()):
             if x == x2:
                 self._out_eff.pop((s, x, e))
-        for (s, x2) in list(self._opex_per_energy.keys()):
+        for s, x2 in list(self._opex_per_energy.keys()):
             if x == x2:
                 self._opex_per_energy.pop((s, x))
-        for (s, h, x2) in list(self._out_sum_min.keys()):
+        for s, h, x2 in list(self._out_sum_min.keys()):
             if x == x2:
                 self._out_sum_min.pop((s, h, x))
-        for (s, h, x2) in list(self._out_sum_max.keys()):
+        for s, h, x2 in list(self._out_sum_max.keys()):
             if x == x2:
                 self._out_sum_max.pop((s, h, x))
-        for (s, h, x2) in list(self._availability.keys()):
+        for s, h, x2 in list(self._availability.keys()):
             if x == x2:
                 self._availability.pop((s, h, x))
 
@@ -177,16 +182,17 @@ class ConversionTechs:
         :type s: StageId
         :param x: Id of conversion technology
         :type x: TechId
-        :return: opex_per_energy value
+        :return: opex_per_energy [CHF/kWh]
         :rtype: float
         """
         self._check_id(x, ExceptionKey.OPEXPERENERGY_GET)
         return self._opex_per_energy.get((s, x), DEF_OPEXPERENERGY)
 
-    def set_opex_per_energy(self, s: StageId, x: TechId,
-                            opex_per_energy: float) -> None:
+    def set_opex_per_energy(
+        self, s: StageId, x: TechId, opex_per_energy: float
+    ) -> None:
         """
-        Get the parameter 'opex_per_energy' which quantifies the amount of
+        Set the parameter 'opex_per_energy' which quantifies the amount of
         operation & maintenance cost for a conversion technology per amount of
         output of the conversion technology's main output carrier.
 
@@ -194,7 +200,7 @@ class ConversionTechs:
         :type s: StageId
         :param x: Id of conversion technology
         :type x: TechId
-        :param opex_per_energy: opex_per_energy value
+        :param opex_per_energy: opex_per_energy [CHF/kWh]
         :type opex_per_energy: float
         """
         self._check_id(x, ExceptionKey.OPEXPERENERGY_SET)
@@ -215,8 +221,9 @@ class ConversionTechs:
         self._check_id(x, ExceptionKey.INECS_GET)
         in_ecs = self._in_ecs.get(x, None)
         if in_ecs is None:
-            raise exceptions.MissingIdException(ExceptionKey.INECS_GET.value,
-                                                x, module=LOG_MODULE_STR)
+            raise exceptions.MissingIdException(
+                ExceptionKey.INECS_GET.value, x, module=LOG_MODULE_STR
+            )
         return in_ecs
 
     def add_in_ec(self, x: TechId, e: EcId) -> None:
@@ -254,13 +261,13 @@ class ConversionTechs:
                 [in_ec_main] = self._in_ecs[x]
                 return in_ec_main
             raise exceptions.MissingIdException(
-                ExceptionKey.INECMAIN_GET.value, x,
-                module=LOG_MODULE_STR)
+                ExceptionKey.INECMAIN_GET.value, x, module=LOG_MODULE_STR
+            )
         return self._in_ec_main[x]
 
     def set_in_ec_main(self, x: TechId, e: EcId) -> None:
         """
-        Set a conversion technology's main input ec
+        Set a conversion technology's main input ec.
 
         :param x: Id of conversion technology
         :type x: TechId
@@ -277,7 +284,9 @@ class ConversionTechs:
         """
         Get the parameter 'in_part' for a conversion technology's input ec.
         in_part quantifies the percentage to which each input ec adds to the
-        total input ec composition.
+        total input ec composition. For technologies with more than one input
+        ec, this is a mandatory parameter. For those with one input ec, it is
+        optional with a default value of 1.
 
         :param s: Stage Id
         :type s: StageId
@@ -285,7 +294,7 @@ class ConversionTechs:
         :type x: TechId
         :param e: Id of input ec
         :type e: EcId
-        :return: Parameter in_part
+        :return: Input portion [1]
         :rtype: float
         """
         self._check_id(x, ExceptionKey.INPART_GET)
@@ -294,19 +303,23 @@ class ConversionTechs:
             if x in self._in_ecs and self._in_ecs[x] == {e}:
                 return DEF_INPART
             key_val = ExceptionKey.INPART_GET.value
-            msg = (f"Unknown ({s.kind_as_str}, {x.kind_as_str}, "
-                   f"{e.kind_as_str}) index tuple ({s.key}, {x.key}, {e.key}) "
-                   "for 'in_part' of ConversionTechs")
-            raise exceptions.DataException(key_val, [s, x, e], msg,
-                                           module=LOG_MODULE_STR)
+            msg = (
+                f"Unknown ({s.kind_as_str}, {x.kind_as_str}, "
+                f"{e.kind_as_str}) index tuple ({s.key}, {x.key}, {e.key}) "
+                "for 'in_part' of ConversionTechs"
+            )
+            raise exceptions.DataException(
+                key_val, [s, x, e], msg, module=LOG_MODULE_STR
+            )
         return self._in_part[s, x, e]
 
-    def set_in_part(self, s: StageId, x: TechId, e: EcId,
-                    in_part: float) -> None:
+    def set_in_part(self, s: StageId, x: TechId, e: EcId, in_part: float) -> None:
         """
         Set the parameter 'in_part' for a conversion technology's input ec.
         in_part quantifies the percentage to which each input ec adds to the
-        total input ec composition.
+        total input ec composition. For technologies with more than one input
+        ec, this is a mandatory parameter. For those with one input ec, it is
+        optional with a default value of 1.
 
         :param s: Stage Id
         :type s: StageId
@@ -314,7 +327,7 @@ class ConversionTechs:
         :type x: TechId
         :param e: Id of input ec
         :type e: EcId
-        :param in_part: Parameter in_part
+        :param in_part: Input portion [1]
         :type in_part: float
         """
         self._check_id(x, ExceptionKey.INPART_SET)
@@ -336,8 +349,8 @@ class ConversionTechs:
         out_ecs = self._out_ecs.get(x, None)
         if out_ecs is None:
             raise exceptions.MissingIdException(
-                ExceptionKey.OUTECS_GET.value, x,
-                module=LOG_MODULE_STR)
+                ExceptionKey.OUTECS_GET.value, x, module=LOG_MODULE_STR
+            )
         return out_ecs
 
     def add_out_ec(self, x: TechId, e: EcId) -> None:
@@ -375,8 +388,8 @@ class ConversionTechs:
                 [out_ec_main] = self._out_ecs[x]
                 return out_ec_main
             raise exceptions.MissingIdException(
-                ExceptionKey.OUTECMAIN_GET.value, x,
-                module=LOG_MODULE_STR)
+                ExceptionKey.OUTECMAIN_GET.value, x, module=LOG_MODULE_STR
+            )
         return self._out_ec_main[x]
 
     def set_out_ec_main(self, x: TechId, e: EcId) -> None:
@@ -400,7 +413,7 @@ class ConversionTechs:
         out_eff quantifies the relative output of that ec relative to the
         technology's main input ec. E.g.; a value of 0.5 means that the output
         amount of that ec is identical to half the input amount of the main
-        input ec.
+        input ec. This is a mandatory parameter.
 
         :param s: Stage id
         :type s: StageId
@@ -408,27 +421,29 @@ class ConversionTechs:
         :type x: TechId
         :param e: Id of output ec
         :type e: EcId
-        :return: Time series for parameter out_eff
+        :return: Output efficiencies [1]
         :rtype: TimeSeries
         """
         self._check_id(x, ExceptionKey.OUTEFF_GET)
         if (s, x, e) in self._out_eff:
             return self._out_eff[s, x, e]
         key_val = ExceptionKey.OUTEFF_GET.value
-        msg = f"Unknown ({s.kind_as_str}, {x.kind_as_str}, " + \
-            f"{e.kind_as_str}) index tuple ({s.key}, {x.key}, " + \
-            f"{e.key}) for 'out_eff' of ConversionTechs"
-        raise exceptions.DataException(key_val, [s, x, e], msg,
-                                       module=LOG_MODULE_STR)
+        msg = (
+            f"Unknown ({s.kind_as_str}, {x.kind_as_str}, "
+            + f"{e.kind_as_str}) index tuple ({s.key}, {x.key}, "
+            + f"{e.key}) for 'out_eff' of ConversionTechs"
+        )
+        raise exceptions.DataException(key_val, [s, x, e], msg, module=LOG_MODULE_STR)
 
-    def set_out_eff(self, s: StageId, x: TechId, e: EcId, t: TimeId,
-                    out_eff: float) -> None:
+    def set_out_eff(
+        self, s: StageId, x: TechId, e: EcId, t: TimeId, out_eff: float
+    ) -> None:
         """
         Set the parameter 'out_eff' for a conversion technology's output ec.
         out_eff quantifies the relative output of that ec relative to the
         technology's main input ec. E.g.; a value of 0.5 means that the output
         amount of that ec is identical to half the input amount of the main
-        input ec.
+        input ec. This is a mandatory parameter.
 
         :param s: Stage id
         :type s: StageId
@@ -438,7 +453,7 @@ class ConversionTechs:
         :type e: EcId
         :param t: Time id
         :type t: TimeId
-        :param out_eff: Value of parameter out_eff
+        :param out_eff: Output efficiency [1]
         :type out_eff: float
         """
         self._check_id(x, ExceptionKey.OUTEFF_SET)
@@ -446,14 +461,16 @@ class ConversionTechs:
             self._out_eff[s, x, e] = TimeSeries()
         self._out_eff[s, x, e].set_value(t, out_eff)
 
-    def set_out_eff_def(self, s: StageId, x: TechId, e: EcId,
-                        out_eff_def: float) -> None:
+    def set_out_eff_def(
+        self, s: StageId, x: TechId, e: EcId, out_eff_def: float
+    ) -> None:
         """
         Set the default (with respect to time) parameter 'out_eff' for a
         conversion technology's output ec. out_eff quantifies the relative
         output of that ec relative to the technology's main input ec. E.g.; a
         value of 0.5 means that the output amount of that ec is identical to
-        half the input amount of the main input ec.
+        half the input amount of the main input ec. This is a mandatory
+        parameter.
 
         :param s: Stage id
         :type s: StageId
@@ -461,7 +478,7 @@ class ConversionTechs:
         :type x: TechId
         :param e: Id of output ec
         :type e: EcId
-        :param out_eff_def: Default value of parameter out_eff
+        :param out_eff_def: Default output efficiency [1]
         :type out_eff_def: float
         """
         self._check_id(x, ExceptionKey.OUTEFF_SET)
@@ -474,7 +491,7 @@ class ConversionTechs:
         Remove all data for the parameter 'out_eff' from conversion
         technologies
         """
-        for (s, x, e) in self._out_eff:
+        for s, x, e in self._out_eff:
             self._out_eff[s, x, e].clear()
 
     # --------------------- #
@@ -484,7 +501,8 @@ class ConversionTechs:
         """
         Get the parameter 'out_sum_min' for a conversion technology.
         out_sum_min quantifies the minimal amount of the technology's main
-        output ec that has to be output over the entire time horizon.
+        output ec that has to be output over the entire time horizon. This
+        is an optional parameter with a default value of 0.
 
         :param s: Stage id
         :type s: StageId
@@ -492,18 +510,20 @@ class ConversionTechs:
         :type h: HubId
         :param x: Id of conversion technology
         :type x: TechId
-        :return: Parameter out_sum_min
+        :return: Minimal output on horizon [kWh]
         :rtype: float
         """
         self._check_id(x, ExceptionKey.OUTSUMMIN_GET)
         return self._out_sum_min.get((s, h, x), DEF_OUTSUMMIN)
 
-    def set_out_sum_min(self, s: StageId, h: HubId, x: TechId,
-                        out_sum_min: float) -> None:
+    def set_out_sum_min(
+        self, s: StageId, h: HubId, x: TechId, out_sum_min: float
+    ) -> None:
         """
         Set the parameter 'out_sum_min' for a conversion technology.
         out_sum_min quantifies the minimal amount of the technology's main
-        output ec that has to be output over the entire time horizon.
+        output ec that has to be output over the entire time horizon. This
+        is an optional parameter with a default value of 0.
 
         :param s: Stage id
         :type s: StageId
@@ -511,7 +531,7 @@ class ConversionTechs:
         :type h: HubId
         :param x: Id of conversion technology
         :type x: TechId
-        :param out_sum_min: Parameter out_sum_min
+        :param out_sum_min: Minimal output on horizon [kWh]
         :type out_sum_min: float
         """
         self._check_id(x, ExceptionKey.OUTSUMMIN_SET)
@@ -524,7 +544,8 @@ class ConversionTechs:
         """
         Get the parameter 'out_sum_max' for a conversion technology.
         out_sum_max quantifies the maximal amount of the technology's main
-        output ec that can be output over the entire time horizon.
+        output ec that can be output over the entire time horizon. This
+        is an optional parameter with a default value of infinity.
 
         :param s: Stage id
         :type s: StageId
@@ -532,18 +553,20 @@ class ConversionTechs:
         :type h: HubId
         :param x: Id of conversion technology
         :type x: TechId
-        :return: Parameter out_sum_max
+        :return: Maximal output on horizon [kWh]
         :rtype: float
         """
         self._check_id(x, ExceptionKey.OUTSUMMAX_GET)
         return self._out_sum_max.get((s, h, x), DEF_OUTSUMMAX)
 
-    def set_out_sum_max(self, s: StageId, h: HubId, x: TechId,
-                        out_sum_max: float) -> None:
+    def set_out_sum_max(
+        self, s: StageId, h: HubId, x: TechId, out_sum_max: float
+    ) -> None:
         """
         Set the parameter 'out_sum_max' for a conversion technology.
         out_sum_max quantifies the maximal amount of the technology's main
-        output ec that can be output over the entire time horizon.
+        output ec that can be output over the entire time horizon. This
+        is an optional parameter with a default value of infinity.
 
         :param s: Stage id
         :type s: StageId
@@ -551,7 +574,7 @@ class ConversionTechs:
         :type h: HubId
         :param x: Id of conversion technology
         :type x: TechId
-        :param out_sum_max: Parameter out_sum_max
+        :param out_sum_max: Maximal output on horizon [kWh]
         :type out_sum_max: float
         """
         self._check_id(x, ExceptionKey.OUTSUMMAX_SET)
@@ -566,7 +589,8 @@ class ConversionTechs:
         availability is a relative value that scales the amount of available
         capacity for that technology, thereby limiting the technology's
         operation possibility. An availability value of e.g.; 0.5 means that
-        only half of the installed technology is available at that time
+        only half of the installed technology is available at that time. This
+        is an optional parameter with a default value of 1.
 
         :param s: Stage id
         :type s: StageId
@@ -574,7 +598,7 @@ class ConversionTechs:
         :type h: HubId
         :param x: Id of conversion technology
         :type x: TechId
-        :return: Time series for availability [1]
+        :return: Availabilities [1]
         :rtype: TimeSeries
         """
         self._check_id(x, ExceptionKey.AVAILABILITY_GET)
@@ -584,14 +608,16 @@ class ConversionTechs:
             availability.def_value = DEF_AVAILABILITY
         return availability
 
-    def set_availability(self, s: StageId, h: HubId, x: TechId,
-                         t: TimeId, availability: float) -> None:
+    def set_availability(
+        self, s: StageId, h: HubId, x: TechId, t: TimeId, availability: float
+    ) -> None:
         """
         Set the parameter 'availability' for a conversion technology.
         availability is a relative value that scales the amount of available
         capacity for that technology, thereby limiting the technology's
         operation possibility. An availability value of e.g.; 0.5 means that
-        only half of the installed technology is available at that time
+        only half of the installed technology is available at that time. This
+        is an optional parameter with a default value of 1.
 
         :param s: Stage id
         :type s: StageId
@@ -601,7 +627,7 @@ class ConversionTechs:
         :type x: TechId
         :param t: Time id
         :type t: TimeId
-        :param availability: availability [1]
+        :param availability: Availability [1]
         :type availability: float
         """
         self._check_id(x, ExceptionKey.AVAILABILITY_SET)
@@ -610,15 +636,16 @@ class ConversionTechs:
             self._availability[s, h, x].def_value = DEF_AVAILABILITY
         self._availability[s, h, x].set_value(t, availability)
 
-    def set_availability_def(self, s: StageId, h: HubId, x: TechId,
-                             availability_def: float) -> None:
+    def set_availability_def(
+        self, s: StageId, h: HubId, x: TechId, availability_def: float
+    ) -> None:
         """
         Set the default (with respect to time) parameter 'availability' for a
         conversion technology. availability is a relative value that scales the
         amount of available capacity for that technology, thereby limiting the
         technology's operation possibility. An availability value of e.g.; 0.5
         means that only half of the installed technology is available at that
-        time
+        time. This is an optional parameter with a default value of 1.
 
         :param s: Stage id
         :type s: StageId
@@ -639,15 +666,16 @@ class ConversionTechs:
         Remove all data for the parameter 'availability' from conversion
         technologies
         """
-        for (s, h, x) in self._availability:
+        for s, h, x in self._availability:
             self._availability[s, h, x].clear()
 
     # ------------------------------- #
     # Secondary property: time_series #
     # ------------------------------- #
     @property
-    def time_series(self) -> List[Tuple[TimeSeriesKind, StageId,
-                                        Tuple[str, ...], TimeSeries]]:
+    def time_series(
+        self,
+    ) -> List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]]:
         """
         Time series profiles in the conversion technology module. This is a
         list of tuples. Each list element has the following list entries: 1)
@@ -658,23 +686,31 @@ class ConversionTechs:
         :rtype: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
             TimeSeries]]
         """
-        all_series: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
-                               TimeSeries]] = []
+        all_series: List[
+            Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]
+        ] = []
         # Output efficiency
         for (s, x, e), series in self._out_eff.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.CONVTECHOUTEFF, s,
-                                   (x.key, e.key), series))
+                all_series.append(
+                    (TimeSeriesKind.CONVTECHOUTEFF, s, (x.key, e.key), series)
+                )
         # Availability
         for (s, h, x), series in self._availability.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.CONVTECHAVAIL, s,
-                                   (h.key, x.key), series))
+                all_series.append(
+                    (TimeSeriesKind.CONVTECHAVAIL, s, (h.key, x.key), series)
+                )
         return all_series
 
-    def set_time_series_val(self, kind: TimeSeriesKind, s: StageId,
-                            ids: Tuple[str, ...], t: TimeId, value: float
-                            ) -> None:
+    def set_time_series_val(
+        self,
+        kind: TimeSeriesKind,
+        s: StageId,
+        ids: Tuple[str, ...],
+        t: TimeId,
+        value: float,
+    ) -> None:
         """
         Set the value for a time series in the conversion technology data
         class. The time series should be uniquely identified by the time series
@@ -714,14 +750,14 @@ class ConversionTechs:
         self._opex_per_energy: Dict[Tuple[StageId, TechId], float] = {}
         self._out_sum_min: Dict[Tuple[StageId, HubId, TechId], float] = {}
         self._out_sum_max: Dict[Tuple[StageId, HubId, TechId], float] = {}
-        self._availability: Dict[Tuple[StageId, HubId, TechId],
-                                 TimeSeries] = {}
+        self._availability: Dict[Tuple[StageId, HubId, TechId], TimeSeries] = {}
 
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs,
-                 techs: Techs, times: Times) -> None:
+    def validate(
+        self, stages: Stages, hubs: Hubs, ecs: Ecs, techs: Techs, times: Times
+    ) -> None:
         """
         Validate all conversion technology data in this object. Apart from
         sense-checking parameter in terms of quantity, this includes checking
@@ -759,8 +795,7 @@ class ConversionTechs:
             # stor_tech not in techs
             if x not in techs.ids:
                 msg = f"conv_tech {x} not part of techs"
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
 
     def _validate_in_ecs(self, ecs: Ecs) -> None:
         exc_key = ExceptionKey.INECS_VAL.value
@@ -768,24 +803,27 @@ class ConversionTechs:
             # in_ecs must not be empty
             if not in_ecs:
                 msg = f"Empty in_ecs[{x}]"
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
             for e in in_ecs:
                 # Unknown ec
                 if e not in ecs.ids:
                     msg = f"Unknown in_ec {e} for {x}"
-                    raise exceptions.DataException(exc_key, [x, e], msg,
-                                                   module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [x, e], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_in_ec_main(self) -> None:
         exc_key = ExceptionKey.INECMAIN_VAL.value
         for x, in_ec_main in self._in_ec_main.items():
             in_ecs = self._in_ecs.get(x, set())
             if in_ec_main not in in_ecs:
-                msg = (f"in_ec_main[{x}] = {in_ec_main} is not part of "
-                       f"in_ecs[{x}] = {in_ecs}")
-                raise exceptions.DataException(exc_key, [x, in_ec_main], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"in_ec_main[{x}] = {in_ec_main} is not part of "
+                    f"in_ecs[{x}] = {in_ecs}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [x, in_ec_main], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_in_part(self, stages: Stages, techs: Techs) -> None:
         exc_key = ExceptionKey.INPART_VAL.value
@@ -793,20 +831,25 @@ class ConversionTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in in_part[{s}, {x}, {e}]"
-                raise exceptions.DataException(exc_key, [s, x, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x, e], msg, module=LOG_MODULE_STR
+                )
             # e must be part of in_ecs
             in_ecs = self._in_ecs.get(x, set())
             if e not in in_ecs:
-                msg = (f"ec {e} of in_part[{s}, {x}, {e}] is not part of "
-                       f"in_ecs[{x}] = {in_ecs}")
-                raise exceptions.DataException(exc_key, [s, x, e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"ec {e} of in_part[{s}, {x}, {e}] is not part of "
+                    f"in_ecs[{x}] = {in_ecs}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [s, x, e], msg, module=LOG_MODULE_STR
+                )
             # in_part must be nonnegative
             if in_part < 0:
                 msg = f"{in_part} = in_part[{s}, {x}, {e}] < 0"
-                raise exceptions.DataException(exc_key, [s, x, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x, e], msg, module=LOG_MODULE_STR
+                )
             # in_part usually not zero
             if in_part < EPS_ZEROCHECK:
                 msg = f"{in_part} = in_part[{s}, {x}, {e}] ~ 0"
@@ -814,13 +857,14 @@ class ConversionTechs:
         # Sum of in_parts must be larger than zero
         for x in self.ids:
             for s in techs.get_allowed_stages(x):
-                in_part_total = sum(self.get_in_part(s, x, e)
-                                    for e in self.get_in_ecs(x))
+                in_part_total = sum(
+                    self.get_in_part(s, x, e) for e in self.get_in_ecs(x)
+                )
                 if in_part_total < EPS_ZEROCHECK:
-                    msg = (f"Sum of in_parts for stage {s} and conv_tech {x} "
-                           "is zero")
-                    raise exceptions.DataException(exc_key, [s, x], msg,
-                                                   module=LOG_MODULE_STR)
+                    msg = f"Sum of in_parts for stage {s} and conv_tech {x} is zero"
+                    raise exceptions.DataException(
+                        exc_key, [s, x], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_out_ecs(self, ecs: Ecs) -> None:
         exc_key = ExceptionKey.OUTECS_VAL.value
@@ -828,14 +872,14 @@ class ConversionTechs:
             # out_ecs must not be empty
             if not out_ecs:
                 msg = f"Empty out_ecs[{x}]"
-                raise exceptions.DataException(exc_key, [x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [x], msg, module=LOG_MODULE_STR)
             for e in out_ecs:
                 # Unknown ec
                 if e not in ecs.ids:
                     msg = f"Unknown out_ec {e} for {x}"
-                    raise exceptions.DataException(exc_key, [x, e], msg,
-                                                   module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [x, e], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_inout_ecs(self) -> None:
         for x in self.ids:
@@ -843,8 +887,7 @@ class ConversionTechs:
             out_ecs = self.get_out_ecs(x)
             common_ecs = in_ecs.intersection(out_ecs)
             if common_ecs:
-                msg = (f"For {x}, the ecs {common_ecs} "
-                       "are both inputs and outputs")
+                msg = f"For {x}, the ecs {common_ecs} are both inputs and outputs"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_out_ec_main(self) -> None:
@@ -852,10 +895,13 @@ class ConversionTechs:
         for x, out_ec_main in self._out_ec_main.items():
             out_ecs = self._out_ecs.get(x, set())
             if out_ec_main not in out_ecs:
-                msg = (f"out_ec_main[{x}] = {out_ec_main} is not part of "
-                       f"out_ecs[{x}] = {out_ecs}")
-                raise exceptions.DataException(exc_key, [x, out_ec_main], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"out_ec_main[{x}] = {out_ec_main} is not part of "
+                    f"out_ecs[{x}] = {out_ecs}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [x, out_ec_main], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_out_eff(self, stages: Stages, times: Times) -> None:
         exc_key = ExceptionKey.OUTEFF_VAL.value
@@ -863,15 +909,19 @@ class ConversionTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in out_eff[{s}, {x}, {e}]"
-                raise exceptions.DataException(exc_key, [s, x, e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, x, e], msg, module=LOG_MODULE_STR
+                )
             # e must be part of out_ecs
             out_ecs = self._out_ecs.get(x, set())
             if e not in out_ecs:
-                msg = (f"ec {e} of out_eff[{s}, {x}, {e}] is not part of "
-                       f"out_ecs[{x}] = {out_ecs}")
-                raise exceptions.DataException(exc_key, [s, x, e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"ec {e} of out_eff[{s}, {x}, {e}] is not part of "
+                    f"out_ecs[{x}] = {out_ecs}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [s, x, e], msg, module=LOG_MODULE_STR
+                )
             # Time values
             if out_eff.has_values:
                 # Unknown time ids
@@ -879,24 +929,25 @@ class ConversionTechs:
                 # out_eff must not be negative
                 for t in times.ids:
                     if out_eff.get_value(t) < 0:
-                        msg = (f"{out_eff.get_value(t)} = out_eff"
-                               f"[{s}, {x}, {e}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [s, x, e, t],
-                            msg, module=LOG_MODULE_STR)
+                        msg = (
+                            f"{out_eff.get_value(t)} = out_eff[{s}, {x}, {e}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, x, e, t], msg, module=LOG_MODULE_STR
+                        )
             # Default values
             if not out_eff.has_values:
                 out_eff_def = out_eff.def_value
                 assert out_eff_def is not None
                 # out_eff must be nonnegative
                 if out_eff_def < 0:
-                    msg = (f"{out_eff_def} = out_eff_def"
-                           f"[{s}, {x}, {e}] < 0")
-                    raise exceptions.DataException(exc_key, [s, x, e], msg,
-                                                module=LOG_MODULE_STR)
+                    msg = f"{out_eff_def} = out_eff_def[{s}, {x}, {e}] < 0"
+                    raise exceptions.DataException(
+                        exc_key, [s, x, e], msg, module=LOG_MODULE_STR
+                    )
                 # out_eff usually not zero
                 if out_eff_def < EPS_ZEROCHECK:
-                    msg = (f"{out_eff_def} = out_eff_def"
-                           f"[{s}, {x}, {e}] ~ 0")
+                    msg = f"{out_eff_def} = out_eff_def[{s}, {x}, {e}] ~ 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_opex_per_energy(self, stages: Stages) -> None:
@@ -905,8 +956,7 @@ class ConversionTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in opex_per_energy[{s}, {x}]"
-                raise exceptions.DataException(exc_key, [s], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [s], msg, module=LOG_MODULE_STR)
             # opex_per_energy usually nonnegative
             if opex_per_energy < 0:
                 msg = f"{opex_per_energy} = opex_per_energy[{s}, {x}] < 0"
@@ -918,13 +968,15 @@ class ConversionTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in out_sum_min[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in out_sum_min[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # out_sum_min is usually nonnegative
             if out_sum_min < 0:
                 msg = f"{out_sum_min} = out_sum_min[{s}, {h}, {x}] < 0"
@@ -936,47 +988,53 @@ class ConversionTechs:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in out_sum_max[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in out_sum_max[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # out_sum_max must be nonnegative
             if out_sum_max < 0:
                 msg = f"{out_sum_max} = out_sum_max[{s}, {h}, {x}] < 0"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_out_sum_minmax(self) -> None:
         exc_key = ExceptionKey.OUTSUMMINMAX_VAL.value
-        keys = set(self._out_sum_min.keys()
-                   ).union(set(self._out_sum_max.keys()))
-        for (s, h, x) in keys:
+        keys = set(self._out_sum_min.keys()).union(set(self._out_sum_max.keys()))
+        for s, h, x in keys:
             out_sum_min = self.get_out_sum_min(s, h, x)
             out_sum_max = self.get_out_sum_max(s, h, x)
             # out_sum_min must not be larger than out_sum_max
             if out_sum_min > out_sum_max:
-                msg = (f"{out_sum_min} = out_sum_min[{s}, {h}, {x}] > "
-                       f"out_sum_max[{s}, {h}, {x}] = {out_sum_max}")
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                msg = (
+                    f"{out_sum_min} = out_sum_min[{s}, {h}, {x}] > "
+                    f"out_sum_max[{s}, {h}, {x}] = {out_sum_max}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
 
-    def _validate_availability(self, stages: Stages, hubs: Hubs,
-                               times: Times) -> None:
+    def _validate_availability(self, stages: Stages, hubs: Hubs, times: Times) -> None:
         exc_key = ExceptionKey.AVAILABILITY_VAL.value
         for (s, h, x), availability in self._availability.items():
             # Unknown stage id
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in availability[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # Unknown hub id
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in availability[{s}, {h}, {x}]"
-                raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
             # Time values
             if availability.has_values:
                 # Unknown time ids
@@ -984,15 +1042,20 @@ class ConversionTechs:
                 # Availability values must be nonnegative (time values)
                 for t in times.ids:
                     if availability.get_value(t) < 0:
-                        msg = (f"{availability.get_value(t)} = availability["
-                            f"{s}, {h}, {x}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                                       module=LOG_MODULE_STR)
+                        msg = (
+                            f"{availability.get_value(t)} = availability["
+                            f"{s}, {h}, {x}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                        )
                 # Availability values should be smaller than 1 (time values)
                 for t in times.ids:
                     if availability.get_value(t) > 1:
-                        msg = (f"{availability.get_value(t)} = availability["
-                            f"{s}, {h}, {x}][{t}] > 1")
+                        msg = (
+                            f"{availability.get_value(t)} = availability["
+                            f"{s}, {h}, {x}][{t}] > 1"
+                        )
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # Default values
@@ -1001,20 +1064,17 @@ class ConversionTechs:
                 assert availability_def is not None
                 # Availability values must be nonnegative (default value)
                 if availability_def < 0:
-                    msg = (f"{availability_def} = availability_def["
-                        f"{s}, {h}, {x}] < 0")
-                    raise exceptions.DataException(exc_key, [s, h, x], msg,
-                                                   module=LOG_MODULE_STR)
+                    msg = f"{availability_def} = availability_def[{s}, {h}, {x}] < 0"
+                    raise exceptions.DataException(
+                        exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                    )
                 # Constant availability usually not zero (default value)
                 if availability_def < EPS_ZEROCHECK:
-                    msg = (f"{availability_def} = availability_def["
-                        f"{s}, {h}, {x}] ~ 0")
+                    msg = f"{availability_def} = availability_def[{s}, {h}, {x}] ~ 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
                 # Availability values usually smaller than 1 (default value)
                 if availability_def > 1:
-                    msg = (
-                        f"{availability_def} = availability["
-                        f"{s}, {h}, {x}] > 1")
+                    msg = f"{availability_def} = availability[{s}, {h}, {x}] > 1"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
 
     # ---------- #
@@ -1022,13 +1082,17 @@ class ConversionTechs:
     # ---------- #
     def _check_id(self, x: TechId, key: ExceptionKey) -> None:
         if x not in self._ids:
-            raise exceptions.UnknownIdException(key.value, x,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(key.value, x, module=LOG_MODULE_STR)
 
 
-def copy_over_conv_tech(x: TechId, src: ConversionTechs,
-                        tar: ConversionTechs, stages: Stages, hubs: Hubs,
-                        times: Times) -> None:
+def copy_over_conv_tech(
+    x: TechId,
+    src: ConversionTechs,
+    tar: ConversionTechs,
+    stages: Stages,
+    hubs: Hubs,
+    times: Times,
+) -> None:
     """
     Copy a conversion technology from one ConversionTechs data object to
     another.
@@ -1048,15 +1112,25 @@ def copy_over_conv_tech(x: TechId, src: ConversionTechs,
     """
     # id
     if x not in src.ids:
-        raise exceptions.DataException(ExceptionKey.COPYOVERTECH.value, [x],
-            (f"Failed to copy {x} from ConversionTechs instance "
-             f"because {x} is not part of that ConversionTechs instance"),
-            module=LOG_MODULE_STR)
+        raise exceptions.DataException(
+            ExceptionKey.COPYOVERTECH.value,
+            [x],
+            (
+                f"Failed to copy {x} from ConversionTechs instance "
+                f"because {x} is not part of that ConversionTechs instance"
+            ),
+            module=LOG_MODULE_STR,
+        )
     if x in tar.ids:
-        raise exceptions.DataException(ExceptionKey.COPYOVERTECH.value, [x],
-            (f"Failed to copy {x} to ConversionTechs instance because {x} is "
-             "already part of that ConversionTechs instance"),
-            module=LOG_MODULE_STR)
+        raise exceptions.DataException(
+            ExceptionKey.COPYOVERTECH.value,
+            [x],
+            (
+                f"Failed to copy {x} to ConversionTechs instance because {x} is "
+                "already part of that ConversionTechs instance"
+            ),
+            module=LOG_MODULE_STR,
+        )
     tar.add_id(x)
     # in_ecs
     for e in src.get_in_ecs(x):
@@ -1078,8 +1152,7 @@ def copy_over_conv_tech(x: TechId, src: ConversionTechs,
             tar.set_out_eff_def(s, x, e, out_eff_def)
             if src.get_out_eff(s, x, e).has_values:
                 for t in times.ids:
-                    tar.set_out_eff(s, x, e, t,
-                                    src.get_out_eff(s, x, e).get_value(t))
+                    tar.set_out_eff(s, x, e, t, src.get_out_eff(s, x, e).get_value(t))
     # opex_per_energy
     for s in stages.ids:
         tar.set_opex_per_energy(s, x, src.get_opex_per_energy(s, x))
@@ -1096,5 +1169,6 @@ def copy_over_conv_tech(x: TechId, src: ConversionTechs,
             tar.set_availability_def(s, h, x, availability_def)
             if src.get_availability(s, h, x).has_values:
                 for t in times.ids:
-                    tar.set_availability(s, h, x, t,
-                        src.get_availability(s, h, x).get_value(t))
+                    tar.set_availability(
+                        s, h, x, t, src.get_availability(s, h, x).get_value(t)
+                    )

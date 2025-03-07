@@ -1,18 +1,20 @@
 """
 Load shedding data module
 """
+
+import itertools
 from enum import Enum
 from typing import Dict, List, Set, Tuple
-import itertools
-from ehubx.core.common import TimeSeriesKind
+
 from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.ec_data import Ecs, EcId
-from ehubx.data.demand_data import Demands
-from ehubx.data.time_data import Times, TimeId
-from ehubx.data.time_series import TimeSeries
+from ehubx.core.common import TimeSeriesKind
 from ehubx.data import exceptions
+from ehubx.data.demand_data import Demands
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
 
 
 class ExceptionKey(Enum):
@@ -20,6 +22,7 @@ class ExceptionKey(Enum):
     Key strings for exception messages occuring in the load shedding data
     module
     """
+
     MANUALTUPLES_ADD = "adding to 'manual_tuples' of LoadShedding"
     MANUALTUPLES_REMOVE = "removing from 'manual_tuples' of LoadShedding"
     MANUALTUPLES_VAL = "adding to 'manual_tuples' of LoadShedding"
@@ -119,8 +122,7 @@ class LoadShedding:
         """
         return self._enabled.get((s, h, e), self._enabled_preset)
 
-    def set_enabled(self, s: StageId, h: HubId, e: EcId, enabled: bool
-                    ) -> None:
+    def set_enabled(self, s: StageId, h: HubId, e: EcId, enabled: bool) -> None:
         """
         Set the parameter 'enabled' for a manual load shedding (stage, hub,
         ec) tuple which indicates whether load shedding is enabled or not. This
@@ -150,8 +152,9 @@ class LoadShedding:
         shed. This is an optional parameter with a default value of infinity"""
         return self._max_abs_preset
 
-    def set_max_abs_preset(self, max_abs_preset: float,
-                           overwrite_manual_defs: bool = False) -> None:
+    def set_max_abs_preset(
+        self, max_abs_preset: float, overwrite_manual_defs: bool = False
+    ) -> None:
         """
         Set the preset (i.e.; outside of manual tuples) value for the parameter
         'max_abs' which denotes the maximal amount of demand power that can be
@@ -167,7 +170,7 @@ class LoadShedding:
         """
         self._max_abs_preset = max_abs_preset
         if overwrite_manual_defs:
-            for (s, h, e) in self._manual_tuples:
+            for s, h, e in self._manual_tuples:
                 self._max_abs[s, h, e].def_value = max_abs_preset
 
     def get_max_abs(self, s: StageId, h: HubId, e: EcId) -> TimeSeries:
@@ -191,8 +194,9 @@ class LoadShedding:
             return max_abs
         return self._max_abs[s, h, e]
 
-    def set_max_abs(self, s: StageId, h: HubId, e: EcId, t: TimeId,
-                    max_abs: float) -> None:
+    def set_max_abs(
+        self, s: StageId, h: HubId, e: EcId, t: TimeId, max_abs: float
+    ) -> None:
         """
         At a specific time, set the parameter 'max_abs' for a manual tuple
         which denotes the maximal amount of demand power that can be shed. This
@@ -214,8 +218,9 @@ class LoadShedding:
             self.add_manual_tuple(s, h, e)
         self._max_abs[s, h, e].set_value(t, max_abs)
 
-    def set_max_abs_def(self, s: StageId, h: HubId, e: EcId,
-                        max_abs_def: float) -> None:
+    def set_max_abs_def(
+        self, s: StageId, h: HubId, e: EcId, max_abs_def: float
+    ) -> None:
         """
         Set the default (with respect to time) value for the parameter
         'max_abs' for a manual tuple which denotes the maximal amount of demand
@@ -245,8 +250,9 @@ class LoadShedding:
         shed. This is an optional parameter with a default value of 1"""
         return self._max_rel_preset
 
-    def set_max_rel_preset(self, max_rel_preset: float,
-                           overwrite_manual_defs: bool = False) -> None:
+    def set_max_rel_preset(
+        self, max_rel_preset: float, overwrite_manual_defs: bool = False
+    ) -> None:
         """
         Set the preset (i.e.; outside of manual tuples) value for the parameter
         'max_rel' which denotes the maximal fraction of demand power that can
@@ -262,7 +268,7 @@ class LoadShedding:
         """
         self._max_rel_preset = max_rel_preset
         if overwrite_manual_defs:
-            for (s, h, e) in self._manual_tuples:
+            for s, h, e in self._manual_tuples:
                 self._max_rel[s, h, e].def_value = max_rel_preset
 
     def get_max_rel(self, s: StageId, h: HubId, e: EcId) -> TimeSeries:
@@ -286,8 +292,9 @@ class LoadShedding:
             return max_rel
         return self._max_rel[s, h, e]
 
-    def set_max_rel(self, s: StageId, h: HubId, e: EcId, t: TimeId,
-                    max_rel: float) -> None:
+    def set_max_rel(
+        self, s: StageId, h: HubId, e: EcId, t: TimeId, max_rel: float
+    ) -> None:
         """
         At a specific time, set the parameter 'max_rel' for a manual tuple
         which denotes the maximal fraction of demand power that can be shed.
@@ -309,8 +316,9 @@ class LoadShedding:
             self.add_manual_tuple(s, h, e)
         self._max_rel[s, h, e].set_value(t, max_rel)
 
-    def set_max_rel_def(self, s: StageId, h: HubId, e: EcId,
-                        max_rel_def: float) -> None:
+    def set_max_rel_def(
+        self, s: StageId, h: HubId, e: EcId, max_rel_def: float
+    ) -> None:
         """
         Set the default (with respect to time) value for the parameter
         'max_rel' for a manual tuple which denotes the maximal fraction of
@@ -341,8 +349,9 @@ class LoadShedding:
         0."""
         return self._energy_cost_preset
 
-    def set_energy_cost_preset(self, energy_cost_preset: float,
-                               overwrite_manual_defs: bool = False) -> None:
+    def set_energy_cost_preset(
+        self, energy_cost_preset: float, overwrite_manual_defs: bool = False
+    ) -> None:
         """
         Set the preset (i.e.; outside of manual tuples) value for the parameter
         'energy_cost' which denotes the penalization cost for eacah energy unit
@@ -357,7 +366,7 @@ class LoadShedding:
         """
         self._energy_cost_preset = energy_cost_preset
         if overwrite_manual_defs:
-            for (s, h, e) in self._manual_tuples:
+            for s, h, e in self._manual_tuples:
                 self._energy_cost[s, h, e].def_value = energy_cost_preset
 
     def get_energy_cost(self, s: StageId, h: HubId, e: EcId) -> TimeSeries:
@@ -382,8 +391,9 @@ class LoadShedding:
             return energy_cost
         return self._energy_cost[s, h, e]
 
-    def set_energy_cost(self, s: StageId, h: HubId, e: EcId, t: TimeId,
-                        energy_cost: float) -> None:
+    def set_energy_cost(
+        self, s: StageId, h: HubId, e: EcId, t: TimeId, energy_cost: float
+    ) -> None:
         """
         At a specific time, set the parameter 'energy_cost' for a manual tuple
         which denotes the penalization cost for each energy unit that is shed.
@@ -405,8 +415,9 @@ class LoadShedding:
             self.add_manual_tuple(s, h, e)
         self._energy_cost[s, h, e].set_value(t, energy_cost)
 
-    def set_energy_cost_def(self, s: StageId, h: HubId, e: EcId,
-                            energy_cost_def: float) -> None:
+    def set_energy_cost_def(
+        self, s: StageId, h: HubId, e: EcId, energy_cost_def: float
+    ) -> None:
         """
         Set the default (with respect to time) value for the parameter
         'energy_cost' for a manual tuple which denotes the penalization cost
@@ -430,9 +441,9 @@ class LoadShedding:
     # ------------------ #
     # Get enabled tuples #
     # ------------------ #
-    def get_enabled_tuples(self, stages: Stages, hubs: Hubs,
-                           ecs: Ecs, demands: Demands
-                           ) -> Set[Tuple[StageId, HubId, EcId]]:
+    def get_enabled_tuples(
+        self, stages: Stages, hubs: Hubs, ecs: Ecs, demands: Demands
+    ) -> Set[Tuple[StageId, HubId, EcId]]:
         """
         Get all (stage, hub, ec) tuples in which load shedding is enabled (by
         default or manual)
@@ -452,14 +463,14 @@ class LoadShedding:
         if self.enabled_preset:
             tuples = set(itertools.product(stages.ids, hubs.ids, ecs.ids))
             tuples = tuples.intersection(demands.tuples)
-            for (s, h, e) in self._manual_tuples:
+            for s, h, e in self._manual_tuples:
                 if not self.is_enabled(s, h, e):
                     tuples.remove((s, h, e))
             return tuples
 
         # All (s, h, e) tuples are disabled as preset
         tuples = set()
-        for (s, h, e) in self._manual_tuples:
+        for s, h, e in self._manual_tuples:
             if self.is_enabled(s, h, e):
                 tuples.add((s, h, e))
         return tuples
@@ -468,8 +479,9 @@ class LoadShedding:
     # Secondary property: time_series #
     # ------------------------------- #
     @property
-    def time_series(self) -> List[Tuple[TimeSeriesKind, StageId,
-                                        Tuple[str, ...], TimeSeries]]:
+    def time_series(
+        self,
+    ) -> List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]]:
         """
         Time series profiles in the load shedding module. This is a list of
         tuples. Each list element has the following list entries: 1)
@@ -480,28 +492,37 @@ class LoadShedding:
         :rtype: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
             TimeSeries]]
         """
-        all_series: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
-                               TimeSeries]] = []
+        all_series: List[
+            Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]
+        ] = []
         # max_abs
         for (s, h, e), series in self._max_abs.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.LOADSHEDMAXABS, s,
-                                   (h.key, e.key), series))
+                all_series.append(
+                    (TimeSeriesKind.LOADSHEDMAXABS, s, (h.key, e.key), series)
+                )
         # max_rel
         for (s, h, e), series in self._max_rel.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.LOADSHEDMAXREL, s,
-                                   (h.key, e.key), series))
+                all_series.append(
+                    (TimeSeriesKind.LOADSHEDMAXREL, s, (h.key, e.key), series)
+                )
         # energy_cost
         for (s, h, e), series in self._energy_cost.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.LOADSHEDENERGYCOST, s,
-                                   (h.key, e.key), series))
+                all_series.append(
+                    (TimeSeriesKind.LOADSHEDENERGYCOST, s, (h.key, e.key), series)
+                )
         return all_series
 
-    def set_time_series_val(self, kind: TimeSeriesKind, s: StageId,
-                            ids: Tuple[str, ...], t: TimeId, value: float
-                            ) -> None:
+    def set_time_series_val(
+        self,
+        kind: TimeSeriesKind,
+        s: StageId,
+        ids: Tuple[str, ...],
+        t: TimeId,
+        value: float,
+    ) -> None:
         """
         Set the value for a time series in the load shedding data class. The
         time series should be uniquely identified by the time series kind, the
@@ -548,8 +569,9 @@ class LoadShedding:
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs, demands: Demands,
-                 times: Times) -> None:
+    def validate(
+        self, stages: Stages, hubs: Hubs, ecs: Ecs, demands: Demands, times: Times
+    ) -> None:
         """
         Validate all load shedding data in this object. Apart from sense-
         checking parameter in terms of quantity, this includes checking whether
@@ -571,39 +593,36 @@ class LoadShedding:
         self._validate_max_rel(times)
         self._validate_energy_cost(times)
 
-    def _validate_tuples(self, stages: Stages, hubs: Hubs, ecs: Ecs,
-                         demands: Demands) -> None:
+    def _validate_tuples(
+        self, stages: Stages, hubs: Hubs, ecs: Ecs, demands: Demands
+    ) -> None:
         exc_key = ExceptionKey.MANUALTUPLES_VAL.value
-        for (s, h, e) in self._manual_tuples:
+        for s, h, e in self._manual_tuples:
             # Unknown stage
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in tuple ({s}, {h}, {e})"
-                raise exceptions.DataException(exc_key, [s], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [s], msg, module=LOG_MODULE_STR)
             # Unknown hub
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in tuple ({s}, {h}, {e})"
-                raise exceptions.DataException(exc_key, [h], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
             # Unknown ec
             if e not in ecs.ids:
                 msg = f"Unknown ec {e} in tuple ({s}, {h}, {e})"
-                raise exceptions.DataException(exc_key, [e], msg,
-                                               module=LOG_MODULE_STR)
+                raise exceptions.DataException(exc_key, [e], msg, module=LOG_MODULE_STR)
             # Not a demand tuple
             if (s, h, e) not in demands.tuples:
-                msg = (f"({s}, {h}, {e}) is a load shedding tuple but not a "
-                       "demand tuple")
-                raise exceptions.DataException(exc_key, [s, h, e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"({s}, {h}, {e}) is a load shedding tuple but not a demand tuple"
+                raise exceptions.DataException(
+                    exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_max_abs(self, times: Times) -> None:
         exc_key = ExceptionKey.MAXABS_VAL.value
         # Preset value
         if self.max_abs_preset < 0:
             msg = f"{self.max_abs_preset} = max_abs_preset < 0"
-            raise exceptions.DataException(exc_key, [], msg,
-                                           module=LOG_MODULE_STR)
+            raise exceptions.DataException(exc_key, [], msg, module=LOG_MODULE_STR)
         # Manual entries
         for (s, h, e), max_abs in self._max_abs.items():
             if not self.is_enabled(s, h, e):
@@ -614,26 +633,28 @@ class LoadShedding:
             if max_abs.has_values:
                 for t in times.ids:
                     if max_abs.get_value(t) < 0:
-                        msg = (f"{max_abs.get_value(t)} = max_abs"
-                            f"[{s}, {h}, {e}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [s, h, e, t],
-                            msg, module=LOG_MODULE_STR)
+                        msg = (
+                            f"{max_abs.get_value(t)} = max_abs[{s}, {h}, {e}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, h, e, t], msg, module=LOG_MODULE_STR
+                        )
             # max_abs must be nonnegative (default values)
             if not max_abs.has_values:
                 max_abs_def = max_abs.def_value
                 assert max_abs_def is not None
                 if max_abs_def < 0:
                     msg = f"{max_abs_def} = max_abs[{s}, {h}, {e}] < 0"
-                    raise exceptions.DataException(exc_key, [s, h, e],
-                                                   msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_max_rel(self, times: Times) -> None:
         exc_key = ExceptionKey.MAXREL_VAL.value
         # Preset value negative
         if self.max_rel_preset < 0:
             msg = f"{self.max_rel_preset} = max_rel_preset < 0"
-            raise exceptions.DataException(exc_key, [], msg,
-                                           module=LOG_MODULE_STR)
+            raise exceptions.DataException(exc_key, [], msg, module=LOG_MODULE_STR)
         # Preset value larger than one
         if self.max_rel_preset > 1:
             msg = f"{self.max_rel_preset} = max_rel_preset > 1"
@@ -649,15 +670,18 @@ class LoadShedding:
                 # max_rel must be nonnegative (time values)
                 for t in times.ids:
                     if max_rel.get_value(t) < 0:
-                        msg = (f"{max_rel.get_value(t)} = max_rel"
-                            f"[{s}, {h}, {e}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [s, h, e, t],
-                            msg, module=LOG_MODULE_STR)
+                        msg = (
+                            f"{max_rel.get_value(t)} = max_rel[{s}, {h}, {e}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, h, e, t], msg, module=LOG_MODULE_STR
+                        )
                 # max_rel usually not larger than one (time values)
                 for t in times.ids:
                     if max_rel.get_value(t) > 1:
-                        msg = (f"{max_rel.get_value(t)} = max_rel"
-                            f"[{s}, {h}, {e}][{t}] > 1")
+                        msg = (
+                            f"{max_rel.get_value(t)} = max_rel[{s}, {h}, {e}][{t}] > 1"
+                        )
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # Default value
@@ -667,8 +691,9 @@ class LoadShedding:
                 # max_abs must be nonnegative (default value)
                 if max_rel_def < 0:
                     msg = f"{max_rel_def} = max_abs[{s}, {h}, {e}] < 0"
-                    raise exceptions.DataException(exc_key, [s, h, e],
-                                                   msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [s, h, e], msg, module=LOG_MODULE_STR
+                    )
                 # max_abs usually not larger than one (default value)
                 if max_rel_def > 1:
                     msg = f"{max_rel_def} = max_abs[{s}, {h}, {e}] > 1"
@@ -690,8 +715,10 @@ class LoadShedding:
             if energy_cost.has_values:
                 for t in times.ids:
                     if energy_cost.get_value(t) < 0:
-                        msg = (f"{energy_cost.get_value(t)} = energy_cost"
-                            f"[{s}, {h}, {e}][{t}] < 0")
+                        msg = (
+                            f"{energy_cost.get_value(t)} = energy_cost"
+                            f"[{s}, {h}, {e}][{t}] < 0"
+                        )
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # energy_cost usually nonnegative (default value)
@@ -699,6 +726,5 @@ class LoadShedding:
                 energy_cost_def = energy_cost.def_value
                 assert energy_cost_def is not None
                 if energy_cost_def < 0:
-                    msg = (f"{energy_cost_def} = energy_cost"
-                           f"[{s}, {h}, {e}] < 0")
+                    msg = f"{energy_cost_def} = energy_cost[{s}, {h}, {e}] < 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)

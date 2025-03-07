@@ -1,10 +1,13 @@
 """
 Logging module. Used for console output and logfiles.
 """
+
 import os
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
 from ehubx import __version__
+
 
 # -------- #
 # Literals #
@@ -38,6 +41,7 @@ class LoggingException(Exception):
     """
     Exception that can arise from within the logging module
     """
+
     def __init__(self, msg: str, module: str = ""):
         msg = ":".join([msg, module])
         super().__init__(msg)
@@ -103,18 +107,28 @@ def log_console(msg: str, module: str = "") -> None:
     """
     # Cannot log while logger is paused
     if Logger().is_console_paused:
-        raise LoggingException("Tried to log while logger is paused",
-                               module=LOG_MODULE_STR)
+        raise LoggingException(
+            "Tried to log while logger is paused", module=LOG_MODULE_STR
+        )
     # Log
     module = _fix_str_length(module, MAX_MODULE_LENGTH)
-    msg_str = [msg[chunk:(chunk + MAX_MSG_LENGTH_CONSOLE)]
-               for chunk in range(0, len(msg), MAX_MSG_LENGTH_CONSOLE)]
+    msg_str = [
+        msg[chunk : (chunk + MAX_MSG_LENGTH_CONSOLE)]
+        for chunk in range(0, len(msg), MAX_MSG_LENGTH_CONSOLE)
+    ]
 
-    print((f"| {module} | "
-           + _fix_str_length(msg_str[0], MAX_MSG_LENGTH_CONSOLE) + " |"))
+    print(
+        (f"| {module} | " + _fix_str_length(msg_str[0], MAX_MSG_LENGTH_CONSOLE) + " |")
+    )
     for i in range(1, len(msg_str)):
-        print(("| " + " " * 18
-               + _fix_str_length(msg_str[i], MAX_MSG_LENGTH_CONSOLE) + " |"))
+        print(
+            (
+                "| "
+                + " " * 18
+                + _fix_str_length(msg_str[i], MAX_MSG_LENGTH_CONSOLE)
+                + " |"
+            )
+        )
 
 
 def log_console_warning(msg: str, module: str = "") -> None:
@@ -143,8 +157,9 @@ def log_console_error(msg: str, module: str = "") -> None:
     log_console(f"ERROR: {msg}", module=module)
 
 
-def log_file(msg: str, module: str = "", symbol: str = " ",
-             print_time: bool = True) -> None:
+def log_file(
+    msg: str, module: str = "", symbol: str = " ", print_time: bool = True
+) -> None:
     """
     Print a message to the logfile
 
@@ -159,8 +174,9 @@ def log_file(msg: str, module: str = "", symbol: str = " ",
     """
     # Cannot log while logger is paused
     if Logger().is_console_paused:
-        raise LoggingException("Tried to log while logger is paused",
-                               module=LOG_MODULE_STR)
+        raise LoggingException(
+            "Tried to log while logger is paused", module=LOG_MODULE_STR
+        )
     # Log
     logger = Logger()
     if not logger.has_started:
@@ -170,23 +186,29 @@ def log_file(msg: str, module: str = "", symbol: str = " ",
     msg_str = _segment_msg(msg, Logger().max_msg_width_file)
     time = " " * 5
     if print_time:
-        time = now.strftime('%H:%M')
+        time = now.strftime("%H:%M")
 
     with open(logger.logfile_path, "a", encoding="utf-8") as logfile:
         if cur_day != logger.last_known_day:
             logger.last_known_day = cur_day
             logfile.write(f"Day changed to {cur_day}\n")
         logfile.write(
-            (f"{time} | {symbol} | "
-             f"{_fix_str_length(module, MAX_MODULE_LENGTH)} | "
-             f"{_fix_str_length(msg_str[0], Logger().max_msg_width_file)}"
-             "\n"))
+            (
+                f"{time} | {symbol} | "
+                f"{_fix_str_length(module, MAX_MODULE_LENGTH)} | "
+                f"{_fix_str_length(msg_str[0], Logger().max_msg_width_file)}"
+                "\n"
+            )
+        )
         indent = TIME_WIDTH_FILE + SYMBOL_WIDTH_FILE + MODULE_WIDTH_FILE + 3
         for i in range(1, len(msg_str)):
-            logfile.write((" " * indent
-                           + _fix_str_length(msg_str[i],
-                                             Logger().max_msg_width_file)
-                           + "\n"))
+            logfile.write(
+                (
+                    " " * indent
+                    + _fix_str_length(msg_str[i], Logger().max_msg_width_file)
+                    + "\n"
+                )
+            )
 
 
 def log_file_warning(msg: str, module: str = "") -> None:
@@ -274,8 +296,9 @@ def _fix_str_length(string: str, length: Optional[int]) -> str:
 def _segment_msg(msg: str, max_length: Optional[int]) -> List[str]:
     if max_length is None:
         return [msg]
-    return [msg[chunk:(chunk + max_length)]
-            for chunk in range(0, len(msg), max_length)]
+    return [
+        msg[chunk : (chunk + max_length)] for chunk in range(0, len(msg), max_length)
+    ]
 
 
 class Logger:
@@ -334,8 +357,7 @@ class Logger:
             logfile_path += ".log"
         self._logfile_path = logfile_path
         self.start()
-        log_console(f"Log file path set to {logfile_path}",
-                    module=LOG_MODULE_STR)
+        log_console(f"Log file path set to {logfile_path}", module=LOG_MODULE_STR)
 
     @property
     def max_logfile_width(self) -> Optional[int]:
@@ -355,8 +377,13 @@ class Logger:
         """
         if not self._max_logfile_width:
             return None
-        return (self._max_logfile_width - TIME_WIDTH_FILE - SYMBOL_WIDTH_FILE
-                - MODULE_WIDTH_FILE - 3)
+        return (
+            self._max_logfile_width
+            - TIME_WIDTH_FILE
+            - SYMBOL_WIDTH_FILE
+            - MODULE_WIDTH_FILE
+            - 3
+        )
 
     def start(self) -> None:
         """
@@ -367,7 +394,8 @@ class Logger:
         if self._logfile_path is None:
             raise LoggingException(
                 "Tried to start log while logfile path if not set",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         now = datetime.now()
         self.last_known_day = now.strftime("%d/%m/%Y")
         header_width = MIN_LOGFILE_WIDTH
@@ -375,20 +403,20 @@ class Logger:
             header_width = self.max_logfile_width
         with open(self._logfile_path, "w", encoding="utf-8") as logfile:
             logfile.write("/" + "=" * (header_width - 2) + "\\\n")
-            logfile.write("|" + " " * (int(header_width / 2) - 5)
-                          + "ehubX log\n")
+            logfile.write("|" + " " * (int(header_width / 2) - 5) + "ehubX log\n")
             logfile.write(f"| Version: {__version__}\n")
             logfile.write("=" * header_width + "\n")
-            module_str = _fix_str_length('Module', MAX_MODULE_LENGTH)
-            msg_str = _fix_str_length('Message', Logger().max_msg_width_file)
+            module_str = _fix_str_length("Module", MAX_MODULE_LENGTH)
+            msg_str = _fix_str_length("Message", Logger().max_msg_width_file)
             logfile.write(f"Time  | ? | {module_str} | {msg_str}\n")
             logfile.write("-" * header_width + "\n")
         self._has_started = True
         log_file(f"Started logfile on {self.last_known_day}", module="logging")
         print("=" * 120)
         print("|" + " " * 55 + "ehubX log" + " " * 54 + "|")
-        version_str = _fix_str_length(f"Version: {__version__}",
-                                      MAX_MSG_LENGTH_CONSOLE + 18)
+        version_str = _fix_str_length(
+            f"Version: {__version__}", MAX_MSG_LENGTH_CONSOLE + 18
+        )
         print("| " + version_str + " |")
         print("=" * 120)
         print("| Module          | Message" + " " * 92 + "|")
@@ -400,8 +428,7 @@ class Logger:
         message to be separated from the ehubX logs
         """
         if not self._has_started:
-            raise LoggingException(("Tried to pause a logger that has not "
-                                    "started yet"))
+            raise LoggingException(("Tried to pause a logger that has not started yet"))
         print("-" * 120 + "\n")
         self._is_console_paused = True
 
@@ -410,8 +437,7 @@ class Logger:
         Resume console log
         """
         if not self._is_console_paused:
-            raise LoggingException(("Tried to resume a logger that is not "
-                                    "paused"))
+            raise LoggingException(("Tried to resume a logger that is not paused"))
         print("\n" + "-" * 120)
         self._is_console_paused = False
 
@@ -420,6 +446,6 @@ class Logger:
             cls.instance = super(Logger, cls).__new__(cls)
             cls.instance._has_started = False
             cls.instance._logfile_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "..",
-                             "ehubX.log"))
+                os.path.join(os.path.dirname(__file__), "..", "..", "..", "ehubX.log")
+            )
         return cls.instance

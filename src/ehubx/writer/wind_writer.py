@@ -1,20 +1,23 @@
 """Wind writer module. Writes out information from the wind submodule to
 files"""
+
 import os
 from typing import Dict, List, Optional, Tuple
+
 import pandas as pd
 from pyomo.core import Model, value
-from ehubx.core.common import TimeSeriesKind
+
 from ehubx.core import exceptions
-from ehubx.parser.csv_parser import HeaderId
+from ehubx.core.common import TimeSeriesKind
 from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.tech_data import TechId
-from ehubx.data.wind_data import WindData
 from ehubx.data.time_data import Times
 from ehubx.data.time_series import TimeSeries
+from ehubx.data.wind_data import WindData
 from ehubx.model import wind_tech_model
-from ehubx.writer.common_writer import create_dir, add_to_df_st, \
-    add_to_df_ts_cl
+from ehubx.parser.csv_parser import HeaderId
+from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_cl, create_dir
+
 
 # -------- #
 # Literals #
@@ -55,18 +58,24 @@ ENTRY_VELOCUTOFF: str = "Cut-off velocity"
 ENTRY_CURTAILMAXREL: str = "Cut-in velocity"
 """Entry name for maximal relative curtailment of wind techs in result files"""
 
-ENTRY_WINDTECHINCIDENT: str = ("Wind tech incident "
-                               f"({wind_tech_model.VAR_WINDTECHINCIDENT})")
+ENTRY_WINDTECHINCIDENT: str = (
+    f"Wind tech incident ({wind_tech_model.VAR_WINDTECHINCIDENT})"
+)
 """Entry name for wind tech incident in result files"""
 
-ENTRY_WINDTECHCURTAILMENT: str = \
+ENTRY_WINDTECHCURTAILMENT: str = (
     f"Wind tech curtailment ({wind_tech_model.VAR_WINDTECHCURTAILMENT})"
+)
 """Entry name for wind tech curtailment in result files"""
 
 
-def format_all(energy_system: EnergySystem, model: Model, df_st: pd.DataFrame,
-               df_ts_hor: pd.DataFrame, df_ts_cl: Optional[pd.DataFrame]
-               ) -> None:
+def format_all(
+    energy_system: EnergySystem,
+    model: Model,
+    df_st: pd.DataFrame,
+    df_ts_hor: pd.DataFrame,
+    df_ts_cl: Optional[pd.DataFrame],
+) -> None:
     # Wind velocity
     for s in energy_system.stages.ids_in_order:
         for e in energy_system.ecs.ids_in_order:
@@ -74,82 +83,157 @@ def format_all(energy_system: EnergySystem, model: Model, df_st: pd.DataFrame,
                 continue
             velocity = energy_system.wind_data.get_velocity(s, e)
             if velocity.has_values:
-                add_to_df_ts_cl(df_ts_hor, df_ts_cl,
-                    energy_system.times, ENTRY_VELOCITY, velocity,
-                    unit="m/s", stage=s.key, ec=e.key, source=SOURCE,
-                    in_res="input")
+                add_to_df_ts_cl(
+                    df_ts_hor,
+                    df_ts_cl,
+                    energy_system.times,
+                    ENTRY_VELOCITY,
+                    velocity,
+                    unit="m/s",
+                    stage=s.key,
+                    ec=e.key,
+                    source=SOURCE,
+                    in_res="input",
+                )
             if not velocity.has_values:
                 velocity_def = velocity.def_value
                 assert velocity_def is not None
-                add_to_df_st(df_st, ENTRY_VELOCITY, velocity_def, unit="m/s",
-                             stage=s.key, ec=e.key, source=SOURCE,
-                             in_res="input")
+                add_to_df_st(
+                    df_st,
+                    ENTRY_VELOCITY,
+                    velocity_def,
+                    unit="m/s",
+                    stage=s.key,
+                    ec=e.key,
+                    source=SOURCE,
+                    in_res="input",
+                )
 
     # Area
     for s in energy_system.stages.ids_in_order:
         for h in energy_system.hubs.ids_in_order:
             for wp in energy_system.wind_data.windpark_ids:
-                windpark_area = energy_system.wind_data.get_windpark_area(
-                    s, h, wp)
-                add_to_df_st(df_st, ENTRY_AREA, windpark_area, unit="m^2",
-                             stage=s.key, hub=h.key, windpark=wp.key,
-                             source=SOURCE, in_res="input")
+                windpark_area = energy_system.wind_data.get_windpark_area(s, h, wp)
+                add_to_df_st(
+                    df_st,
+                    ENTRY_AREA,
+                    windpark_area,
+                    unit="m^2",
+                    stage=s.key,
+                    hub=h.key,
+                    windpark=wp.key,
+                    source=SOURCE,
+                    in_res="input",
+                )
 
     # Tech-specific values
     for tech_id in energy_system.wind_techs.ids:
         _format_tech(energy_system, model, tech_id, df_st, df_ts_hor, df_ts_cl)
 
 
-def _format_tech(energy_system: EnergySystem, model: Model, x: TechId,
-                 df_st: pd.DataFrame, df_ts_hor: pd.DataFrame,
-                 df_ts_cl: Optional[pd.DataFrame]) -> None:
+def _format_tech(
+    energy_system: EnergySystem,
+    model: Model,
+    x: TechId,
+    df_st: pd.DataFrame,
+    df_ts_hor: pd.DataFrame,
+    df_ts_cl: Optional[pd.DataFrame],
+) -> None:
     # Turbine footprint
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         footprint = energy_system.wind_techs.get_turbine_footprint(s, x)
-        add_to_df_st(df_st, ENTRY_TURBINEFOOTPRINT, footprint, unit="m^2",
-                     stage=s.key, tech=x.key, source=SOURCE, in_res="input")
+        add_to_df_st(
+            df_st,
+            ENTRY_TURBINEFOOTPRINT,
+            footprint,
+            unit="m^2",
+            stage=s.key,
+            tech=x.key,
+            source=SOURCE,
+            in_res="input",
+        )
 
     # Rotor area
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         rotor_area = energy_system.wind_techs.get_rotor_area(s, x)
-        add_to_df_st(df_st, ENTRY_ROTORAREA, rotor_area, unit="m^2",
-                     stage=s.key, tech=x.key, source=SOURCE, in_res="input")
+        add_to_df_st(
+            df_st,
+            ENTRY_ROTORAREA,
+            rotor_area,
+            unit="m^2",
+            stage=s.key,
+            tech=x.key,
+            source=SOURCE,
+            in_res="input",
+        )
 
     # Cut-in velocity
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         velo_cut_in = energy_system.wind_techs.get_velo_cut_in(s, x)
-        add_to_df_st(df_st, ENTRY_VELOCUTIN, velo_cut_in, unit="m/s",
-                     stage=s.key, tech=x.key, source=SOURCE, in_res="input")
+        add_to_df_st(
+            df_st,
+            ENTRY_VELOCUTIN,
+            velo_cut_in,
+            unit="m/s",
+            stage=s.key,
+            tech=x.key,
+            source=SOURCE,
+            in_res="input",
+        )
 
     # Nominal velocity
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         velo_nominal = energy_system.wind_techs.get_velo_nominal(s, x)
-        add_to_df_st(df_st, ENTRY_VELONOMINAL, velo_nominal, unit="m/s",
-                     stage=s.key, tech=x.key, source=SOURCE, in_res="input")
+        add_to_df_st(
+            df_st,
+            ENTRY_VELONOMINAL,
+            velo_nominal,
+            unit="m/s",
+            stage=s.key,
+            tech=x.key,
+            source=SOURCE,
+            in_res="input",
+        )
 
     # Cut-off velocity
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         velo_cut_off = energy_system.wind_techs.get_velo_cut_off(s, x)
-        add_to_df_st(df_st, ENTRY_VELOCUTOFF, velo_cut_off, unit="m/s",
-                     stage=s.key, tech=x.key, source=SOURCE, in_res="input")
+        add_to_df_st(
+            df_st,
+            ENTRY_VELOCUTOFF,
+            velo_cut_off,
+            unit="m/s",
+            stage=s.key,
+            tech=x.key,
+            source=SOURCE,
+            in_res="input",
+        )
 
     # Maximal relative curtailment
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         curtail_max_rel = energy_system.wind_techs.get_curtail_max_rel(s, x)
-        add_to_df_st(df_st, ENTRY_CURTAILMAXREL, curtail_max_rel, unit="1",
-                     stage=s.key, tech=x.key, source=SOURCE, in_res="input")
+        add_to_df_st(
+            df_st,
+            ENTRY_CURTAILMAXREL,
+            curtail_max_rel,
+            unit="1",
+            stage=s.key,
+            tech=x.key,
+            source=SOURCE,
+            in_res="input",
+        )
 
     # Wind tech incident
     for s in energy_system.stages.ids_in_order:
@@ -161,13 +245,22 @@ def _format_tech(energy_system: EnergySystem, model: Model, x: TechId,
             var = getattr(model, wind_tech_model.VAR_WINDTECHINCIDENT)
             incident = TimeSeries()
             for t in energy_system.times.ids:
-                incident.set_value(t, value(var[s.key, h.key, x.key,
-                                                t.key_as_int],
-                                            exception=False))
-            add_to_df_ts_cl(df_ts_hor, df_ts_cl,
-                energy_system.times, ENTRY_WINDTECHINCIDENT,
-                incident, unit="kW", stage=s.key, hub=h.key,
-                tech=x.key, source=SOURCE, in_res="result")
+                incident.set_value(
+                    t, value(var[s.key, h.key, x.key, t.key_as_int], exception=False)
+                )
+            add_to_df_ts_cl(
+                df_ts_hor,
+                df_ts_cl,
+                energy_system.times,
+                ENTRY_WINDTECHINCIDENT,
+                incident,
+                unit="kW",
+                stage=s.key,
+                hub=h.key,
+                tech=x.key,
+                source=SOURCE,
+                in_res="result",
+            )
 
     # Wind tech curtailment
     for s in energy_system.stages.ids_in_order:
@@ -179,17 +272,25 @@ def _format_tech(energy_system: EnergySystem, model: Model, x: TechId,
             var = getattr(model, wind_tech_model.VAR_WINDTECHCURTAILMENT)
             curtailment = TimeSeries()
             for t in energy_system.times.ids:
-                curtailment.set_value(t, value(var[s.key, h.key, x.key,
-                                                   t.key_as_int],
-                                               exception=False))
-            add_to_df_ts_cl(df_ts_hor, df_ts_cl,
-                energy_system.times, ENTRY_WINDTECHCURTAILMENT,
-                curtailment, unit="kW", stage=s.key, hub=h.key,
-                tech=x.key, source=SOURCE, in_res="result")
+                curtailment.set_value(
+                    t, value(var[s.key, h.key, x.key, t.key_as_int], exception=False)
+                )
+            add_to_df_ts_cl(
+                df_ts_hor,
+                df_ts_cl,
+                energy_system.times,
+                ENTRY_WINDTECHCURTAILMENT,
+                curtailment,
+                unit="kW",
+                stage=s.key,
+                hub=h.key,
+                tech=x.key,
+                source=SOURCE,
+                in_res="result",
+            )
 
 
-def write_time_series(wind_data: WindData, times: Times, dir_path: str
-                      ) -> None:
+def write_time_series(wind_data: WindData, times: Times, dir_path: str) -> None:
     """
     Writes all time series with actual data (def_value is not enough) in a
     wind data object to a dedicated csv file in a directory
@@ -206,22 +307,28 @@ def write_time_series(wind_data: WindData, times: Times, dir_path: str
         if not create_dir(dir_path):
             raise exceptions.EhubXException(
                 "Could not write wind time series data because "
-                "the directory could not be created", module=LOG_MODULE_STR)
+                "the directory could not be created",
+                module=LOG_MODULE_STR,
+            )
 
     # Gather time series
     data_demands: Dict[Tuple[str, str, str], List[float]] = {}
-    for (kind, stage, ids, series) in wind_data.time_series:
+    for kind, stage, ids, series in wind_data.time_series:
         # Skip series without values
         if not series.has_values:
             continue
         if kind == TimeSeriesKind.WINDVELOCITY:
             data_demands[stage.key, ids[0], PROFILEKEY_VELOCITY] = [
-                series.get_value(t) for t in times.ids_in_order]
+                series.get_value(t) for t in times.ids_in_order
+            ]
 
     # Write demands file
     if data_demands:
         df = pd.DataFrame(data_demands)
-        df.columns.names = [HeaderId.STAGEID.value, HeaderId.ECID.value,
-                            HeaderId.PROFILEKEY.value]
+        df.columns.names = [
+            HeaderId.STAGEID.value,
+            HeaderId.ECID.value,
+            HeaderId.PROFILEKEY.value,
+        ]
         df.index += 1
         df.to_csv(os.path.join(dir_path, FILENAME_TIMESERIES_WIND))

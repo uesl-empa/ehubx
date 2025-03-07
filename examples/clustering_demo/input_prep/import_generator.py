@@ -1,11 +1,13 @@
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 
-def generate_hourly_price_profile(base_price=50, peak_variation=20,
-        season_variation=10, noise_level=5, seed=None):
+def generate_hourly_price_profile(
+    base_price=50, peak_variation=20, season_variation=10, noise_level=5, seed=None
+):
     """
     Generates an artificial hourly electricity price profile for a year.
 
@@ -24,17 +26,18 @@ def generate_hourly_price_profile(base_price=50, peak_variation=20,
         np.random.seed(seed)
 
     hours_per_year = 24 * 365
-    time_index = pd.date_range(start="2024-01-01", periods=hours_per_year,
-                               freq="H")
+    time_index = pd.date_range(start="2024-01-01", periods=hours_per_year, freq="H")
 
     # Daily price fluctuation (higher prices during the day, lower at night)
-    daily_cycle = peak_variation * np.sin(2 * np.pi * (
-        np.arange(hours_per_year) % 24) / 24)
+    daily_cycle = peak_variation * np.sin(
+        2 * np.pi * (np.arange(hours_per_year) % 24) / 24
+    )
 
     # Seasonal price fluctuation (higher in winter and summer, lower in spring
     # and fall)
     seasonal_cycle = season_variation * np.sin(
-        2 * np.pi * np.arange(hours_per_year) / hours_per_year)
+        2 * np.pi * np.arange(hours_per_year) / hours_per_year
+    )
 
     # Random noise
     noise = np.random.normal(0, noise_level, hours_per_year)

@@ -1,23 +1,26 @@
 """
 Network link data module
 """
-from typing import Dict, List, Set, Tuple
+
 from enum import Enum
-from ehubx.core.common import TimeSeriesKind, EPS_ZEROCHECK
+from typing import Dict, List, Set, Tuple
+
 from ehubx.core import logging
-from ehubx.data.index import Index, IndexKind
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.ec_data import Ecs, EcId
-from ehubx.data.time_data import Times, TimeId
-from ehubx.data.time_series import TimeSeries
+from ehubx.core.common import EPS_ZEROCHECK, TimeSeriesKind
 from ehubx.data import exceptions
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.index import Index, IndexKind
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
 
 
 class NetLinkId(Index):
     """
     Network link index
     """
+
     def __init__(self, key: str) -> None:
         super().__init__(IndexKind.NETLINK, key)
 
@@ -26,6 +29,7 @@ class NetLinkDirection(Enum):
     """
     Link direction (forward or backward)
     """
+
     FORWARD = "LinkForward"
     BACKWARD = "LinkBackward"
 
@@ -34,6 +38,7 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the network link data module
     """
+
     ID_ADD = "adding to 'ids' of NetworkLinks"
     ID_REMOVE = "removing from 'ids' of NetworkLinks"
     ECS_ADD = "adding to 'ecs' of NetworkLinks"
@@ -135,8 +140,9 @@ class NetworkLinks:
         :type li: NetLinkId
         """
         if li in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value,
-                                                  li, module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, li, module=LOG_MODULE_STR
+            )
         self._ids.add(li)
 
     # ------------- #
@@ -185,7 +191,8 @@ class NetworkLinks:
         self._check_id(li, ExceptionKey.HUBSTART_GET)
         if li not in self._hub_start:
             raise exceptions.MissingIdException(
-                ExceptionKey.HUBSTART_GET.value, li, module=LOG_MODULE_STR)
+                ExceptionKey.HUBSTART_GET.value, li, module=LOG_MODULE_STR
+            )
         return self._hub_start[li]
 
     def set_hub_start(self, li: NetLinkId, h: HubId) -> None:
@@ -219,7 +226,8 @@ class NetworkLinks:
         self._check_id(li, ExceptionKey.HUBEND_GET)
         if li not in self._hub_end:
             raise exceptions.MissingIdException(
-                ExceptionKey.HUBEND_GET.value, li, module=LOG_MODULE_STR)
+                ExceptionKey.HUBEND_GET.value, li, module=LOG_MODULE_STR
+            )
         return self._hub_end[li]
 
     def set_hub_end(self, li: NetLinkId, h: HubId) -> None:
@@ -252,7 +260,8 @@ class NetworkLinks:
         self._check_id(li, ExceptionKey.LENGTH_GET)
         if li not in self._length:
             raise exceptions.MissingIdException(
-                ExceptionKey.LENGTH_GET.value, li, module=LOG_MODULE_STR)
+                ExceptionKey.LENGTH_GET.value, li, module=LOG_MODULE_STR
+            )
         return self._length[li]
 
     def set_length(self, li: NetLinkId, length: float) -> None:
@@ -319,8 +328,7 @@ class NetworkLinks:
         self._check_id(li, ExceptionKey.CAPMIN_GET)
         return self._cap_min.get((s, li, e), DEF_CAPMIN)
 
-    def set_cap_min(self, s: StageId, li: NetLinkId, e: EcId,
-                    cap_min: float) -> None:
+    def set_cap_min(self, s: StageId, li: NetLinkId, e: EcId, cap_min: float) -> None:
         """
         Set the parameter 'cap_min' which denotes the minimal amount of network
         technology capacity that has to be achieved on a network link for an
@@ -362,8 +370,7 @@ class NetworkLinks:
         self._check_id(li, ExceptionKey.CAPMAX_GET)
         return self._cap_max.get((s, li, e), DEF_CAPMAX)
 
-    def set_cap_max(self, s: StageId, li: NetLinkId, e: EcId,
-                    cap_max: float) -> None:
+    def set_cap_max(self, s: StageId, li: NetLinkId, e: EcId, cap_max: float) -> None:
         """
         Set the parameter 'cap_max' which denotes the maximal amount of network
         technology capacity that is permitted on a network link for an
@@ -386,8 +393,7 @@ class NetworkLinks:
     # ---------------------- #
     # Property: availability #
     # ---------------------- #
-    def get_availability(self, s: StageId, li: NetLinkId, e: EcId
-                         ) -> TimeSeries:
+    def get_availability(self, s: StageId, li: NetLinkId, e: EcId) -> TimeSeries:
         """
         Get the parameter 'availability' for a network link in a direction.
         availability is a relative value that scales the amount of available
@@ -412,8 +418,9 @@ class NetworkLinks:
             return availability
         return self._availability[s, li, e]
 
-    def set_availability(self, s: StageId, li: NetLinkId, e: EcId, t: TimeId,
-                         availability: float) -> None:
+    def set_availability(
+        self, s: StageId, li: NetLinkId, e: EcId, t: TimeId, availability: float
+    ) -> None:
         """
         Get the parameter 'availability' for a network link in a direction at
         a specific time step. availability is a relative value that scales the
@@ -440,8 +447,9 @@ class NetworkLinks:
             self._availability[s, li, e].def_value = DEF_AVAILABILITY
         self._availability[s, li, e].set_value(t, availability)
 
-    def set_availability_def(self, s: StageId, li: NetLinkId, e: EcId,
-                             availability_def: float) -> None:
+    def set_availability_def(
+        self, s: StageId, li: NetLinkId, e: EcId, availability_def: float
+    ) -> None:
         """
         Get the default (with respect to time) parameter 'availability' for a
         network link in a direction. availability is a relative value that
@@ -468,8 +476,9 @@ class NetworkLinks:
     # ----------------- #
     # Property: sum_min #
     # ----------------- #
-    def get_sum_min(self, s: StageId, li: NetLinkId, e: EcId,
-                    d: NetLinkDirection) -> float:
+    def get_sum_min(
+        self, s: StageId, li: NetLinkId, e: EcId, d: NetLinkDirection
+    ) -> float:
         """
         Get the parameter 'sum_min' (specified as 'sum_min_forward' and
         'sum_min_backward' in the input files) which denotes the minimal amount
@@ -491,8 +500,9 @@ class NetworkLinks:
         self._check_id(li, ExceptionKey.SUMMIN_GET)
         return self._sum_min.get((s, li, e, d), DEF_SUMMIN)
 
-    def set_sum_min(self, s: StageId, li: NetLinkId, e: EcId,
-                    d: NetLinkDirection, sum_min: float) -> None:
+    def set_sum_min(
+        self, s: StageId, li: NetLinkId, e: EcId, d: NetLinkDirection, sum_min: float
+    ) -> None:
         """
         Set the parameter 'sum_min' (specified as 'sum_min_forward' and
         'sum_min_backward' in the input files) which denotes the minimal amount
@@ -517,8 +527,9 @@ class NetworkLinks:
     # ----------------- #
     # Property: sum_max #
     # ----------------- #
-    def get_sum_max(self, s: StageId, li: NetLinkId, e: EcId,
-                    d: NetLinkDirection) -> float:
+    def get_sum_max(
+        self, s: StageId, li: NetLinkId, e: EcId, d: NetLinkDirection
+    ) -> float:
         """
         Get the parameter 'sum_max' (specified as 'sum_max_forward' and
         'sum_max_backward' in the input files) which denotes the maximal amount
@@ -540,8 +551,9 @@ class NetworkLinks:
         self._check_id(li, ExceptionKey.SUMMAX_GET)
         return self._sum_max.get((s, li, e, d), DEF_SUMMAX)
 
-    def set_sum_max(self, s: StageId, li: NetLinkId, e: EcId,
-                    d: NetLinkDirection, sum_max: float) -> None:
+    def set_sum_max(
+        self, s: StageId, li: NetLinkId, e: EcId, d: NetLinkDirection, sum_max: float
+    ) -> None:
         """
         Set the parameter 'sum_max' (specified as 'sum_max_forward' and
         'sum_max_backward' in the input files) which denotes the maximal amount
@@ -567,8 +579,9 @@ class NetworkLinks:
     # Secondary property: time_series #
     # ------------------------------- #
     @property
-    def time_series(self) -> List[Tuple[TimeSeriesKind, StageId,
-                                        Tuple[str, ...], TimeSeries]]:
+    def time_series(
+        self,
+    ) -> List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]]:
         """
         Time series profiles in the network link module. This is a list of
         tuples. Each list element has the following list entries: 1)
@@ -579,18 +592,25 @@ class NetworkLinks:
         :rtype: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
             TimeSeries]]
         """
-        all_series: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
-                               TimeSeries]] = []
+        all_series: List[
+            Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]
+        ] = []
         # availability
         for (s, li, e), series in self._availability.items():
             if series.has_values:
-                all_series.append((TimeSeriesKind.NETLINKAVAIL, s,
-                                   (li.key, e.key), series))
+                all_series.append(
+                    (TimeSeriesKind.NETLINKAVAIL, s, (li.key, e.key), series)
+                )
         return all_series
 
-    def set_time_series_val(self, kind: TimeSeriesKind, s: StageId,
-                            ids: Tuple[str, ...], t: TimeId, value: float
-                            ) -> None:
+    def set_time_series_val(
+        self,
+        kind: TimeSeriesKind,
+        s: StageId,
+        ids: Tuple[str, ...],
+        t: TimeId,
+        value: float,
+    ) -> None:
         """
         Set the value for a time series in the network link data class. The
         time series should be uniquely identified by the time series kind, the
@@ -624,18 +644,18 @@ class NetworkLinks:
         self._bidirectional: Dict[NetLinkId, bool] = {}
         self._cap_min: Dict[Tuple[StageId, NetLinkId, EcId], float] = {}
         self._cap_max: Dict[Tuple[StageId, NetLinkId, EcId], float] = {}
-        self._availability: Dict[Tuple[StageId, NetLinkId, EcId],
-                                 TimeSeries] = {}
-        self._sum_min: Dict[Tuple[StageId, NetLinkId, EcId, NetLinkDirection],
-                            float] = {}
-        self._sum_max: Dict[Tuple[StageId, NetLinkId, EcId, NetLinkDirection],
-                            float] = {}
+        self._availability: Dict[Tuple[StageId, NetLinkId, EcId], TimeSeries] = {}
+        self._sum_min: Dict[
+            Tuple[StageId, NetLinkId, EcId, NetLinkDirection], float
+        ] = {}
+        self._sum_max: Dict[
+            Tuple[StageId, NetLinkId, EcId, NetLinkDirection], float
+        ] = {}
 
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs,
-                 times: Times) -> None:
+    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs, times: Times) -> None:
         """
         Validate all network link data in this object. Apart from sense-
         checking parameter in terms of quantity, this includes checking whether
@@ -668,39 +688,45 @@ class NetworkLinks:
             for e in link_ecs:
                 if e not in ecs.ids:
                     msg = f"Unknown ec {e} in ecs[{li}]"
-                    raise exceptions.DataException(ExceptionKey.ECS_VAL.value,
-                        [e], msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        ExceptionKey.ECS_VAL.value, [e], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_hub_start(self, hubs: Hubs) -> None:
         for li, h in self._hub_start.items():
             if h not in hubs.ids:
                 msg = f"Unknown hub in hub_start[{li}] = {h}"
-                raise exceptions.DataException(ExceptionKey.HUBSTART_VAL.value,
-                    [li, h], msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    ExceptionKey.HUBSTART_VAL.value, [li, h], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_hub_end(self, hubs: Hubs) -> None:
         for li, h in self._hub_end.items():
             if h not in hubs.ids:
                 msg = f"Unknown hub in hub_end[{li}] = {h}"
-                raise exceptions.DataException(ExceptionKey.ECS_VAL.value,
-                    [li, h], msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    ExceptionKey.ECS_VAL.value, [li, h], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_hub_start_end(self) -> None:
         for li, hub_start in self._hub_start.items():
             hub_end = self._hub_end.get(li, None)
             if hub_start == hub_end:
-                msg = (f"Identical start_hub[{li}] = end_hub[{li}] = "
-                       f"{hub_start}")
+                msg = f"Identical start_hub[{li}] = end_hub[{li}] = {hub_start}"
                 raise exceptions.DataException(
                     ExceptionKey.HUBSTARTEND_SAME.value,
-                    [li, hub_start, hub_end], msg, module=LOG_MODULE_STR)
+                    [li, hub_start, hub_end],
+                    msg,
+                    module=LOG_MODULE_STR,
+                )
 
     def _validate_length(self) -> None:
         for li, length in self._length.items():
             if length < 0:
                 msg = f"{length} = length[{li}] < 0"
-                raise exceptions.DataException(ExceptionKey.LENGTH_VAL.value,
-                    [li], msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    ExceptionKey.LENGTH_VAL.value, [li], msg, module=LOG_MODULE_STR
+                )
             if length < EPS_ZEROCHECK:
                 msg = f"{length} = length[{li}] ~ 0"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
@@ -711,18 +737,20 @@ class NetworkLinks:
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in cap_min[{s}, {li}, {e}]"
                 raise exceptions.DataException(
-                    ExceptionKey.CAPMIN_VAL.value, [s], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.CAPMIN_VAL.value, [s], msg, module=LOG_MODULE_STR
+                )
             # Unknown ec
             if e not in ecs.ids:
                 msg = f"Unknown ec {e} in cap_min[{s}, {li}, {e}]"
                 raise exceptions.DataException(
-                    ExceptionKey.CAPMIN_VAL.value, [e], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.CAPMIN_VAL.value, [e], msg, module=LOG_MODULE_STR
+                )
             # EC not assigned to link
             if e not in self.get_ecs(li):
-                msg = (f"Encountered ec {e} in cap_min[{s}, {li}, {e}] "
-                       f"which is not in ecs[{li}] = {self.get_ecs(li)}")
+                msg = (
+                    f"Encountered ec {e} in cap_min[{s}, {li}, {e}] "
+                    f"which is not in ecs[{li}] = {self.get_ecs(li)}"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
             # cap_min usually nonnegative
             if cap_min < 0:
@@ -735,54 +763,63 @@ class NetworkLinks:
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in cap_max[{s}, {li}, {e}]"
                 raise exceptions.DataException(
-                    ExceptionKey.CAPMIN_VAL.value, [s], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.CAPMIN_VAL.value, [s], msg, module=LOG_MODULE_STR
+                )
             # Unknown ec
             if e not in ecs.ids:
                 msg = f"Unknown ec {e} in cap_max[{s}, {li}, {e}]"
                 raise exceptions.DataException(
-                    ExceptionKey.CAPMIN_VAL.value, [e], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.CAPMIN_VAL.value, [e], msg, module=LOG_MODULE_STR
+                )
             # ec not assigned to link
             if e not in self.get_ecs(li):
-                msg = (f"Encountered ec {e} in cap_min[{s}, {li}, {e}] "
-                       f"which is not in ecs[{li}] = {self.get_ecs(li)}")
+                msg = (
+                    f"Encountered ec {e} in cap_min[{s}, {li}, {e}] "
+                    f"which is not in ecs[{li}] = {self.get_ecs(li)}"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
             # cap_max must be nonnegative
             if cap_max < 0:
                 msg = f"cap_max[{s}, {li}, {e}] = {cap_max} < 0"
                 raise exceptions.DataException(
-                    ExceptionKey.CAPMAX_VAL.value, [s, li, e], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.CAPMAX_VAL.value,
+                    [s, li, e],
+                    msg,
+                    module=LOG_MODULE_STR,
+                )
 
     def _validate_cap_minmax(self) -> None:
         all_keys = set(self._cap_min.keys()).union(set(self._cap_max.keys()))
-        for (s, h, e) in all_keys:
+        for s, h, e in all_keys:
             cap_min = self.get_cap_min(s, h, e)
             cap_max = self.get_cap_max(s, h, e)
             if cap_min > cap_max:
-                msg = (f"{cap_min} = cap_min[{s}, {h}, {e}] > "
-                       f"cap_max[{s}, {h}, {e}] = {cap_max}")
+                msg = (
+                    f"{cap_min} = cap_min[{s}, {h}, {e}] > "
+                    f"cap_max[{s}, {h}, {e}] = {cap_max}"
+                )
                 raise exceptions.DataException(
-                    ExceptionKey.CAPMINMAX_VAL.value, [s, h, e], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.CAPMINMAX_VAL.value,
+                    [s, h, e],
+                    msg,
+                    module=LOG_MODULE_STR,
+                )
 
-    def _validate_availability(self, stages: Stages, ecs: Ecs,
-                               times: Times) -> None:
+    def _validate_availability(self, stages: Stages, ecs: Ecs, times: Times) -> None:
         exc_key = ExceptionKey.AVAILABILITY_VAL.value
         for (s, li, e), availability in self._availability.items():
             # Unknown stage id
             if s not in stages.ids:
-                msg = (f"Unknown stage {s} in "
-                       f"availability[{s}, {li}, {e}]")
-                raise exceptions.DataException(exc_key, [s, li, e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"Unknown stage {s} in availability[{s}, {li}, {e}]"
+                raise exceptions.DataException(
+                    exc_key, [s, li, e], msg, module=LOG_MODULE_STR
+                )
             # Unknown ec id
             if e not in ecs.ids:
-                msg = (f"Unknown ec {e} in "
-                       f"availability[{s}, {li}, {e}]")
-                raise exceptions.DataException(exc_key, [s, li, e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"Unknown ec {e} in availability[{s}, {li}, {e}]"
+                raise exceptions.DataException(
+                    exc_key, [s, li, e], msg, module=LOG_MODULE_STR
+                )
             # Time values
             if availability.has_values:
                 # Unknown time ids
@@ -790,16 +827,20 @@ class NetworkLinks:
                 # Availability values must be nonnegative (time values)
                 for t in times.ids:
                     if availability.get_value(t) < 0:
-                        msg = (f"{availability.get_value(t)} = availability["
-                            f"{s}, {li}, {e}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [s, li, e, t],
-                                                       msg,
-                                                       module=LOG_MODULE_STR)
+                        msg = (
+                            f"{availability.get_value(t)} = availability["
+                            f"{s}, {li}, {e}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [s, li, e, t], msg, module=LOG_MODULE_STR
+                        )
                 # Availability values should be smaller than 1 (time values)
                 for t in times.ids:
                     if availability.get_value(t) > 1:
-                        msg = (f"{availability.get_value(t)} = availability["
-                            f"{s}, {li}, {e}][{t}] > 1")
+                        msg = (
+                            f"{availability.get_value(t)} = availability["
+                            f"{s}, {li}, {e}][{t}] > 1"
+                        )
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # Default values
@@ -808,19 +849,17 @@ class NetworkLinks:
                 assert availability_def is not None
                 # Availability values must be nonnegative (default value)
                 if availability_def < 0:
-                    msg = (f"{availability_def} = availability_def["
-                        f"{s}, {li}, {e}] < 0")
-                    raise exceptions.DataException(exc_key, [s, li, e], msg,
-                                                   module=LOG_MODULE_STR)
+                    msg = f"{availability_def} = availability_def[{s}, {li}, {e}] < 0"
+                    raise exceptions.DataException(
+                        exc_key, [s, li, e], msg, module=LOG_MODULE_STR
+                    )
                 # Constant availability usually not zero (default value)
                 if availability_def < EPS_ZEROCHECK:
-                    msg = (f"{availability_def} = availability_def["
-                        f"{s}, {li}, {e}] ~ 0")
+                    msg = f"{availability_def} = availability_def[{s}, {li}, {e}] ~ 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
                 # Availability values usually smaller than 1 (default value)
                 if availability_def > 1:
-                    msg = (f"{availability_def} = availability["
-                           f"{s}, {li}, {e}] > 1")
+                    msg = f"{availability_def} = availability[{s}, {li}, {e}] > 1"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_sum_min(self, stages: Stages, ecs: Ecs) -> None:
@@ -828,32 +867,30 @@ class NetworkLinks:
         for (s, li, e, d), sum_min in self._sum_min.items():
             # Unknown stage id
             if s not in stages.ids:
-                msg = (f"Unknown stage {s} in sum_min[{s}, {li}, {e}, "
-                       f"{d.value}]")
-                raise exceptions.DataException(exc_key, [s], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"Unknown stage {s} in sum_min[{s}, {li}, {e}, {d.value}]"
+                raise exceptions.DataException(exc_key, [s], msg, module=LOG_MODULE_STR)
             # Unknown ec id
             if e not in ecs.ids:
-                msg = (f"Unknown ec {e} in sum_min[{s}, {li}, {e}, "
-                       f"{d.value}]")
-                raise exceptions.DataException(exc_key, [e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"Unknown ec {e} in sum_min[{s}, {li}, {e}, {d.value}]"
+                raise exceptions.DataException(exc_key, [e], msg, module=LOG_MODULE_STR)
             # EC not assigned to link
             if e not in self.get_ecs(li):
-                msg = (f"Encountered ec {e} in sum_min[{s}, {li}, {e}, "
-                       f"{d.value}] which is not in ecs[{li}] = "
-                       f"{self.get_ecs(li)}")
+                msg = (
+                    f"Encountered ec {e} in sum_min[{s}, {li}, {e}, "
+                    f"{d.value}] which is not in ecs[{li}] = "
+                    f"{self.get_ecs(li)}"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
             # Backward data for unidirectional link
-            if (d == NetLinkDirection.BACKWARD
-                    and not self.is_bidirectional(li)):
-                msg = (f"sum_min[{s}, {li}, {e}, {d.value}] exists but "
-                       f"{li} is not bidirectional")
+            if d == NetLinkDirection.BACKWARD and not self.is_bidirectional(li):
+                msg = (
+                    f"sum_min[{s}, {li}, {e}, {d.value}] exists but "
+                    f"{li} is not bidirectional"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
             # sum_min usually nonnegative
             if sum_min < 0:
-                msg = (f"{sum_min} = sum_min[{s}, {li}, {e}, "
-                       f"{d.value}] < 0")
+                msg = f"{sum_min} = sum_min[{s}, {li}, {e}, {d.value}] < 0"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_sum_max(self, stages: Stages, ecs: Ecs) -> None:
@@ -861,53 +898,55 @@ class NetworkLinks:
         for (s, li, e, d), sum_max in self._sum_max.items():
             # Unknown stage id
             if s not in stages.ids:
-                msg = (f"Unknown stage {s} in sum_max[{s}, {li}, {e}, "
-                       f"{d.value}]")
-                raise exceptions.DataException(exc_key, [s], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"Unknown stage {s} in sum_max[{s}, {li}, {e}, {d.value}]"
+                raise exceptions.DataException(exc_key, [s], msg, module=LOG_MODULE_STR)
             # Unknown ec id
             if e not in ecs.ids:
-                msg = (f"Unknown ec {e} in sum_max[{s}, {li}, {e}, "
-                       f"{d.value}]")
-                raise exceptions.DataException(exc_key, [e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"Unknown ec {e} in sum_max[{s}, {li}, {e}, {d.value}]"
+                raise exceptions.DataException(exc_key, [e], msg, module=LOG_MODULE_STR)
             # EC not assigned to link
             if e not in self.get_ecs(li):
-                msg = (f"Encountered ec {e} in sum_max[{s}, {li}, {e}, "
-                       f"{d.value}] which is not in ecs[{li}] = "
-                       f"{self.get_ecs(li)}")
+                msg = (
+                    f"Encountered ec {e} in sum_max[{s}, {li}, {e}, "
+                    f"{d.value}] which is not in ecs[{li}] = "
+                    f"{self.get_ecs(li)}"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
             # Backward data for unidirectional link
-            if (d == NetLinkDirection.BACKWARD
-                    and not self.is_bidirectional(li)):
-                msg = (f"sum_max[{s}, {li}, {e}, {d.value}] exists but "
-                       f"{li} is not bidirectional")
+            if d == NetLinkDirection.BACKWARD and not self.is_bidirectional(li):
+                msg = (
+                    f"sum_max[{s}, {li}, {e}, {d.value}] exists but "
+                    f"{li} is not bidirectional"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
             # sum_max must be nonnegative
             if sum_max < 0:
-                msg = (f"{sum_max} = sum_max[{s}, {li}, {e}, "
-                       f"{d.value}] < 0")
-                raise exceptions.DataException(exc_key, [s, li, e], msg,
-                                               module=LOG_MODULE_STR)
+                msg = f"{sum_max} = sum_max[{s}, {li}, {e}, {d.value}] < 0"
+                raise exceptions.DataException(
+                    exc_key, [s, li, e], msg, module=LOG_MODULE_STR
+                )
 
     def _validate_sum_minmax(self) -> None:
-        all_keys = set(self._sum_min.keys()).union(
-            set(self._sum_max.keys()))
-        for (s, li, e, d) in all_keys:
+        all_keys = set(self._sum_min.keys()).union(set(self._sum_max.keys()))
+        for s, li, e, d in all_keys:
             sum_min = self.get_sum_min(s, li, e, d)
             sum_max = self.get_sum_max(s, li, e, d)
             if sum_min > sum_max:
-                msg = (f"{sum_min} = sum_min[{s}, {li}, {e}, "
-                       f"{d.value}] > sum_max[{s}, {li}, {e}, "
-                       f"{d.value}] = {sum_max}")
+                msg = (
+                    f"{sum_min} = sum_min[{s}, {li}, {e}, "
+                    f"{d.value}] > sum_max[{s}, {li}, {e}, "
+                    f"{d.value}] = {sum_max}"
+                )
                 raise exceptions.DataException(
-                    ExceptionKey.SUMMINMAX_VAL.value, [s, li, e], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.SUMMINMAX_VAL.value,
+                    [s, li, e],
+                    msg,
+                    module=LOG_MODULE_STR,
+                )
 
     # ---------- #
     # Id checker #
     # ---------- #
     def _check_id(self, li: NetLinkId, where: ExceptionKey) -> None:
         if li not in self._ids:
-            raise exceptions.UnknownIdException(where.value, li,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, li, module=LOG_MODULE_STR)

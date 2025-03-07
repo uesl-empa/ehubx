@@ -1,13 +1,14 @@
 """
 Time data module
 """
-from typing import Any, Dict, List, Set, Tuple
+
 from enum import Enum
-from ehubx.core import common
-from ehubx.core import logging
-from ehubx.data.index import Index, IndexKind
-from ehubx.data.stage_data import Stages, StageId
+from typing import Dict, List, Set, Tuple
+
+from ehubx.core import common, logging
 from ehubx.data import exceptions
+from ehubx.data.index import Index, IndexKind
+from ehubx.data.stage_data import StageId, Stages
 
 
 # Time index
@@ -27,16 +28,12 @@ class TimeId(Index):
         self._key_int = key_int
         super().__init__(IndexKind.TIME, str(key_int))
 
-    def __lt__(self, other: Any) -> bool:
-        if not isinstance(other, TimeId):
-            raise TypeError()
-        return self._key_int < other.key_as_int
-
 
 class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the time data module
     """
+
     ID_ADD = "adding to 'ids' of Times"
     HORIZONID_ADD = "adding to 'ids' of Times"
     WEIGHT_SET = "setting 'weight' of Times"
@@ -92,8 +89,9 @@ class Times:
         :type t: TimeId
         """
         if t in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value, t,
-                                                  module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, t, module=LOG_MODULE_STR
+            )
         self._ids.add(t)
         self._ids_horizon.add(t)
 
@@ -166,7 +164,23 @@ class Times:
         """
         Whether the time data has been clustered
         """
-        return (self.num_horizon_ts > self.num_ts)
+        return self.num_horizon_ts > self.num_ts
+
+    # -------------------------- #
+    # Property: first_horizon_id #
+    # -------------------------- #
+    @property
+    def first_horizon_id(self) -> TimeId:
+        ids_horizon = sorted(list(self.ids_horizon), key=lambda t: t.key_as_int)
+        return ids_horizon[0]
+
+    # ------------------------- #
+    # Property: last_horizon_id #
+    # ------------------------- #
+    @property
+    def last_horizon_id(self) -> TimeId:
+        ids_horizon = sorted(list(self.ids_horizon), key=lambda t: t.key_as_int)
+        return ids_horizon[-1]
 
     # ---------------- #
     # Property: weight #
@@ -219,10 +233,13 @@ class Times:
         if not self.is_clustered:
             return t_hor
         if (s, t_hor) not in self._cluster_ts:
-            msg = ("Tried to obtain a clustering timestep which does not "
-                   f"exist for the horizon time step {t_hor}")
-            raise exceptions.DataException(ExceptionKey.CLUSTERTS_GET.value,
-                                           [t_hor], msg, module=LOG_MODULE_STR)
+            msg = (
+                "Tried to obtain a clustering timestep which does not "
+                f"exist for the horizon time step {t_hor}"
+            )
+            raise exceptions.DataException(
+                ExceptionKey.CLUSTERTS_GET.value, [t_hor], msg, module=LOG_MODULE_STR
+            )
         return self._cluster_ts[s, t_hor]
 
     def set_cluster_ts(self, s: StageId, t: TimeId, t_hor: TimeId) -> None:
@@ -268,33 +285,33 @@ class Times:
         for (s, t), weight in self._weight.items():
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in weight[{s}, {t}]"
-                raise exceptions.DataException(ExceptionKey.WEIGHT_VAL.value,
-                    [s, t], msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    ExceptionKey.WEIGHT_VAL.value, [s, t], msg, module=LOG_MODULE_STR
+                )
             if weight < 0:
                 msg = f"Negative weight[{s}, {t}] = {weight}"
-                raise exceptions.DataException(ExceptionKey.WEIGHT_VAL.value,
-                    [s, t], msg, module=LOG_MODULE_STR)
+                raise exceptions.DataException(
+                    ExceptionKey.WEIGHT_VAL.value, [s, t], msg, module=LOG_MODULE_STR
+                )
             if weight < common.EPS_ZEROCHECK:
                 msg = f"Quasi-zero weight[{s}, {t}] = {weight}"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_cluster_ts(self, stages: Stages) -> None:
-        for (s, t) in self._cluster_ts:
+        for s, t in self._cluster_ts:
             if s not in stages.ids:
                 msg = f"Unknown stage {s} in cluster_ts[{s}, {t}]"
                 raise exceptions.DataException(
-                    ExceptionKey.CLUSTERTS_VAL.value,
-                    [s, t], msg, module=LOG_MODULE_STR)
+                    ExceptionKey.CLUSTERTS_VAL.value, [s, t], msg, module=LOG_MODULE_STR
+                )
 
     # ----------- #
     # Id checkers #
     # ----------- #
     def _check_id(self, t: TimeId, exc_key: ExceptionKey) -> None:
         if t not in self._ids:
-            raise exceptions.UnknownIdException(exc_key.value, t,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(exc_key.value, t, module=LOG_MODULE_STR)
 
     def _check_horizon_id(self, t: TimeId, where: ExceptionKey) -> None:
         if t not in self._ids_horizon:
-            raise exceptions.UnknownIdException(where.value, t,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, t, module=LOG_MODULE_STR)

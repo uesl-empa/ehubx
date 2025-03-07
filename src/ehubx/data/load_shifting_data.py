@@ -1,25 +1,28 @@
 """
 Load shifting data module
 """
-from typing import Dict, List, Set, Tuple
-from enum import Enum
+
 import itertools
-from ehubx.core.common import TimeSeriesKind, EPS_ZEROCHECK
+from enum import Enum
+from typing import Dict, List, Set, Tuple
+
 from ehubx.core import logging
-from ehubx.data.index import Index, IndexKind
-from ehubx.data.stage_data import Stages, StageId
-from ehubx.data.hub_data import Hubs, HubId
-from ehubx.data.ec_data import Ecs, EcId
-from ehubx.data.demand_data import Demands
-from ehubx.data.time_data import Times, TimeId
-from ehubx.data.time_series import TimeSeries
+from ehubx.core.common import EPS_ZEROCHECK, TimeSeriesKind
 from ehubx.data import exceptions
+from ehubx.data.demand_data import Demands
+from ehubx.data.ec_data import EcId, Ecs
+from ehubx.data.hub_data import HubId, Hubs
+from ehubx.data.index import Index, IndexKind
+from ehubx.data.stage_data import StageId, Stages
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
 
 
 class LoadShiftId(Index):
     """
     Load shift index
     """
+
     def __init__(self, key: str) -> None:
         super().__init__(IndexKind.LOADSHIFT, key)
 
@@ -29,6 +32,7 @@ class ExceptionKey(Enum):
     Key strings for exception messages occuring in the load shifting data
     module
     """
+
     ID_ADD = "adding to 'ids' of LoadShifting"
     ID_REMOVE = "adding from 'ids' of LoadShifting"
     STAGE_ADD = "setting 'stage' of LoadShifting"
@@ -68,18 +72,16 @@ class ExceptionKey(Enum):
     PEAKCOSTBELOW_GET = "getting 'peak_cost_below' from LoadShifting"
     PEAKCOSTBELOW_VAL = "validating 'peak_cost_below' of LoadShifting"
     ENERGYCOSTABOVE_SET = "setting 'energy_cost_above' of LoadShifting"
-    ENERGYCOSTABOVE_DEFSET = "setting default 'energy_cost_above' of " + \
-        "LoadShifting"
+    ENERGYCOSTABOVE_DEFSET = "setting default 'energy_cost_above' of " + "LoadShifting"
     ENERGYCOSTABOVE_GET = "getting 'energy_cost_above' from LoadShifting"
     ENERGYCOSTABOVE_VAL = "validating 'energy_cost_above' of LoadShifting"
     ENERGYCOSTBELOW_SET = "setting 'energy_cost_below' of LoadShifting"
-    ENERGYCOSTBELOW_DEFSET = "setting default 'energy_cost_below' of " + \
-        "LoadShifting"
+    ENERGYCOSTBELOW_DEFSET = "setting default 'energy_cost_below' of " + "LoadShifting"
     ENERGYCOSTBELOW_GET = "getting 'energy_cost_below' from LoadShifting"
     ENERGYCOSTBELOW_VAL = "validating 'energy_cost_below' of LoadShifting"
     ENERGYCOSTABOVEBELOWNONZERO_VAL = (
-        "valdating that not both 'energy_cost_above' and 'energy_cost_below' "
-        "are zero")
+        "valdating that not both 'energy_cost_above' and 'energy_cost_below' are zero"
+    )
     FIXCOST_SET = "setting 'fix_cost' of LoadShifting"
     FIXCOST_DEFSET = "setting default 'fix_cost' of LoadShifting"
     FIXCOST_GET = "getting 'fix_cost' from LoadShifting"
@@ -158,8 +160,9 @@ class LoadShifting:
         :type ls: LoadShiftTechId
         """
         if ls in self._ids:
-            raise exceptions.DuplicateIdException(ExceptionKey.ID_ADD.value,
-                                                  ls, module=LOG_MODULE_STR)
+            raise exceptions.DuplicateIdException(
+                ExceptionKey.ID_ADD.value, ls, module=LOG_MODULE_STR
+            )
         self._ids.add(ls)
 
     # ----------------------------- #
@@ -240,12 +243,11 @@ class LoadShifting:
         self._check_id(ls, ExceptionKey.INTERVALLENGTH_GET)
         if ls not in self._interval_length:
             raise exceptions.MissingIdException(
-                ExceptionKey.INTERVALLENGTH_GET.value, ls,
-                module=LOG_MODULE_STR)
+                ExceptionKey.INTERVALLENGTH_GET.value, ls, module=LOG_MODULE_STR
+            )
         return self._interval_length[ls]
 
-    def set_interval_length(self, ls: LoadShiftId,
-                            interval_length: int) -> None:
+    def set_interval_length(self, ls: LoadShiftId, interval_length: int) -> None:
         """
         Set the parameter 'interval_length' which denotes number of time steps
         that are included on each load shifting interval. This is a mandatory
@@ -281,8 +283,9 @@ class LoadShifting:
             return max_above_abs
         return self._max_above_abs[ls]
 
-    def set_max_above_abs(self, ls: LoadShiftId, t: TimeId,
-                          max_above_abs: float) -> None:
+    def set_max_above_abs(
+        self, ls: LoadShiftId, t: TimeId, max_above_abs: float
+    ) -> None:
         """
         Set the parameter 'max_above_abs' at a specific time which denotes the
         maximal amount of load shifting that can occur above the demand curve.
@@ -301,8 +304,7 @@ class LoadShifting:
             self._max_above_abs[ls].def_value = DEF_MAXABOVEABS
         self._max_above_abs[ls].set_value(t, max_above_abs)
 
-    def set_max_above_abs_def(self, ls: LoadShiftId,
-                              max_above_abs_def: float) -> None:
+    def set_max_above_abs_def(self, ls: LoadShiftId, max_above_abs_def: float) -> None:
         """
         Set the default (with respect to time) value of the parameter
         'max_above_abs' at a specific time which denotes the maximal amount of
@@ -341,8 +343,9 @@ class LoadShifting:
             return max_above_rel
         return self._max_above_rel[ls]
 
-    def set_max_above_rel(self, ls: LoadShiftId, t: TimeId,
-                          max_above_rel: float) -> None:
+    def set_max_above_rel(
+        self, ls: LoadShiftId, t: TimeId, max_above_rel: float
+    ) -> None:
         """
         Set the parameter 'max_above_rel' at a specific time which denotes the
         maximal amount of load shifting that can occur above the demand curve,
@@ -362,8 +365,7 @@ class LoadShifting:
             self._max_above_rel[ls].def_value = DEF_MAXABOVEREL
         self._max_above_rel[ls].set_value(t, max_above_rel)
 
-    def set_max_above_rel_def(self, ls: LoadShiftId,
-                              max_above_rel_def: float) -> None:
+    def set_max_above_rel_def(self, ls: LoadShiftId, max_above_rel_def: float) -> None:
         """
         Set a default (with respect to time) for the parameter 'max_above_rel'
         at a specific time which denotes the maximal amount of load shifting
@@ -401,8 +403,9 @@ class LoadShifting:
             return max_below_abs
         return self._max_below_abs[ls]
 
-    def set_max_below_abs(self, ls: LoadShiftId, t: TimeId,
-                          max_below_abs: float) -> None:
+    def set_max_below_abs(
+        self, ls: LoadShiftId, t: TimeId, max_below_abs: float
+    ) -> None:
         """
         Set the parameter 'max_below_abs' at a specific time which denotes the
         maximal amount of load shifting that can occur below the demand curve.
@@ -421,8 +424,7 @@ class LoadShifting:
             self._max_below_abs[ls].def_value = DEF_MAXBELOWABS
         self._max_below_abs[ls].set_value(t, max_below_abs)
 
-    def set_max_below_abs_def(self, ls: LoadShiftId,
-                              max_below_abs_def: float) -> None:
+    def set_max_below_abs_def(self, ls: LoadShiftId, max_below_abs_def: float) -> None:
         """
         Set the default (with respect to time) value of the parameter
         'max_below_abs' at a specific time which denotes the maximal amount of
@@ -461,8 +463,9 @@ class LoadShifting:
             return max_below_rel
         return self._max_below_rel[ls]
 
-    def set_max_below_rel(self, ls: LoadShiftId, t: TimeId,
-                          max_below_rel: float) -> None:
+    def set_max_below_rel(
+        self, ls: LoadShiftId, t: TimeId, max_below_rel: float
+    ) -> None:
         """
         Set the parameter 'max_below_rel' at a specific time which denotes the
         maximal amount of load shifting that can occur below the demand curve,
@@ -483,8 +486,7 @@ class LoadShifting:
             self._max_below_rel[ls].def_value = DEF_MAXBELOWREL
         self._max_below_rel[ls].set_value(t, max_below_rel)
 
-    def set_max_below_rel_def(self, ls: LoadShiftId,
-                              max_below_rel_def: float) -> None:
+    def set_max_below_rel_def(self, ls: LoadShiftId, max_below_rel_def: float) -> None:
         """
         Set a default (with respect to time) for the parameter 'max_below_rel'
         at a specific time which denotes the maximal amount of load shifting
@@ -553,8 +555,7 @@ class LoadShifting:
         self._check_id(ls, ExceptionKey.PEAKCOSTABOVE_GET)
         return self._peak_cost_above.get(ls, DEF_PEAKCOSTABOVE)
 
-    def set_peak_cost_above(self, ls: LoadShiftId,
-                            peak_cost_above: float) -> None:
+    def set_peak_cost_above(self, ls: LoadShiftId, peak_cost_above: float) -> None:
         """
         Set the parameter 'peak_cost_above' which denotes the cost for the
         largest amount of above-shifts on the entire time horizon.
@@ -585,8 +586,7 @@ class LoadShifting:
         self._check_id(ls, ExceptionKey.PEAKCOSTBELOW_GET)
         return self._peak_cost_below.get(ls, DEF_PEAKCOSTBELOW)
 
-    def set_peak_cost_below(self, ls: LoadShiftId,
-                            peak_cost_below: float) -> None:
+    def set_peak_cost_below(self, ls: LoadShiftId, peak_cost_below: float) -> None:
         """
         Set the parameter 'peak_cost_below' which denotes the cost for the
         largest amount of below-shifts on the entire time horizon.
@@ -621,8 +621,9 @@ class LoadShifting:
             return energy_cost_above
         return self._energy_cost_above[ls]
 
-    def set_energy_cost_above(self, ls: LoadShiftId, t: TimeId,
-                              energy_cost_above: float) -> None:
+    def set_energy_cost_above(
+        self, ls: LoadShiftId, t: TimeId, energy_cost_above: float
+    ) -> None:
         """
         At a specific time, set the parameter 'energy_cost_above' which denotes
         the penalization cost for each energy unit of above-shifting. This is
@@ -641,8 +642,9 @@ class LoadShifting:
             self._energy_cost_above[ls].def_value = DEF_ENERGYCOSTABOVE
         self._energy_cost_above[ls].set_value(t, energy_cost_above)
 
-    def set_energy_cost_above_def(self, ls: LoadShiftId,
-                                  energy_cost_above_def: float) -> None:
+    def set_energy_cost_above_def(
+        self, ls: LoadShiftId, energy_cost_above_def: float
+    ) -> None:
         """
         Set the default (with respect to time) value of the parameter
         'energy_cost_above' which denotes the penalization cost for each energy
@@ -681,8 +683,9 @@ class LoadShifting:
             return energy_cost_below
         return self._energy_cost_below[ls]
 
-    def set_energy_cost_below(self, ls: LoadShiftId, t: TimeId,
-                              energy_cost_below: float) -> None:
+    def set_energy_cost_below(
+        self, ls: LoadShiftId, t: TimeId, energy_cost_below: float
+    ) -> None:
         """
         At a specific time, set the parameter 'energy_cost_below' which denotes
         the penalization cost for each energy unit of below-shifting. This is
@@ -701,8 +704,9 @@ class LoadShifting:
             self._energy_cost_below[ls].def_value = DEF_ENERGYCOSTBELOW
         self._energy_cost_below[ls].set_value(t, energy_cost_below)
 
-    def set_energy_cost_below_def(self, ls: LoadShiftId,
-                                  energy_cost_below_def: float) -> None:
+    def set_energy_cost_below_def(
+        self, ls: LoadShiftId, energy_cost_below_def: float
+    ) -> None:
         """
         Set the default (with respect to time) value of the parameter
         'energy_cost_below' which denotes the penalization cost for each energy
@@ -745,8 +749,7 @@ class LoadShifting:
             return fix_cost
         return self._fix_cost[ls]
 
-    def set_fix_cost(self, ls: LoadShiftId, t: TimeId, fix_cost: float
-                     ) -> None:
+    def set_fix_cost(self, ls: LoadShiftId, t: TimeId, fix_cost: float) -> None:
         """
         At a specific time step, set the parameter 'fix_cost' which denotes
         fixed costs that arise per timestep when any amount of load shifting
@@ -794,8 +797,9 @@ class LoadShifting:
     # Secondary property: time_series #
     # ------------------------------- #
     @property
-    def time_series(self) -> List[Tuple[TimeSeriesKind, StageId,
-                                        Tuple[str, ...], TimeSeries]]:
+    def time_series(
+        self,
+    ) -> List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]]:
         """
         Time series profiles in the load shifting module. This is a list of
         tuples. Each list element has the following list entries: 1)
@@ -809,8 +813,9 @@ class LoadShifting:
         :rtype: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
             TimeSeries]]
         """
-        all_series: List[Tuple[TimeSeriesKind, StageId, Tuple[str, ...],
-                               TimeSeries]] = []
+        all_series: List[
+            Tuple[TimeSeriesKind, StageId, Tuple[str, ...], TimeSeries]
+        ] = []
         # # max_above_abs
         # for ls, series in self._max_above_abs.items():
         #     if series.has_values:
@@ -848,9 +853,14 @@ class LoadShifting:
         #                            (ls.key,), series))
         return all_series
 
-    def set_time_series_val(self, kind: TimeSeriesKind, s: StageId,
-                            ids: Tuple[str, ...], t: TimeId, value: float
-                            ) -> None:
+    def set_time_series_val(
+        self,
+        kind: TimeSeriesKind,
+        s: StageId,
+        ids: Tuple[str, ...],
+        t: TimeId,
+        value: float,
+    ) -> None:
         """
         Set the value for a time series in the load shifting data class. The
         time series should be uniquely identified by the time series kind, the
@@ -894,8 +904,9 @@ class LoadShifting:
     # ---------- #
     # Validation #
     # ---------- #
-    def validate(self, stages: Stages, hubs: Hubs, ecs: Ecs, demands: Demands,
-                 times: Times) -> None:
+    def validate(
+        self, stages: Stages, hubs: Hubs, ecs: Ecs, demands: Demands, times: Times
+    ) -> None:
         """
         Validate all load shifting data in this object. Apart from sense-
         checking parameter in terms of quantity, this includes checking whether
@@ -935,45 +946,57 @@ class LoadShifting:
                 if s not in stages.ids:
                     msg = f"Unknown stage {s} in stages[{ls}]"
                     raise exceptions.DataException(
-                        ExceptionKey.STAGE_VAL.value, [s], msg,
-                        module=LOG_MODULE_STR)
+                        ExceptionKey.STAGE_VAL.value, [s], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_hub(self, hubs: Hubs) -> None:
         for ls, hub_set in self._hubs.items():
             for h in hub_set:
                 if h not in hubs.ids:
                     msg = f"Unknown hub {h} in hubs[{ls}]"
-                    raise exceptions.DataException(ExceptionKey.HUB_VAL.value,
-                        [h], msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        ExceptionKey.HUB_VAL.value, [h], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_ec(self, ecs: Ecs) -> None:
         for ls, ec_set in self._ecs.items():
             for e in ec_set:
                 if e not in ecs.ids:
                     msg = f"Unknown ec {e} in ecs[{ls}]"
-                    raise exceptions.DataException(ExceptionKey.HUB_VAL.value,
-                        [e], msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        ExceptionKey.HUB_VAL.value, [e], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_tuples(self, demands: Demands) -> None:
         for ls in self.ids:
-            for (s, h, e) in self.get_tuples(ls):
+            for s, h, e in self.get_tuples(ls):
                 if (s, h, e) not in demands.tuples:
-                    msg = (f"{ls} contains tuple ({s}, {h}, {e}) which is not "
-                           "a demand tuple")
+                    msg = (
+                        f"{ls} contains tuple ({s}, {h}, {e}) which is not "
+                        "a demand tuple"
+                    )
                     raise exceptions.DataException(
-                        ExceptionKey.TUPLES_GET.value, [s, h, e], msg,
-                        module=LOG_MODULE_STR)
+                        ExceptionKey.TUPLES_GET.value,
+                        [s, h, e],
+                        msg,
+                        module=LOG_MODULE_STR,
+                    )
 
     def _validate_interval_length(self, times: Times) -> None:
         for ls, interval_length in self._interval_length.items():
             if interval_length <= 0:
                 msg = f"{interval_length} = interval_length[{ls}] <= 0"
                 raise exceptions.DataException(
-                    ExceptionKey.INTERVALLENGTH_VAL.value, [ls], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.INTERVALLENGTH_VAL.value,
+                    [ls],
+                    msg,
+                    module=LOG_MODULE_STR,
+                )
             if interval_length > times.num_horizon_ts:
-                msg = (f"interval_length[{ls}] = {interval_length} but time "
-                       f"horizon only has length {times.num_horizon_ts}")
+                msg = (
+                    f"interval_length[{ls}] = {interval_length} but time "
+                    f"horizon only has length {times.num_horizon_ts}"
+                )
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_interval_cap(self) -> None:
@@ -981,8 +1004,8 @@ class LoadShifting:
             if interval_cap < 0:
                 msg = f"{interval_cap} = interval_cap[{ls}] < 0"
                 raise exceptions.DataException(
-                    ExceptionKey.INTERVALCAP_VAL.value, [ls], msg,
-                    module=LOG_MODULE_STR)
+                    ExceptionKey.INTERVALCAP_VAL.value, [ls], msg, module=LOG_MODULE_STR
+                )
             if interval_cap < EPS_ZEROCHECK:
                 msg = f"{interval_cap} = interval_cap[{ls}] ~ 0"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
@@ -996,18 +1019,22 @@ class LoadShifting:
             if max_above_abs.has_values:
                 for t in times.ids:
                     if max_above_abs.get_value(t) < 0:
-                        msg = (f"{max_above_abs.get_value(t)} = max_above_abs"
-                               f"[{ls}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [ls, t],
-                            msg, module=LOG_MODULE_STR)
+                        msg = (
+                            f"{max_above_abs.get_value(t)} = max_above_abs"
+                            f"[{ls}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [ls, t], msg, module=LOG_MODULE_STR
+                        )
             # max_above_abs must be nonnegative (default values)
             if not max_above_abs.has_values:
                 max_above_abs_def = max_above_abs.def_value
                 assert max_above_abs_def is not None
                 if max_above_abs_def < 0:
                     msg = f"{max_above_abs_def} = max_above_abs[{ls}] < 0"
-                    raise exceptions.DataException(exc_key, [ls],
-                                                   msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [ls], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_max_above_rel(self, times: Times) -> None:
         exc_key = ExceptionKey.MAXABOVEREL_VAL.value
@@ -1018,18 +1045,22 @@ class LoadShifting:
             if max_above_rel.has_values:
                 for t in times.ids:
                     if max_above_rel.get_value(t) < 0:
-                        msg = (f"{max_above_rel.get_value(t)} = max_above_rel"
-                               f"[{ls}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [ls, t],
-                            msg, module=LOG_MODULE_STR)
+                        msg = (
+                            f"{max_above_rel.get_value(t)} = max_above_rel"
+                            f"[{ls}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [ls, t], msg, module=LOG_MODULE_STR
+                        )
             # max_above_rel must be nonnegative (default values)
             if not max_above_rel.has_values:
                 max_above_rel_def = max_above_rel.def_value
                 assert max_above_rel_def is not None
                 if max_above_rel_def < 0:
                     msg = f"{max_above_rel_def} = max_above_rel[{ls}] < 0"
-                    raise exceptions.DataException(exc_key, [ls],
-                                                   msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [ls], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_max_below_abs(self, times: Times) -> None:
         exc_key = ExceptionKey.MAXBELOWABS_VAL.value
@@ -1040,18 +1071,22 @@ class LoadShifting:
             if max_below_abs.has_values:
                 for t in times.ids:
                     if max_below_abs.get_value(t) < 0:
-                        msg = (f"{max_below_abs.get_value(t)} = max_below_abs"
-                               f"[{ls}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [ls, t],
-                            msg, module=LOG_MODULE_STR)
+                        msg = (
+                            f"{max_below_abs.get_value(t)} = max_below_abs"
+                            f"[{ls}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [ls, t], msg, module=LOG_MODULE_STR
+                        )
             # max_below_abs must be nonnegative (default values)
             if not max_below_abs.has_values:
                 max_below_abs_def = max_below_abs.def_value
                 assert max_below_abs_def is not None
                 if max_below_abs_def < 0:
                     msg = f"{max_below_abs_def} = max_below_abs[{ls}] < 0"
-                    raise exceptions.DataException(exc_key, [ls],
-                                                   msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [ls], msg, module=LOG_MODULE_STR
+                    )
 
     def _validate_max_below_rel(self, times: Times) -> None:
         # self.set_max_below_rel(LoadShiftId("ls1"), TimeId(2), 1.5)
@@ -1064,15 +1099,20 @@ class LoadShifting:
                 # max_below_rel must be nonnegative (time values)
                 for t in times.ids:
                     if max_below_rel.get_value(t) < 0:
-                        msg = (f"{max_below_rel.get_value(t)} = max_below_rel"
-                               f"[{ls}][{t}] < 0")
-                        raise exceptions.DataException(exc_key, [ls, t],
-                            msg, module=LOG_MODULE_STR)
+                        msg = (
+                            f"{max_below_rel.get_value(t)} = max_below_rel"
+                            f"[{ls}][{t}] < 0"
+                        )
+                        raise exceptions.DataException(
+                            exc_key, [ls, t], msg, module=LOG_MODULE_STR
+                        )
                 # max_below_rel usually not larger than one (time values)
                 for t in times.ids:
                     if max_below_rel.get_value(t) > 1:
-                        msg = (f"{max_below_rel.get_value(t)} = max_below_rel"
-                               f"[{ls}][{t}] > 1")
+                        msg = (
+                            f"{max_below_rel.get_value(t)} = max_below_rel"
+                            f"[{ls}][{t}] > 1"
+                        )
                         logging.log_warning(msg, LOG_MODULE_STR)
                         break
             # Default values
@@ -1082,8 +1122,9 @@ class LoadShifting:
                 assert max_below_rel_def is not None
                 if max_below_rel_def < 0:
                     msg = f"{max_below_rel_def} = max_below_rel[{ls}] < 0"
-                    raise exceptions.DataException(exc_key, [ls],
-                                                   msg, module=LOG_MODULE_STR)
+                    raise exceptions.DataException(
+                        exc_key, [ls], msg, module=LOG_MODULE_STR
+                    )
                 # max_below_rel usually not larger than one (default values)
                 if max_below_rel_def > 1:
                     msg = f"{max_below_rel_def} = max_below_rel[{ls}] > 1"
@@ -1113,8 +1154,10 @@ class LoadShifting:
             if energy_cost_above.has_values:
                 for t in times.ids:
                     if energy_cost_above.get_value(t) < 0:
-                        msg = (f"{energy_cost_above.get_value(t)} = "
-                               f"energy_cost_above[{ls}][{t}] < 0")
+                        msg = (
+                            f"{energy_cost_above.get_value(t)} = "
+                            f"energy_cost_above[{ls}][{t}] < 0"
+                        )
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # energy_cost_above usually nonnegative (default values)
@@ -1122,8 +1165,7 @@ class LoadShifting:
                 energy_cost_above_def = energy_cost_above.def_value
                 assert energy_cost_above_def is not None
                 if energy_cost_above_def < 0:
-                    msg = (f"{energy_cost_above_def} = "
-                           f"energy_cost_above[{ls}] < 0")
+                    msg = f"{energy_cost_above_def} = energy_cost_above[{ls}] < 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_energy_cost_below(self, times: Times) -> None:
@@ -1135,8 +1177,10 @@ class LoadShifting:
             if energy_cost_below.has_values:
                 for t in times.ids:
                     if energy_cost_below.get_value(t) < 0:
-                        msg = (f"{energy_cost_below.get_value(t)} = "
-                               f"energy_cost_below[{ls}][{t}] < 0")
+                        msg = (
+                            f"{energy_cost_below.get_value(t)} = "
+                            f"energy_cost_below[{ls}][{t}] < 0"
+                        )
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # energy_cost_below usually nonnegative (default values)
@@ -1144,28 +1188,30 @@ class LoadShifting:
                 energy_cost_below_def = energy_cost_below.def_value
                 assert energy_cost_below_def is not None
                 if energy_cost_below_def < 0:
-                    msg = (f"{energy_cost_below_def} = "
-                           f"energy_cost_below[{ls}] < 0")
+                    msg = f"{energy_cost_below_def} = energy_cost_below[{ls}] < 0"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_energy_cost_abovebelow_nonzero(self) -> None:
         for ls in self.ids:
             energy_cost_above = self.get_energy_cost_above(ls)
             energy_cost_below = self.get_energy_cost_below(ls)
-            if (not energy_cost_above.has_values
-                    and not energy_cost_below.has_values):
+            if not energy_cost_above.has_values and not energy_cost_below.has_values:
                 energy_cost_above_def = energy_cost_above.def_value
                 energy_cost_below_def = energy_cost_below.def_value
                 assert energy_cost_above_def is not None
                 assert energy_cost_below_def is not None
-                if (abs(energy_cost_above_def) < EPS_ZEROCHECK
-                        and abs(energy_cost_below_def) < EPS_ZEROCHECK):
-                    msg = (f"{abs(energy_cost_above_def)} = "
-                           f"|energy_cost_above[{ls}]| ~ 0 and "
-                           f"{abs(energy_cost_below_def)} = "
-                           f"|energy_cost_below[{ls}]| ~ 0. This might lead "
-                           "to non-unique solutions in V_LoadShiftAbove and "
-                           "V_LoadShiftBelow")
+                if (
+                    abs(energy_cost_above_def) < EPS_ZEROCHECK
+                    and abs(energy_cost_below_def) < EPS_ZEROCHECK
+                ):
+                    msg = (
+                        f"{abs(energy_cost_above_def)} = "
+                        f"|energy_cost_above[{ls}]| ~ 0 and "
+                        f"{abs(energy_cost_below_def)} = "
+                        f"|energy_cost_below[{ls}]| ~ 0. This might lead "
+                        "to non-unique solutions in V_LoadShiftAbove and "
+                        "V_LoadShiftBelow"
+                    )
                     logging.log_file_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_fix_cost(self, times: Times) -> None:
@@ -1177,8 +1223,7 @@ class LoadShifting:
             if fix_cost.has_values:
                 for t in times.ids:
                     if fix_cost.get_value(t) < 0:
-                        msg = (f"{fix_cost.get_value(t)} = "
-                               f"fix_cost[{ls}][{t}] < 0")
+                        msg = f"{fix_cost.get_value(t)} = fix_cost[{ls}][{t}] < 0"
                         logging.log_warning(msg, module=LOG_MODULE_STR)
                         break
             # fix_cost usually nonnegative (default values)
@@ -1194,5 +1239,4 @@ class LoadShifting:
     # ---------- #
     def _check_id(self, ls: LoadShiftId, where: ExceptionKey) -> None:
         if ls not in self._ids:
-            raise exceptions.UnknownIdException(where.value, ls,
-                                                module=LOG_MODULE_STR)
+            raise exceptions.UnknownIdException(where.value, ls, module=LOG_MODULE_STR)

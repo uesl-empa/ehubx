@@ -1,6 +1,11 @@
 Changelog
 ==========
 
+**2.1.6** (06.03.2025)
+------------------------
+
+Completely integrated the ATES technology submodule
+
 **2.1.5** (14.02.2025)
 ------------------------
 

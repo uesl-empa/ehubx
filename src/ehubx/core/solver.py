@@ -2,17 +2,23 @@
 Solver module. Provides a variety of functionality to choose and customize a
 third-party solver.
 """
+
 import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Set
-from pyomo.core import Model
-from pyomo.common.errors import ApplicationError
-from pyomo.opt import SolverFactory, SolverManagerFactory, SolverStatus, \
-    TerminationCondition
+
 import gurobipy as grb
-from ehubx.core import common
-from ehubx.core import logging
-from ehubx.core import exceptions
+from pyomo.common.errors import ApplicationError
+from pyomo.core import Model
+from pyomo.opt import (
+    SolverFactory,
+    SolverManagerFactory,
+    SolverStatus,
+    TerminationCondition,
+)
+
+from ehubx.core import common, exceptions, logging
+
 
 # -------- #
 # Literals #
@@ -72,8 +78,7 @@ class Solver(ABC):
         :return: Pyomo result dictionary
         :rtype: Any
         """
-        raise NotImplementedError("Solve not implemented for "
-                                  "abstract solver class")
+        raise NotImplementedError("Solve not implemented for abstract solver class")
 
     # ------- #
     # Options #
@@ -84,6 +89,16 @@ class Solver(ABC):
         Options structure tailoring solver behavior
         """
         return self._options
+
+    def set_option_by_key(self, key: str, value: Any) -> None:
+        """
+        Sets a solver option with a specific key
+        """
+        self._options[key] = value
+        # Logging
+        logging.log(
+            f"Set solver option with key '{key}' to {value}", module=LOG_MODULE_STR
+        )
 
     # ----------- #
     # Log results #
@@ -101,35 +116,45 @@ class Solver(ABC):
         # Optimal solution found
         if self.opt_was_found(results):
             logging.log(
-                "Optimal solution found. Elapsed time: "
-                f"{elapsed_seconds}s", module=LOG_MODULE_STR)
+                f"Optimal solution found. Elapsed time: {elapsed_seconds}s",
+                module=LOG_MODULE_STR,
+            )
         # Optimal solution not found
         if not self.opt_was_found(results):
-            msg = ("Optimal solution not found. Elapsed time: "
-                   f"{elapsed_seconds}s. Solver status: "
-                   f"{results.solver.status}. ")
+            msg = (
+                "Optimal solution not found. Elapsed time: "
+                f"{elapsed_seconds}s. Solver status: "
+                f"{results.solver.status}. "
+            )
             # Termination condition
             msg += "Termination condition: "
-            if (results.solver.termination_condition
-                    == TerminationCondition.error):
+            if results.solver.termination_condition == TerminationCondition.error:
                 msg += "Error"
-            elif (results.solver.termination_condition
-                    == TerminationCondition.feasible):
+            elif results.solver.termination_condition == TerminationCondition.feasible:
                 msg += "Feasible solution found"
-            elif (results.solver.termination_condition
-                    == TerminationCondition.infeasible):
+            elif (
+                results.solver.termination_condition == TerminationCondition.infeasible
+            ):
                 msg += "Problem infeasible"
-            elif (results.solver.termination_condition
-                    == TerminationCondition.infeasibleOrUnbounded):
-                msg += ("Problem infeasible or unbounded")
-            elif (results.solver.termination_condition
-                    == TerminationCondition.licensingProblems):
+            elif (
+                results.solver.termination_condition
+                == TerminationCondition.infeasibleOrUnbounded
+            ):
+                msg += "Problem infeasible or unbounded"
+            elif (
+                results.solver.termination_condition
+                == TerminationCondition.licensingProblems
+            ):
                 msg += "Licensing issue"
-            elif (results.solver.termination_condition
-                    == TerminationCondition.internalSolverError):
+            elif (
+                results.solver.termination_condition
+                == TerminationCondition.internalSolverError
+            ):
                 msg += "Internal solver error"
-            elif (results.solver.termination_condition
-                    == TerminationCondition.maxTimeLimit):
+            elif (
+                results.solver.termination_condition
+                == TerminationCondition.maxTimeLimit
+            ):
                 msg += "Time limit reached"
             else:
                 msg += f"{results.solver.termination_condition}"
@@ -148,8 +173,9 @@ class Solver(ABC):
         :param results: Pyomo results dictionary obtained from the solve method
         :type results: Any
         """
-        raise NotImplementedError(("Postprocess not implemented for "
-                                   "abstract solver class"))
+        raise NotImplementedError(
+            ("Postprocess not implemented for abstract solver class")
+        )
 
     # --------------------------- #
     # Check if solution was found #
@@ -164,9 +190,10 @@ class Solver(ABC):
         :return: Whether or not an optimal solution was found
         :rtype: bool
         """
-        opt_found = (results.solver.status == SolverStatus.ok)
-        opt_found &= (results.solver.termination_condition
-                      == TerminationCondition.optimal)
+        opt_found = results.solver.status == SolverStatus.ok
+        opt_found &= (
+            results.solver.termination_condition == TerminationCondition.optimal
+        )
         return opt_found
 
     # ------------ #
@@ -225,7 +252,9 @@ class Gurobi(Solver):
                 "Something went during the solving process, either on the "
                 "Pyomo side or with the equipped solver itself. Check the "
                 "third-party log messages in the console above for more "
-                "details", module=LOG_MODULE_STR) from exc
+                "details",
+                module=LOG_MODULE_STR,
+            ) from exc
 
     # -------------- #
     # Option setters #
@@ -241,8 +270,12 @@ class Gurobi(Solver):
         par_dir = os.path.abspath(os.path.join(log_file, os.pardir))
         if not os.path.isdir(par_dir):
             raise exceptions.EhubXException(
-                (f"Cannot set Gurobi log file path to {log_file} because "
-                 "parent directory does not exist"), module=LOG_MODULE_STR)
+                (
+                    f"Cannot set Gurobi log file path to {log_file} because "
+                    "parent directory does not exist"
+                ),
+                module=LOG_MODULE_STR,
+            )
         # Set option
         self._options[OPTKEY_LOGFILE] = log_file
         # Logging
@@ -259,18 +292,19 @@ class Gurobi(Solver):
         """
         # mip_gap must not be negative
         if mip_gap < 0:
-            raise exceptions.EhubXException(f"{mip_gap} = mip_gap < 0",
-                                            module=LOG_MODULE_STR)
+            raise exceptions.EhubXException(
+                f"{mip_gap} = mip_gap < 0", module=LOG_MODULE_STR
+            )
         # MIP gap usually not larger than 1
         if mip_gap > 1:
-            logging.log_warning(f"{mip_gap} = mip_gap > 1",
-                                module=LOG_MODULE_STR)
+            logging.log_warning(f"{mip_gap} = mip_gap > 1", module=LOG_MODULE_STR)
         # Set option
         self._options[OPTKEY_MIPGAP] = mip_gap
         # Logging
-        logging.log("Set MIP gap (objective optimality tolerance) to "
-                    f"{mip_gap}",
-                    module=LOG_MODULE_STR)
+        logging.log(
+            f"Set MIP gap (objective optimality tolerance) to {mip_gap}",
+            module=LOG_MODULE_STR,
+        )
 
     def set_mip_focus(self, mip_focus: int) -> None:
         """
@@ -285,8 +319,8 @@ class Gurobi(Solver):
         valid_set: Set[int] = {0, 1, 2, 3}
         if mip_focus not in valid_set:
             raise exceptions.EhubXException(
-                f"{mip_focus} = mip_focus not in {valid_set}",
-                module=LOG_MODULE_STR)
+                f"{mip_focus} = mip_focus not in {valid_set}", module=LOG_MODULE_STR
+            )
         # Set option
         self._options[OPTKEY_MIPFOCUS] = mip_focus
         # Logging
@@ -313,14 +347,16 @@ class Gurobi(Solver):
         # no_rel_heur_work must be nonnegative
         if no_rel_heur_work < 0:
             raise exceptions.EhubXException(
-                f"{no_rel_heur_work} = no_rel_heur_work < 0",
-                module=LOG_MODULE_STR)
+                f"{no_rel_heur_work} = no_rel_heur_work < 0", module=LOG_MODULE_STR
+            )
         # Set option
         self._options[OPTKEY_NORELHEURWORK] = no_rel_heur_work
         # Logging
-        logging.log("Set no_rel_heur_work (maximum amount of work spent in "
-                    f"the NoRel heuristic) to {no_rel_heur_work}",
-                    module=LOG_MODULE_STR)
+        logging.log(
+            "Set no_rel_heur_work (maximum amount of work spent in "
+            f"the NoRel heuristic) to {no_rel_heur_work}",
+            module=LOG_MODULE_STR,
+        )
 
     def set_numeric_focus(self, numeric_focus: int) -> None:
         """
@@ -337,7 +373,8 @@ class Gurobi(Solver):
         if numeric_focus not in valid_set:
             raise exceptions.EhubXException(
                 f"{numeric_focus} = numeric_focus not in {valid_set}",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         # Set option
         self._options[OPTKEY_NUMERICFOCUS] = numeric_focus
         # Logging
@@ -382,8 +419,8 @@ class Gurobi(Solver):
         valid_set: Set[int] = {-1, 0, 1, 2}
         if presolve not in valid_set:
             raise exceptions.EhubXException(
-                f"{presolve} = presolve not in {valid_set}",
-                module=LOG_MODULE_STR)
+                f"{presolve} = presolve not in {valid_set}", module=LOG_MODULE_STR
+            )
         # Set option
         self._options[OPTKEY_PRESOLVE] = presolve
         # Logging
@@ -410,8 +447,8 @@ class Gurobi(Solver):
         valid_set: Set[int] = {-1, 0, 1, 2, 3}
         if scale_flag not in valid_set:
             raise exceptions.EhubXException(
-                f"{scale_flag} = scale_flag not in {valid_set}",
-                module=LOG_MODULE_STR)
+                f"{scale_flag} = scale_flag not in {valid_set}", module=LOG_MODULE_STR
+            )
         # Set option
         self._options[OPTKEY_SCALEFLAG] = scale_flag
         # Logging
@@ -439,7 +476,8 @@ class Gurobi(Solver):
         if sub_mip_cuts not in valid_set:
             raise exceptions.EhubXException(
                 f"{sub_mip_cuts} = sub_mip_cuts not in {valid_set}",
-                module=LOG_MODULE_STR)
+                module=LOG_MODULE_STR,
+            )
         # Set option
         self._options[OPTKEY_SUBMIPCUTS] = sub_mip_cuts
         # Logging
@@ -464,15 +502,17 @@ class Gurobi(Solver):
         """
         # threads must be nonnegative
         if threads < 0:
-            raise exceptions.EhubXException(f"{threads} = threads < 0",
-                                            module=LOG_MODULE_STR)
+            raise exceptions.EhubXException(
+                f"{threads} = threads < 0", module=LOG_MODULE_STR
+            )
         # threads must not be larger than the number of virtual processors
         cpu_count = os.cpu_count()
         if cpu_count is not None:
             if threads > cpu_count:
                 raise exceptions.EhubXException(
                     f"{threads} = threads > cpu_count = {os.cpu_count()}",
-                    module=LOG_MODULE_STR)
+                    module=LOG_MODULE_STR,
+                )
         # Set option
         self._options[OPTKEY_THREADS] = threads
         # Logging
@@ -488,8 +528,9 @@ class Gurobi(Solver):
         """
         # time limit must be nonnegative
         if time_limit < 0:
-            raise exceptions.EhubXException(f"{time_limit} = time_limit < 0",
-                                            module=LOG_MODULE_STR)
+            raise exceptions.EhubXException(
+                f"{time_limit} = time_limit < 0", module=LOG_MODULE_STR
+            )
         # Set option
         self._options[OPTKEY_TIMELIMIT] = time_limit
         # Logging
@@ -515,12 +556,17 @@ class Gurobi(Solver):
         for key, value in kwargs.items():
             if key == "iis_path":
                 iis_path = value
-        if (results.solver.termination_condition
-                == TerminationCondition.infeasibleOrUnbounded):
+        if (
+            results.solver.termination_condition
+            == TerminationCondition.infeasibleOrUnbounded
+        ):
             if iis_path is None:
                 logging.log(
-                    ("Skipping IIS computation because keyword argument "
-                    "'iis_path' was not passed to postprocess routine"))
+                    (
+                        "Skipping IIS computation because keyword argument "
+                        "'iis_path' was not passed to postprocess routine"
+                    )
+                )
             if iis_path is not None:
                 self._calc_iis(model, iis_path)
 
@@ -528,20 +574,22 @@ class Gurobi(Solver):
     # Irreducible infeasible system (IIS) #
     # ----------------------------------- #
     def _calc_iis(self, model: Model, iis_dir: str) -> None:
-        logging.log("Start computing Irreducible infeasible system (IIS)",
-                    module=LOG_MODULE_STR)
+        logging.log(
+            "Start computing Irreducible infeasible system (IIS)", module=LOG_MODULE_STR
+        )
         # Files and directories
-        if not os.path.isdir(os.path.abspath(
-                os.path.join(iis_dir, os.pardir))):
+        if not os.path.isdir(os.path.abspath(os.path.join(iis_dir, os.pardir))):
             raise exceptions.EhubXException(
-                ("Could not calculate iis because parent directory of "
-                 f"{iis_dir} does not exist"), module=LOG_MODULE_STR)
+                (
+                    "Could not calculate iis because parent directory of "
+                    f"{iis_dir} does not exist"
+                ),
+                module=LOG_MODULE_STR,
+            )
         if not os.path.isdir(iis_dir):
             os.mkdir(iis_dir)
-            logging.log(f"Created IIS directory at {iis_dir}",
-                        module=LOG_MODULE_STR)
-        iis_path_ilp = common.get_iterable_filename(os.path.join(iis_dir,
-                                                                 "iis.ilp"))
+            logging.log(f"Created IIS directory at {iis_dir}", module=LOG_MODULE_STR)
+        iis_path_ilp = common.get_iterable_filename(os.path.join(iis_dir, "iis.ilp"))
         iis_path_mps = iis_path_ilp.replace(".ilp", ".mps")
         # Writing out infeasible model to .mps
         logging.pause_console_log()
@@ -552,11 +600,11 @@ class Gurobi(Solver):
         logging.resume_console_log()
         # Remove temporary file and write out IIS system
         os.remove(iis_path_mps)
-        logging.log("Finished computing IIS. Writing to file ...",
-                    module=LOG_MODULE_STR)
+        logging.log(
+            "Finished computing IIS. Writing to file ...", module=LOG_MODULE_STR
+        )
         grb_model.write(iis_path_ilp)
-        logging.log(f"IIS written to {iis_path_ilp}",
-                    module=LOG_MODULE_STR)
+        logging.log(f"IIS written to {iis_path_ilp}", module=LOG_MODULE_STR)
 
 
 class Glpk(Solver):
@@ -580,8 +628,9 @@ class Glpk(Solver):
         for key, value in self.options.items():
             solver_factory.options[key] = value
         solver_manager = SolverManagerFactory("serial")
-        result = solver_manager.solve(model, opt=solver_factory, tee=True,
-                                      timelimit=None)
+        result = solver_manager.solve(
+            model, opt=solver_factory, tee=True, timelimit=None
+        )
         return result
 
     # ----------- #

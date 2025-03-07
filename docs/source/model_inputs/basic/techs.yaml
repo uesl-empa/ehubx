@@ -77,19 +77,20 @@ techs:
     curtail_max_rel: 1
 
 - tech_id: X5
-  type: ebm
+  type: ates
   tech_params:
     lifetime: 30
-  ebm_params:
-    ec: E3
-    in_eff: 0.99
-    out_eff: 0.98
-    soc_min: 0.15
-    soc_max: 0.85
-    storage_cap: 10
-    charge_max: 2
-    discharge_max: 3
-    v2g_discharge_controllability: 0.9
+  ates_params:
+    ecs:
+      elec: E1
+      heat: E2
+      cool: E3
+    density_fluid: 1
+    specific_heat_capacity_fluid: 4.2
+    well_radius: 0.5
+    well_pair_area_calc_method: smallest rectangle
+    elec_per_flow_heat: 0.01
+    elec_per_flow_cool: 0.02
 
 - tech_id: X6
   tech_params:
@@ -126,4 +127,3 @@ techs:
     charge_max: 45
     discharge_max: 40
     discharge_controllability: 0.8
-

@@ -1,13 +1,12 @@
 [tool.poetry]
 name = "ehubx"
-version = "2.1.5"
-description = "library with base functionality for energy hub modelling wiht   pyomo"
-authors = ["Dennis Beermann <dennis.beermann@empa.ch>", "Fierz Leonie"]
+version = "2.1.6"
+description = "A platform for modeling and optimizing energy systems based on the energy hub concept"
+authors = ["Dennis Beermann <dennis.beermann@empa.ch>", "Fierz Leonie", "TODO"]
 classifiers=['Development Status :: Development',
     'Intended Audience :: Developers',
-    'License :: OSI Approved :: GNU Affero General Public License v3 (AGPLv3)',
     'Natural Language :: English',
-    'Programming Language :: Python :: 3.8'
+    'Programming Language :: Python :: 3.11'
 ]
 
 packages = [
@@ -20,27 +19,43 @@ numpy = "^1.26"
 pandas = "^2.2"
 Pyomo = "^6.8"
 matplotlib = "^3.9"
-PyYAML = "^6.0"
-types-PyYAML = "^6.0"
 tsam = "^2.0"
 gurobipy = "11.0"
+pyyaml = "^6.0.2"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
 pytest-cov = "^5.0"
 pytest-html = "^4.1"
-flake8 = "^7.0"
 sphinx = "^7.4"
 sphinx_rtd_theme = "^2.0"
 MyPy = "^1.11"
-licenseheaders = "^0.8.8"
+ruff = "^0.9.9"
+pre-commit = "^4.1.0"
+types-pyyaml = "^6.0.12.20241230"
 
 [build-system]
 requires = ["poetry>=1.6.1"]
 build-backend = "poetry.masonry.api"
 
-[tool.black]
-  line-length = 180
-  include = '\.pyi?$'
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length=88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["C901"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ehubx"]
+lines-after-imports = 2
+
+[tool.ruff.format]
+docstring-code-format = true
+quote-style = "double"
+
+[tool.mypy]
+ignore_missing_imports = true

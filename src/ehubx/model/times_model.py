@@ -1,8 +1,12 @@
 """Time submodel"""
-from pyomo.core import Model, Set
+
 from datetime import datetime
+
+from pyomo.core import Model, Set
+
 from ehubx.core import logging
 from ehubx.data.time_data import Times
+
 
 # -------- #
 # Literals #
@@ -32,15 +36,14 @@ def build(model: Model, times: Times) -> None:
     # [SET] Times
     time_ids = [t.key_as_int for t in times.ids]
     time_ids.sort()
-    setattr(model, SET_TIME,
-            Set(initialize=time_ids))
+    setattr(model, SET_TIME, Set(initialize=time_ids))
     # [SET] Horizon times
     time_horizon_ids = [t.key_as_int for t in times.ids_horizon]
     time_horizon_ids.sort()
-    setattr(model, SET_TIMEHORIZON,
-            Set(initialize=time_horizon_ids))
+    setattr(model, SET_TIMEHORIZON, Set(initialize=time_horizon_ids))
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
-        "Built times module. Elapsed time: "
-        f"{int(elapsed.total_seconds())}s", module=LOG_MODULE_STR)
+        f"Built times module. Elapsed time: {int(elapsed.total_seconds())}s",
+        module=LOG_MODULE_STR,
+    )

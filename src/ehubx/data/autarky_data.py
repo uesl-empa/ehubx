@@ -1,12 +1,14 @@
 """
 Autarky data module
 """
+
 from enum import Enum
+
 from ehubx.core import logging
-from ehubx.data.ec_data import Ecs, ImpExpType
-from ehubx.data.import_data import Imports
-from ehubx.data.export_data import Exports
 from ehubx.data import exceptions
+from ehubx.data.ec_data import Ecs, ImpExpType
+from ehubx.data.export_data import Exports
+from ehubx.data.import_data import Imports
 
 
 class AutarkyCalculationMethod(Enum):
@@ -29,10 +31,10 @@ class ExceptionKey(Enum):
     """
     Key strings for exception messages occuring in the autarky data module
     """
+
     AUTARKYMIN_VAL = "validating 'autarky_min' of Autarky"
     AUTARKYMAX_VAL = "validating 'autarky_max' of Autarky"
-    AUTARKYMINMAX_VAL = ("validating 'autarky_min' against 'autarky_max' of "
-                         "Autarky")
+    AUTARKYMINMAX_VAL = "validating 'autarky_min' against 'autarky_max' of Autarky"
 
 
 # -------- #
@@ -53,11 +55,10 @@ class Autarky:
     Class to hold autarky data
     """
 
-    # ------------------------- #
-    # Property: include_autarky #
-    # ------------------------- #
-    calculation_method: AutarkyCalculationMethod = \
-        AutarkyCalculationMethod.NONE
+    # ---------------------------- #
+    # Property: calculation_method #
+    # ---------------------------- #
+    calculation_method: AutarkyCalculationMethod = AutarkyCalculationMethod.NONE
     """How the autarky module is calculated"""
 
     # --------------------- #
@@ -87,36 +88,39 @@ class Autarky:
         # autarky_min must not be larger than one
         if self.autarky_min > 1:
             msg = f"{self.autarky_min} = autarky_min > 1"
-            raise exceptions.DataException(ExceptionKey.AUTARKYMIN_VAL.value,
-                                           [], msg, module=LOG_MODULE_STR)
+            raise exceptions.DataException(
+                ExceptionKey.AUTARKYMIN_VAL.value, [], msg, module=LOG_MODULE_STR
+            )
         # autarky_max must not be smaller than zero
         if self.autarky_max < 0:
             msg = f"{self.autarky_max} = autarky_max < 0"
-            raise exceptions.DataException(ExceptionKey.AUTARKYMAX_VAL.value,
-                                           [], msg, module=LOG_MODULE_STR)
+            raise exceptions.DataException(
+                ExceptionKey.AUTARKYMAX_VAL.value, [], msg, module=LOG_MODULE_STR
+            )
         # autarky_max usually not larger than one
         if self.autarky_max > 1:
             msg = f"{self.autarky_max} = autarky_max > 1"
             logging.log_warning(msg, module=LOG_MODULE_STR)
         # autarky_min must not be larger than autarky_max
         if self.autarky_min > self.autarky_max:
-            msg = (f"{self.autarky_min} = autarky_min < "
-                   f"autarky_max = {self.autarky_max}")
+            msg = f"{self.autarky_min} = autarky_min < autarky_max = {self.autarky_max}"
             raise exceptions.DataException(
-                ExceptionKey.AUTARKYMINMAX_VAL.value, [], msg,
-                module=LOG_MODULE_STR)
+                ExceptionKey.AUTARKYMINMAX_VAL.value, [], msg, module=LOG_MODULE_STR
+            )
 
-    def _validate_export_nonexistence(self, ecs: Ecs, imports: Imports,
-                                      exports: Exports) -> None:
-        for (s, h, e) in exports.tuples:
-            if (ecs.is_energy(e)
-                    and ecs.get_imp_exp_type(e) == ImpExpType.CROSS):
+    def _validate_export_nonexistence(
+        self, ecs: Ecs, imports: Imports, exports: Exports
+    ) -> None:
+        for s, h, e in exports.tuples:
+            if ecs.is_energy(e) and ecs.get_imp_exp_type(e) == ImpExpType.CROSS:
                 if (s, h, e) in imports.tuples:
-                    msg = (f"Detected that ec {e} is of import-export-type "
-                           "'cross' and has 'is_energy'=True. Furthermore, it "
-                           f"can be both imported and exported in stage {s} "
-                           f"and hub {h}. This will most likely lead to "
-                           "unrealistic system behavior if autarky is chosen "
-                           "as an objective. If that is the case, consider "
-                           "removing this ec from the exports.")
+                    msg = (
+                        f"Detected that ec {e} is of import-export-type "
+                        "'cross' and has 'is_energy'=True. Furthermore, it "
+                        f"can be both imported and exported in stage {s} "
+                        f"and hub {h}. This will most likely lead to "
+                        "unrealistic system behavior if autarky is chosen "
+                        "as an objective. If that is the case, consider "
+                        "removing this ec from the exports."
+                    )
                     logging.log_file_warning(msg, module=LOG_MODULE_STR)

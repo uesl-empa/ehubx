@@ -1,8 +1,10 @@
 import os
 from typing import Optional, Tuple
+
 from ehubx.core import logging
-from ehubx.data.stage_data import Stages, StageId
+from ehubx.data.stage_data import StageId, Stages
 from ehubx.parser import yaml_parser
+
 
 # YAML keys
 YAMLKEY_STAGES = "stages"
@@ -24,7 +26,7 @@ def parse(basic_subpath: str) -> Tuple[Stages, Optional[yaml_parser.YamlNode]]:
     if not os.path.isfile(stage_file_path):
         return stages, None
     stage_root_node = yaml_parser.parse(stage_file_path)
-    if stage_root_node is None:     # Empty stages file
+    if stage_root_node is None:  # Empty stages file
         return stages, stage_root_node
     stages_node = stage_root_node[YAMLKEY_STAGES]
     if stages_node is None:
@@ -41,34 +43,38 @@ def parse(basic_subpath: str) -> Tuple[Stages, Optional[yaml_parser.YamlNode]]:
 def _parse_stage(stage_node: yaml_parser.YamlDictNode, stages: Stages) -> None:
     # id
     stage_id_str = yaml_parser.parse_mandatory_str_value_from_dict_node(
-        stage_node, YAMLKEY_STAGEID)
+        stage_node, YAMLKEY_STAGEID
+    )
     stage_id = StageId(stage_id_str)
     stages.add_id(stage_id)
     # start_year
     start_year = yaml_parser.parse_mandatory_int_value_from_dict_node(
-        stage_node, YAMLKEY_STARTYEAR)
+        stage_node, YAMLKEY_STARTYEAR
+    )
     stages.set_start_year(stage_id, start_year)
     # co2_price
     co2_price = yaml_parser.parse_optional_float_value_from_dict_node(
-        stage_node, YAMLKEY_CO2PRICE)
+        stage_node, YAMLKEY_CO2PRICE
+    )
     if co2_price is not None:
         stages.set_co2_price(stage_id, co2_price)
     # co2_min
     co2_min = yaml_parser.parse_optional_float_value_from_dict_node(
-        stage_node, YAMLKEY_CO2MIN)
+        stage_node, YAMLKEY_CO2MIN
+    )
     if co2_min is not None:
         stages.set_co2_min(stage_id, co2_min)
     # co2_max
     co2_max = yaml_parser.parse_optional_float_value_from_dict_node(
-        stage_node, YAMLKEY_CO2MAX)
+        stage_node, YAMLKEY_CO2MAX
+    )
     if co2_max is not None:
         stages.set_co2_max(stage_id, co2_max)
 
 
 def _log(stages: Stages) -> None:
-    logging.log_file(f"Parsed {len(stages.ids)} stage(s)",
-                     module=LOG_MODULE_STR)
+    logging.log_file(f"Parsed {len(stages.ids)} stage(s)", module=LOG_MODULE_STR)
     for s in stages.ids_in_order:
         logging.log_file(
-            f"  Stage {s}: Start year = {stages.get_start_year(s)}",
-            print_time=False)
+            f"  Stage {s}: Start year = {stages.get_start_year(s)}", print_time=False
+        )
