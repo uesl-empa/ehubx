@@ -33,6 +33,5 @@ models/*
 *.log
 
 # Docs
-docs/source/index.rst
 docs/source/ehubx*
 docs/source/modules.rst
