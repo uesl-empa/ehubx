@@ -125,6 +125,7 @@ jobs:
             texlive-latex-extra \
             texlive-fonts-recommended \
             texlive-xetex \
+            fonts-freefont-otf \
             latexmk
 
       - name: Build Sphinx docs (HTML + PDF)
