@@ -1,6 +1,9 @@
 system_params:
   interest_rate_def: 0.1
   num_times_horizon: 8760
+  currency_unit: CHF
+  mass_unit: kg
+  length_unit: m
 
 stages:
 - stage_id: S1

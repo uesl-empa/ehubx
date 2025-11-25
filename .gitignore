@@ -12,26 +12,32 @@ __pycache__/
 
 # Built documentation
 docs/build/*
+public
 
 # Reports
-
+ruff-report.txt
+mypy-report.xml
+unit_test_report.html
+.coverage
+.coverage.rc
+tests/_tmp_model
 
 # Caches
 .mypy_cache
 .ruff_cache
 
-# Example result files
-examples/*/rom
-examples/*/results**
+# Examples
+examples/**/rom
+examples/**/results*
 
 # Models
 models/*
-*.lp
-*.mps
 
-# Log files
+# Log and model files
 *.log
+*.lp
 
 # Docs
+docs/source/index.rst
 docs/source/ehubx*
 docs/source/modules.rst

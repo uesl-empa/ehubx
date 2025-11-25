@@ -1,5 +1,6 @@
 loadshift_id, LS1,           LS1,           LS1,           LS1,           LS1,               LS1
 profile_key,  max_above_abs, max_above_rel, max_below_abs, max_below_rel, energy_cost_above, energy_cost_below
+unit,         kW,            1,             kW,            1,             CHF/kWh,           CHF/kWh
 1,            150,           0.10,          100,           0.20,          0.50,              0.30
 2,            151,           0.11,          101,           0.21,          0.51,              0.31
 3,            152,           0.12,          102,           0.22,          0.52,              0.32

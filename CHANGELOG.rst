@@ -1,6 +1,44 @@
 Changelog
 ==========
 
+**2.2.3** (09.10.2025)
+------------------------
+- Tightened the problem formulation by significantly improving bigM values.
+- Removed generic bigM parameter from demands model entirely.
+- Many crucial elements like capacity are now guaranteed to carry upper bounds
+- New parameters heur_max and heur_sum_max in ecs.yaml, mandatory for all ecs without demand data.
+
+**2.2.2** (06.08.2025)
+------------------------
+- The units for currency, length, mass, and power defined in stages.yaml are now taken as the units in which the optimization is formulated. This was done to allow the modeler to scale the system in order to avoid large matrix coefficient ranges which often lead to numerical instabilities.
+- The outut files are now also written in these units
+
+**2.2.1** (28.07.2025)
+------------------------
+- Added possibility to specify demand_sums (i.e., annual demands)
+- Fixed an infeasibility issue occuring with negative prices and costs
+- Added minmax parameters for number of wells in ATES module
+- Added availability parameters for ATES and heatpumps
+- Improved value parsing so entries like "inf kW" or "1_000 kW" are now possible. Unfortunately, numbers and units must be separated by a space now, so entries like "20kW" will no longer be recognized.
+- Reintroduced functionality into the load shifting module for Sisslerfeld:
+  - Multiple load shifts for a single tuple
+  - Sizing of load shift capacity done by the optimizer now
+
+**2.2.0** (23.06.2025)
+------------------------
+- Introduced the Unit and Value classes which offer handling of physical units and values.
+- Each ec now carries a unit. All modules check their input parameters for validity of units.
+- Calculations with phyiscal units are now carried out directoy by the Value class, removing the need for manual unit transformations and ensuring cosistency across the code base and model.
+- Changed the parameter responsible for network transmission losses to an exponential factor
+- Removed preset functionality from load shedding module (presets don't work with potentially varying units anymore)
+- Parameter nodes for imports, exports, load shifting and load shedding can now only be defined for a single ec to ensure unit consistency.
+
+**2.1.7** (01.05.2025)
+------------------------
+- Fixed mistakes during tsam clustering, now fewer time steps in multistage models
+- Greatly increased performance for time series parsing
+- Fixed error for initial SOC constraint when first stage is not allowed for the tech
+
 **2.1.6** (06.03.2025)
 ------------------------
 

@@ -2,20 +2,32 @@ in_ec_groups:
 - ec_group_id: EG12
   ecs: [E12a, E12b]
 
-windparks:
-- windpark_id: WP1
-  ecs: [E4]
-
 ecs:
 - ec_id: E0
+  unit: kWh
 - ec_id: E1
+  unit: kWh
 - ec_id: E3
+  unit: kWh
 - ec_id: E4
+  unit: kWh
 - ec_id: E10
+  unit: kWh
 - ec_id: E11
+  unit: kWh
 - ec_id: E12a
+  unit: kWh
 - ec_id: E12b
+  unit: kWh
 - ec_id: E13a
+  unit: kWh
 - ec_id: E13b
+  unit: kWh
 - ec_id: E13c
+  unit: kWh
 - ec_id: E13d
+  unit: kWh
+- ec_id: E15a
+  unit: kWh
+- ec_id: E15b
+  unit: kWh

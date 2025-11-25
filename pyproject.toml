@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ehubx"
-version = "2.1.6"
+version = "2.2.3"
 description = "A platform for modeling and optimizing energy systems based on the energy hub concept"
 authors = ["Dennis Beermann <dennis.beermann@empa.ch>", "Fierz Leonie", "TODO"]
 classifiers=['Development Status :: Development',
@@ -14,14 +14,18 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-numpy = "^1.26"
+python = ">=3.11,<3.14"
+numpy = "^2.3.1"
 pandas = "^2.2"
 Pyomo = "^6.8"
 matplotlib = "^3.9"
 tsam = "^2.0"
-gurobipy = "11.0"
+gurobipy = [
+  { version = ">=11,<12", markers = "python_version < '3.13'" },
+  { version = ">=12,<13", markers = "python_version >= '3.13'" }
+]
 pyyaml = "^6.0.2"
+scipy = "^1.16.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
@@ -33,6 +37,7 @@ MyPy = "^1.11"
 ruff = "^0.9.9"
 pre-commit = "^4.1.0"
 types-pyyaml = "^6.0.12.20241230"
+snakeviz = "^2.2.2"
 
 [build-system]
 requires = ["poetry>=1.6.1"]

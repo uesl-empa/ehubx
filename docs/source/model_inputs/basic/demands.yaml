@@ -1,36 +1,37 @@
-demands:
-- demand_id: D1
-  profile_path: demand_profiles.csv
+demand_profiles:
+- demand_profiles.csv
+
+demand_sums:
+- stages: S1
+  hubs: H1
+  ec: E2
+  demand_sum: 250 kWh
 
 load_shedding:
-  preset:
-    enabled: True
-    max_abs: 1_000
-    max_rel: 1
-    energy_cost: 100_000
-
-  manual:
-  - stages: [S1, S2]
-    hubs: H1
-    ecs: E1
-    enabled: True
-    max_abs: 400
-    max_rel: 0.5
-    energy_cost: 200_000
-    profile_path: loadshedding_profiles.csv
+- stages: [S1, S2]
+  hubs: H1
+  ec: E1
+  enabled: True
+  max_abs: 400 kW
+  max_rel: 0.5
+  energy_cost: 200_000 CHF/kWh
+  profile_path: loadshedding_profiles.csv
 
 load_shifting:
 - loadshift_id: LS1
   stages: [S1, S2]
   hubs: H1
-  ecs: E1
-  interval_length: 2
-  interval_cap: 10
-  max_above_abs: 200
-  max_below_abs: 150
-  peak_cost_above: 300
-  peak_cost_below: 250
-  energy_cost_above: 0.50
-  energy_cost_below: 0.25
-  fix_cost: 2_000
+  ec: E1
+  interval_length: 2 h
+  capex_per_cap: 10 CHF/kWh
+  cap_min: 50 kWh
+  cap_max: 600 kWh
+  cap_init: 50 kWh
+  max_above_abs: 200 kW
+  max_below_abs: 150 kW
+  peak_cost_above: 300 CHF/kW
+  peak_cost_below: 250 CHF/kW
+  energy_cost_above: 0.50 CHF/kWh
+  energy_cost_below: 0.25 CHF/kWh
+  fix_cost: 2_000 CHF/h
   profile_path: loadshifting_profiles.csv

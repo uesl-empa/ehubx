@@ -1,17 +1,17 @@
 net_techs:
 - net_tech_id: N1
   ec: E0
-  lifetime: 10
+  lifetime: 10 a
   trl:
-  trans_loss: 0.001
+  trans_decay: 0.001 1/m
   unit_cap_min:
   costs:
     interest_rate:
-    one_time_capex: 10
-    capex_per_cap: 1
+    one_time_capex: 10 CHF/m
+    capex_per_cap: 1 CHF/(kW*m)
     opex_per_cap:
     one_time_opex:
-    opex_per_energy: 3
+    opex_per_energy: 3 CHF/(kWh*m)
   emissions:
-    co2_per_cap: 5
-    co2_per_energy: 2
+    co2_per_cap: 5 kg/(kW*m)
+    co2_per_energy: 2 kg/(kWh*m)

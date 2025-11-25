@@ -1,14 +1,14 @@
 - stages: S1
   hubs: H1
-  ecs: E1
-  price: 0.1
-  min: 0
-  max: 1_000
-  co2: 0.05
-  sum_min: 100
-  sum_max: 10_000
+  ec: E1
+  price: 0.1 CHF/kWh
+  min: 0 kW
+  max: 1_000 kW
+  co2: 0.05 kg/kWh
+  sum_min: 100 kWh
+  sum_max: 10_000 kWh
 
 - stages: S2
   hubs: H1
-  ecs: E1
+  ec: E1
   profile_path: import_profiles.csv

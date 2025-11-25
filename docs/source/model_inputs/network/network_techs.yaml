@@ -4,7 +4,7 @@ net_techs:
   lifetime_years: 30
   trl: [[2020, 3], [2025, 4]]
   unit_cap_min: 5
-  trans_loss: 0
+  trans_decay: 0
   costs:
     interest_rate_id: low
     one_time_capex: 1

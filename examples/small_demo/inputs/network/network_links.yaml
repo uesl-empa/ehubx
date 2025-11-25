@@ -10,7 +10,7 @@ start_hubs:
     net_links:
     - net_link_id: L1
       ecs: [E0]
-      length: 10
+      length: 10 m
       bidirectional: False
       allowed_net_tech_lists: NTL1
 

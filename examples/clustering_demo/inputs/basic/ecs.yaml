@@ -1,12 +1,15 @@
-windparks:
-- windpark_id: WP1
-  ecs: [E7]
-
 ecs:
 - ec_id: E1
+  unit: kWh
 - ec_id: E2
+  unit: kWh
 - ec_id: E3
+  unit: kWh
 - ec_id: E4
+  unit: kWh
 - ec_id: E5
+  unit: kWh
 - ec_id: E6
+  unit: kWh
 - ec_id: E7
+  unit: kWh

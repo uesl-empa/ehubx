@@ -19,11 +19,3 @@ if __name__ == "__main__":
         opt_vars_filename="results_rom",
         model_lp_path="model_rom.lp",
     )
-    # Build the full-order model and solve
-    ehubx.build(use_rom=False)
-    ehubx.solve_single_obj(
-        obj_type=ObjectiveType.COST,
-        solver_kind=SolverKind.GUROBI,
-        opt_vars_filename="results_full",
-        model_lp_path="model_full.lp",
-    )

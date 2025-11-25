@@ -2,6 +2,7 @@ stage_id,S1,S1
 hub_id,H1,H1
 tech_id,X2,X2
 profile_key,availability,demand_nominal
+unit,1,kW
 1,0.917450953,7.638615975
 2,0.82234392,2.472084305
 3,0.925740169,5.51708007

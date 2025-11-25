@@ -1,4 +1,4 @@
 - stages: S1
   hubs: H1
-  ecs: E1
+  ec: E1
   profile_path: profiles/exports.csv

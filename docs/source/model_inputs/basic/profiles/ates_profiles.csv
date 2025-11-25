@@ -1,0 +1,8 @@
+stage_id,         S1
+hub_id,           H1
+tech_id,          X4
+ates_schedule_id, AS1
+unit,             1
+1,                0.5
+2,                0.0
+3,                1.0

@@ -10,11 +10,11 @@ start_hubs:
     net_links:
     - net_link_id: L1
       ecs: [E1]
-      length: 1
+      length: 1 m
       bidirectional: False
       allowed_net_tech_lists: NTL1
 
       ec_params:
       - ec_id: E1
-        cap_max: 20
+        cap_max: 20 kW
         profile_path: profiles/L1_availability.csv

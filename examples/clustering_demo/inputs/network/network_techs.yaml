@@ -1,4 +1,4 @@
 net_techs:
 - net_tech_id: N1
   ec: E1
-  lifetime: 10
+  lifetime: 10 a

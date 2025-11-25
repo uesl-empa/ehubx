@@ -1,0 +1,9 @@
+- stages: S1
+  hubs: H1
+  ec: El
+  price: 1 CHF/kWh
+  max: 10 kW
+- stages: S1
+  hubs: H1
+  ec: Solar
+  price: 0 CHF/kWh

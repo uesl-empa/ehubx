@@ -1,24 +1,32 @@
 - stages: S1
   hubs: H1
-  ecs: E1
+  ec: E1
   profile_path: profiles/imports.csv
 
 - stages: S1
   hubs: H1
-  ecs: E2
-  max: 20
+  ec: E2
+  max: 20 kW
 
 - stages: S1
   hubs: H1
-  ecs: E3
-  price: 1
+  ec: E3
+  price: 1 CHF/kWh
 
 - stages: S1
   hubs: H1
-  ecs: [E5, E6, E7]
+  ec: E5
+
+- stages: S1
+  hubs: H1
+  ec: E6
+
+- stages: S1
+  hubs: H1
+  ec: E7
 
 - stages: S1
   hubs: H2
-  ecs: E1
-  price: 0
-  max: 20
+  ec: E1
+  price: 0 CHF/kWh
+  max: 20 kW

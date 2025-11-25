@@ -1,0 +1,13 @@
+system_params:
+  interest_rate_def: 0.1
+  num_times_horizon: 3
+  self_sufficiency_calculation_method: linearized
+  self_sufficiency_min: 0
+  self_sufficiency_max: 1
+  currency_unit: CHF
+  mass_unit: kg
+  length_unit: m
+
+stages:
+- stage_id: S1
+  start_year: 2025

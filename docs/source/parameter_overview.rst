@@ -1,5 +1,14 @@
+.. only:: latex
+
+   .. raw:: latex
+
+      \begin{landscape}
+
+
 Parameter overview
 ===================
+
+This section contains an extensive table listing all input parameters that can be specified in ehubX models. The table provides information on whether a parameter is mandatory or optional, its default value (if applicable), the unit, and whether it can be defined as year-dependent or as a time series. Additionally, the table indicates the specific node paths within the input files where each parameter can be found. Please note the section about unit conventions mentioned at the beginning of the section :ref:`input files <input_files>` which is also relevant for this section.
 
 Legend
 -------
@@ -10,14 +19,14 @@ Legend
     * (**✓**): Parameter is mandatory under some conditions.
     * ✖: Parameter is optional.
 * **Default**: Default value for optional parameters
-* **Unit**: Unit for the parameter (see :ref:`units`).
-* **Per year**: Whether this parameter can be specified as year-dependent (see :ref:`parameter_types`)
+* **Unit**: Unit for the parameter (see :ref:`units <units>`).
+* **Per year**: Whether this parameter can be specified as year-dependent (see :ref:`parameter types <parameter_types>`)
     * **✓**: Parameter can be specified as year-dependent.
     * ✖: Parameter cannot be specified as year-dependent.
-* **Per ts**: Whether this parameter can be specified as a timeseries (see :ref:`parameter_types`). This will happen by specifying a path to a time series file, and the specific structure is dependent on the parameter itself.
+* **Per ts**: Whether this parameter can be specified as a timeseries (see :ref:`parameter types <parameter_types>`). This will happen by specifying a path to a time series file, and the specific structure is dependent on the parameter itself.
     * **✓**: Parameter can be specified as a time series.
     * ✖: Parameter cannot be specified as a time series.
-* **Node path(s)**: Node path(s) (see :ref:`node_paths`) within the file where this parameter is specified.
+* **Node path(s)**: Node path(s) (see :ref:`node paths <node_paths>`) within the file where this parameter is specified.
 * **File**: File in which this parameter is specified.
 
 Parameter table
@@ -35,37 +44,19 @@ Parameter table
       - Node path(s)
       - File
 
-    * - **Allowed net_tech lists** (link)
+    * - **Availability** (ates)
       - ✖
-      - []
-      -
-      - ✖
-      - ✖
-      - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/allowed_net_tech_lists`
-      - :ref:`links.yaml<network_links_yaml>`
-
-    * - **Allowed tech lists** (tech)
-      - ✖
-      - []
-      -
-      - ✖
-      - ✖
-      - :code:`hubs[ID]/allowed_tech_lists`
+      - 1
+      - [-]
+      - **✓**
+      - **✓**
+      - :code:`hubs[ID]/techs[ID]/ates_params/availability`, :code:`hubs[ID]/techs[ID]/ates_params/profile_path`
       - :ref:`hubs.yaml<hubs_yaml>`
-
-    * - **Autarky calculation method** (autarky)
-      - ✖
-      - "none"
-      -
-      -
-      -
-      - :code:`system_params/autarky_calculation_method`
-      - :ref:`stages.yaml<stages_yaml>`
 
     * - **Availability** (conversion)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - **✓**
       - :code:`hubs[ID]/techs[ID]/conversion_params/availability`, :code:`hubs[ID]/techs[ID]/conversion_params/profile_path`
@@ -74,16 +65,25 @@ Parameter table
     * - **Availability** (ebm)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - **✓**
       - :code:`hubs[ID]/techs[ID]/ebm_params/availability`, :code:`hubs[ID]/techs[ID]/ebm_params/profile_path`
       - :ref:`hubs.yaml<hubs_yaml>`
 
+    * - **Availability** (heatpump)
+      - ✖
+      - 1
+      - [-]
+      - **✓**
+      - **✓**
+      - :code:`hubs[ID]/techs[ID]/heatpump_params/availability`, :code:`hubs[ID]/techs[ID]/heatpump_params/profile_path`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Availability** (net_links)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - **✓**
       - :code:`start_hubs[ID]/end_hubs[id]/links[id]/ec_params[id]/availability`, :code:`start_hubs[ID]/end_hubs[id]/links[id]/ec_params[id]/profile_path`
@@ -92,7 +92,7 @@ Parameter table
     * - **Available area** (ates)
       - ✖
       - :math:`\infty`
-      - :math:`m^2`
+      - m^2
       - **✓**
       - ✖
       - :code:`hubs[ID]/ates_params/available_area`
@@ -105,25 +105,34 @@ Parameter table
       - ✖
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/bidirectional`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Capacity factor** (coupling)
       - **✓**
       -
-      - 1
+      - CAP_sub/CAP_main
       - ✖
       - ✖
       - :code:`techs[ID]/coupling_params/cap_factor`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **CAPEX per capacity** (load_shifting)
+      - ✖
+      - 0
+      - CHF/ec
+      - ✖
+      - ✖
+      - :code:`load_shifting[ID]/capex_per_cap`
+      - :ref:`demands.yaml<demands_yaml>`
+
     * - **CAPEX per capacity** (net_tech)
       - ✖
       - 0
-      - CHF/kW/m
+      - CHF/((ec/h)*m)
       - **✓**
       - ✖
       - :code:`net_techs[ID]/costs/capex_per_cap`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **CAPEX per capacity** (tech)
       - ✖
@@ -137,22 +146,22 @@ Parameter table
     * - **CO2** (import/export)
       - ✖
       - 0
-      - kg/kW
+      - kg/ec
       - ✖
       - **✓**
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/co2`, :code:`stages[ID]/hubs[ID]/ecs[ID]/profile_path`
       - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
 
-    * - **CO2 per installed capacity** (net_tech)
+    * - **CO2 per capacity** (net_tech)
       - ✖
       - 0
-      - kg/kW/m
+      - kg/((ec/h)*m)
       - **✓**
       - ✖
       - :code:`net_techs[ID]/emissions/co2_per_cap`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
-    * - **CO2 per installed capacity** (tech)
+    * - **CO2 per capacity** (tech)
       - ✖
       - 0
       - kg/CAP
@@ -164,11 +173,11 @@ Parameter table
     * - **CO2 per transported energy** (net_tech)
       - ✖
       - 0
-      - kg/kWh/m
+      - kg/(ec*m)
       - **✓**
       - ✖
       - :code:`net_techs[ID]/emissions/co2_per_energy`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **CO2 max** (stage)
       - ✖
@@ -182,7 +191,7 @@ Parameter table
 
     * - **CO2 min** (stage)
       - ✖
-      - 0
+      - :math:`-\infty`
       - kg
       - ✖
       - ✖
@@ -198,37 +207,28 @@ Parameter table
       - :code:`stages[ID]/co2_price`
       - :ref:`stages.yaml<stages_yaml>`
 
-    * - **Cool** (ates)
+    * - **COP** (heatpump)
+      - (**✓**)
+      -
+      - [-]
       - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`techs[ID]/ates_params/ecs`
-      - :ref:`techs.yaml<techs_yaml>`
+      - **✓**
+      - :code:`hubs[ID]/techs[ID]/heatpump_params/cop`, :code:`hubs[ID]/techs[ID]/heatpump_params/profile_path`
+      - :ref:`hubs.yaml<hubs_yaml>`
 
-    * - **Cut-in velocity** (wind)
-      - **✓**
+    * - **COP factor** (heatpump)
+      - (**✓**)
       -
-      - :math:`m/s`
+      - [-]
       - **✓**
-      - ✖
-      - :code:`hubs[ID]/techs[ID]/wind_params/velo_cut_in`
-      - :ref:`techs.yaml<techs_yaml>`
-
-    * - **Cut-off velocity** (wind)
-      - **✓**
-      -
-      - :math:`m/s`
-      - **✓**
-      - ✖
-      - :code:`hubs[ID]/techs[ID]/wind_params/velo_cut_off`
+      - X
+      - :code:`techs[ID]/heatpump_params/cop_factor`
       - :ref:`techs.yaml<techs_yaml>`
 
     * - **Demand** (demand)
       - ✖
       - 0
-      - kW
+      - ec
       - ✖
       - **✓**
       - :code:`demands[ID]/profile_path`
@@ -237,7 +237,7 @@ Parameter table
     * - **Demand modifier** (ebm)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/demand_modifier`
@@ -246,110 +246,29 @@ Parameter table
     * - **Discharge controllability** (ebm)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/discharge_controllability`
       - :ref:`techs.yaml<techs_yaml>`
 
-    * - **EC** (ebm)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`techs[ID]/ebm_params/ec`
-      - :ref:`techs.yaml<techs_yaml>`
-
-    * - **EC** (net_tech)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`net_techs[ID]/ec`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
-
-    * - **EC** (storage)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`techs[ID]/storage_params/ec`
-      - :ref:`techs.yaml<techs_yaml>`
-
-    * - **ECs** (link)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ecs`
-      - :ref:`links.yaml<network_links_yaml>`
-
-    * - **ECs** (load_shedding)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`load_shedding/manual[pos]/ecs`
-      - :ref:`demands.yaml<demands_yaml>`
-
-    * - **ECs** (load_shifting)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`load_shifting[ID]/ecs`
-      - :ref:`demands.yaml<demands_yaml>`
-
-    * - **ECs** (windpark)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`windparks[ID]/ecs`
-      - :ref:`ecs.yaml<ecs_yaml>`
-
-    * - **Elec** (ates)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`techs[ID]/ates_params/ecs`
-      - :ref:`techs.yaml<techs_yaml>`
-
     * - **Electricity consumption per cooling energy** (ates)
       - **(✓)**
       -
-      - 1
+      - [-]
       - ✖
       - ✖
-      - :code:`techs[ID]/ates_params/elec_per_energy_cool`
-      - :ref:`techs.yaml<techs_yaml>`
+      - :code:`hubs[ID]/techs[ID]/ates_params/elec_per_energy_cool`
+      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **Electricity consumption per heating energy** (ates)
       - **(✓)**
       -
-      - 1
+      - [-]
       - ✖
       - ✖
-      - :code:`techs[ID]/ates_params/elec_per_energy_heat`
-      - :ref:`techs.yaml<techs_yaml>`
-
-    * - **Electricity consumption per heating flow** (ates)
-      - ✖
-      -
-      - 1
-      - ✖
-      - ✖
-      - :code:`techs[ID]/ates_params/elec_per_energy_heat`
-      - :ref:`techs.yaml<techs_yaml>`
+      - :code:`hubs[ID]/techs[ID]/ates_params/elec_per_energy_heat`
+      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **Enabled** (load_shedding)
       - ✖
@@ -381,7 +300,7 @@ Parameter table
     * - **Energy cost** (load_shedding)
       - ✖
       - 0
-      - CHF/kW
+      - CHF/ec
       - ✖
       - ✖
       - :code:`load_shedding/preset/energy_cost`, :code:`load_shedding/manual[pos]/energy_cost`, :code:`load_shedding/manual[pos]/profile_path`
@@ -390,7 +309,7 @@ Parameter table
     * - **Energy cost, above** (load_shifting)
       - ✖
       - 0
-      - CHF/kWh
+      - CHF/ec
       - ✖
       - **✓**
       - :code:`load_shifting[ID]/energy_cost_above`, :code:`load_shifting[ID]/profile_path`
@@ -399,7 +318,7 @@ Parameter table
     * - **Energy cost, below** (load_shifting)
       - ✖
       - 0
-      - CHF/kWh
+      - CHF/ec
       - ✖
       - **✓**
       - :code:`load_shifting[ID]/energy_cost_below`, :code:`load_shifting[ID]/profile_path`
@@ -417,7 +336,7 @@ Parameter table
     * - **Fluid density** (ates)
       - **✓**
       -
-      - :math:`kg/m^3`
+      - kg/m^3
       - ✖
       - ✖
       - :code:`techs[ID]/ates_params`
@@ -426,7 +345,7 @@ Parameter table
     * - **Fluid specific heat capacity** (ates)
       - **✓**
       -
-      - :math:`J/(kg*K)`
+      - Ws/(kg*K)
       - ✖
       - ✖
       - :code:`techs[ID]/ates_params`
@@ -435,40 +354,31 @@ Parameter table
     * - **Groundwater velocity** (ates)
       - (**✓**)
       -
-      - :math:`m/d`
+      - m/d
       - ✖
       - ✖
       - :code:`hubs[ID]/ates_params/groundwater_velocity`
       - :ref:`hubs.yaml<hubs_yaml>`
 
-    * - **Heat** (ates)
-      - **✓**
+    * - **heur_max** (ec)
+      - (**✓**)
+      -
+      - ec/h
       -
       -
-      - ✖
-      - ✖
-      - :code:`techs[ID]/ates_params/ecs`
-      - :ref:`techs.yaml<techs_yaml>`
+      - :code:`ecs[ID]/heur_max`
+      - :ref:`ecs.yaml<ecs_yaml>`
 
-    * - **Hubs** (load_shedding)
-      - **✓**
+    * - **heur_sum_max** (ec)
+      - (**✓**)
+      -
+      - ec
       -
       -
-      - ✖
-      - ✖
-      - :code:`load_shedding/manual[pos]/hubs`
-      - :ref:`demands.yaml<demands_yaml>`
+      - :code:`ecs[ID]/heur_sum_max`
+      - :ref:`ecs.yaml<ecs_yaml>`
 
-    * - **Hubs** (load_shifting)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`load_shifting[ID]/hubs`
-      - :ref:`demands.yaml<demands_yaml>`
-
-    * - **imp_exp_type** (autarky)
+    * - **imp_exp_type** (self-sufficiency)
       - ✖
       - "none"
       -
@@ -484,7 +394,7 @@ Parameter table
       - ✖
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/net_tech_params/age_init`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Initial age** (tech)
       - ✖
@@ -495,14 +405,23 @@ Parameter table
       - :code:`hubs[ID]/techs[ID]/tech_params/age_init`
       - :ref:`hubs.yaml<hubs_yaml>`
 
+    * - **Initial capacity** (load_shifting)
+      - ✖
+      - 0
+      - ec
+      - ✖
+      - ✖
+      - :code:`load_shifting[ID]/cap_max`
+      - :ref:`demands.yaml<demands_yaml>`
+
     * - **Initial capacity** (net_tech)
       - ✖
       - 0
-      - kW
+      - ec/h
       - ✖
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/net_tech_params/cap_init`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Initial capacity** (tech)
       - ✖
@@ -516,7 +435,7 @@ Parameter table
     * - **Initial stage of charge** (ebm)
       - ✖
       - :math:`\infty`
-      - 1
+      - [-]
       - ✖
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/soc_init`
@@ -525,25 +444,16 @@ Parameter table
     * - **Initial stage of charge** (storage)
       - ✖
       - :math:`\infty`
-      - 1
+      - [-]
       - ✖
       - ✖
       - :code:`hubs[ID]/techs[ID]/storage_params/soc_init`
       - :ref:`hubs.yaml<hubs_yaml>`
 
-    * - **Input ec** (conversion)
-      - **✓**
-      -
-      -
-      - ✖
-      - ✖
-      - :code:`techs[ID]/conversion_params/in_ecs[ID]/in_id`
-      - :ref:`techs.yaml<techs_yaml>`
-
     * - **Input efficiency** (ebm)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`techs[ID]/ebm_params/in_eff`
@@ -552,7 +462,7 @@ Parameter table
     * - **Input efficiency** (storage)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`techs[ID]/storage_params/in_eff`
@@ -561,7 +471,7 @@ Parameter table
     * - **Input part** (conversion)
       - **✓**
       -
-      -
+      - ec_in
       - **✓**
       - ✖
       - :code:`techs[ID]/conversion_params/in_ecs[ID]/in_part`
@@ -570,7 +480,7 @@ Parameter table
     * - **Interest rate default** (system)
       - **✓**
       -
-      - 1
+      - [-]
       - ✖
       - ✖
       - :code:`system_params/interest_rate_def`
@@ -579,40 +489,31 @@ Parameter table
     * - **Interest rate** (net_tech)
       - ✖
       -
-      - 1
+      - [-]
       - ✖
       - ✖
       - :code:`net_techs[ID]/costs/interest_rate`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **Interest rate** (tech)
       - ✖
       -
-      - 1
+      - [-]
       - ✖
       - ✖
       - :code:`techs[ID]/costs/interest_rate`
       - :ref:`techs.yaml<techs_yaml>`
 
-    * - **Interval capacity** (load_shifting)
-      - ✖
-      - :math:`\infty`
-      - kWh
-      - ✖
-      - ✖
-      - :code:`load_shifting[ID]/interval_cap`
-      - :ref:`demands.yaml<demands_yaml>`
-
     * - **Interval length** (load_shifting)
       - **✓**
       -
-      -
+      - h
       - ✖
       - ✖
       - :code:`load_shifting[ID]/interval_length`
       - :ref:`demands.yaml<demands_yaml>`
 
-    * - **is_energy** (autarky)
+    * - **is_energy** (self-sufficiency)
       - ✖
       - True
       -
@@ -624,7 +525,7 @@ Parameter table
     * - **Last installation year** (tech)
       - ✖
       - :math:`\infty`
-      - 1
+      -
       - ✖
       - ✖
       - :code:`hubs[ID]/techs[ID]/tech_params/last_inst_year`
@@ -637,7 +538,7 @@ Parameter table
       - ✖
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/length`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Lifetime** (net_tech)
       - **✓**
@@ -646,7 +547,7 @@ Parameter table
       - ✖
       - ✖
       - :code:`net_techs[ID]/lifetime`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **Lifetime** (tech)
       - **✓**
@@ -687,29 +588,38 @@ Parameter table
     * - **Max** (import/export)
       - ✖
       - :math:`\infty`
-      - kW
+      - ec/h
       - ✖
       - **✓**
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/max`, :code:`stages[ID]/hubs[ID]/ecs[ID]/profile_path`
       - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
 
-    * - **Maximal autarky** (autarky)
+    * - **Maximal self-sufficiency** (self-sufficiency)
       - ✖
       - 1
+      - [-]
       -
       -
-      -
-      - :code:`system_params/autarky_max`
+      - :code:`system_params/self_sufficiency_max`
       - :ref:`stages.yaml<stages_yaml>`
 
     * - **Maximal capacity** (link)
       - ✖
       - :math:`\infty`
-      - kW
+      - ec/h
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/cap_max`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
+
+    * - **Maximal capacity** (load_shifting)
+      - ✖
+      - :math:`\infty`
+      - ec
+      - ✖
+      - ✖
+      - :code:`load_shifting[ID]/cap_max`
+      - :ref:`demands.yaml<demands_yaml>`
 
     * - **Maximal capacity** (tech)
       - ✖
@@ -723,7 +633,7 @@ Parameter table
     * - **Maximal charging power** (ebm)
       - ✖
       - :math:`\infty`
-      - kW
+      - ec/h
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/charge_max`
@@ -732,7 +642,7 @@ Parameter table
     * - **Maximal charging power** (storage)
       - ✖
       - :math:`\infty`
-      - kW/CAP
+      - 1/h
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/storage_params/charge_max`
@@ -741,25 +651,16 @@ Parameter table
     * - **Maximal curtailment** (solar)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/solar_params/curtail_max_rel`
       - :ref:`techs.yaml<techs_yaml>`
 
-    * - **Maximal curtailment** (wind)
-      - ✖
-      - 1
-      - 1
-      - **✓**
-      - ✖
-      - :code:`hubs[ID]/techs[ID]/wind_params/curtail_max_rel`
-      - :ref:`techs.yaml<techs_yaml>`
-
     * - **Maximal discharging power** (ebm)
       - ✖
       - :math:`\infty`
-      - kW
+      - ec/h
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/discharge_max`
@@ -768,7 +669,7 @@ Parameter table
     * - **Maximal discharging power** (storage)
       - ✖
       - :math:`\infty`
-      - kW/CAP
+      - 1/h
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/storage_params/discharge_max`
@@ -777,7 +678,7 @@ Parameter table
     * - **Maximal drawdown of aquifer** (ates)
       - (**✓**)
       -
-      - :math:`m`
+      - m
       - ✖
       - ✖
       - :code:`hubs[ID]/ates_params/max_drawdown`
@@ -786,7 +687,7 @@ Parameter table
     * - **Maximal total heating over cooling** (ates)
       - ✖
       - :math:`\infty`
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_heat_over_cool`
@@ -795,7 +696,7 @@ Parameter table
     * - **Maximal total cooling over heating** (ates)
       - ✖
       - :math:`\infty`
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_cool_over_heat`
@@ -804,7 +705,7 @@ Parameter table
     * - **Maximal load shedding, absolute** (load_shedding)
       - ✖
       - :math:`\infty`
-      - kW
+      - ec/h
       - ✖
       - ✖
       - :code:`load_shedding/preset/max_abs`, :code:`load_shedding/manual[pos]/max_abs`, :code:`load_shedding/manual[pos]/profile_path`
@@ -813,7 +714,7 @@ Parameter table
     * - **Maximal load shedding, relative** (load_shedding)
       - ✖
       - 1
-      - 1
+      - [-]
       - ✖
       - ✖
       - :code:`load_shedding/preset/max_rel`, :code:`load_shedding/manual[pos]/max_rel`, :code:`load_shedding/manual[pos]/profile_path`
@@ -822,7 +723,7 @@ Parameter table
     * - **Maximal load shifting, absolute-above** (load_shifting)
       - ✖
       - :math:`\infty`
-      - kW
+      - ec/h
       - ✖
       - **✓**
       - :code:`load_shifting[ID]/max_above_abs`, :code:`load_shifting[ID]/profile_path`
@@ -831,7 +732,7 @@ Parameter table
     * - **Maximal load shifting, absolute-below** (load_shifting)
       - ✖
       - :math:`\infty`
-      - kW
+      - ec/h
       - ✖
       - **✓**
       - :code:`load_shifting[ID]/max_below_abs`, :code:`load_shifting[ID]/profile_path`
@@ -840,7 +741,7 @@ Parameter table
     * - **Maximal load shifting, relative-above** (load_shifting)
       - ✖
       - :math:`\infty`
-      - 1
+      - [-]
       - ✖
       - **✓**
       - :code:`load_shifting[ID]/max_above_rel`, :code:`load_shifting[ID]/profile_path`
@@ -849,16 +750,25 @@ Parameter table
     * - **Maximal load shifting, relative-below** (load_shifting)
       - ✖
       - 1
-      - 1
+      - [-]
       - ✖
       - **✓**
       - :code:`load_shifting[ID]/max_below_rel`, :code:`load_shifting[ID]/profile_path`
       - :ref:`demands.yaml<demands_yaml>`
 
+    * - **Maximal number of well pairs** (ates)
+      - ✖
+      - :math:`\infty`
+      -
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[id]/ates_params/schedule_params[ID]/well_pairs_max`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Maximal pumping rate per cold well** (ates)
       - ✖
       -
-      - :math:`m^3/s`
+      - m^3/h
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_pump_rate_per_cold_well`
@@ -867,7 +777,7 @@ Parameter table
     * - **Maximal pumping rate per warm well** (ates)
       - ✖
       -
-      - :math:`m^3/s`
+      - m^3/h
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/max_pump_rate_per_warm_well`
@@ -876,7 +786,7 @@ Parameter table
     * - **Maximal stage of charge** (storage)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/storage_params/soc_max`
@@ -885,25 +795,25 @@ Parameter table
     * - **Maximal summed-up backward transport** (link)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_max_backward`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Maximal summed-up forward transport** (link)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_max_forward`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Maximal summed-up imports/exports** (import/export)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec
       - ✖
       - ✖
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/sum_max`
@@ -912,7 +822,7 @@ Parameter table
     * - **Maximal summed-up output** (conversion)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/conversion_params/out_sum_max`
@@ -921,7 +831,7 @@ Parameter table
     * - **Maximal temperature spread for cold wells** (ates)
       - **✓**
       -
-      - :math:`°C`
+      - K
       - ✖
       - ✖
       - :code:`hubs[ID]/ates_params/max_temperature_spread_cold`
@@ -930,7 +840,7 @@ Parameter table
     * - **Maximal temperature spread for warm wells** (ates)
       - **✓**
       -
-      - :math:`°C`
+      - K
       - ✖
       - ✖
       - :code:`hubs[ID]/ates_params/max_temperature_spread_warm`
@@ -939,34 +849,43 @@ Parameter table
     * - **Min** (import/export)
       - ✖
       - 0
-      - kW
+      - ec/h
       - ✖
       - **✓**
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/min`, :code:`stages[ID]/hubs[ID]/ecs[ID]/profile_path`
       - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
 
+    * - **Minimal number of well pairs** (ates)
+      - ✖
+      - 0
+      -
+      - **✓**
+      - ✖
+      - :code:`hubs[ID]/techs[id]/ates_params/schedule_params[ID]/well_pairs_min`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Minimal summed-up backward transport** (link)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_max_backward`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Maximal summed-up forward transport** (link)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_max_forward`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Maximal summed-up imports/exports** (import/export)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec
       - ✖
       - ✖
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/sum_max`
@@ -975,7 +894,7 @@ Parameter table
     * - **Maximal summed-up output** (conversion)
       - ✖
       - :math:`\infty`
-      - kWh
+      - ec_out_main
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/conversion_params/out_sum_max`
@@ -984,29 +903,38 @@ Parameter table
     * - **Min** (import/export)
       - ✖
       - 0
-      - kW
+      - ec/h
       - ✖
       - **✓**
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/min`, :code:`stages[ID]/hubs[ID]/ecs[ID]/profile_path`
       - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
 
-    * - **Minimal autarky** (autarky)
+    * - **Minimal self-sufficiency** (self-sufficiency)
       - ✖
       - 0
+      - [-]
       -
       -
-      -
-      - :code:`system_params/autarky_min`
+      - :code:`system_params/self_sufficiency_min`
       - :ref:`stages.yaml<stages_yaml>`
 
     * - **Minimal capacity** (link)
       - ✖
       - 0
-      - kW
+      - ec/h
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/cap_min`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
+
+    * - **Minimal capacity** (load_shifting)
+      - ✖
+      - 0
+      - ec
+      - ✖
+      - ✖
+      - :code:`load_shifting[ID]/cap_min`
+      - :ref:`demands.yaml<demands_yaml>`
 
     * - **Minimal capacity** (tech)
       - ✖
@@ -1020,7 +948,7 @@ Parameter table
     * - **Minimal stage of charge** (ebm)
       - ✖
       - 0
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/soc_min`
@@ -1029,7 +957,7 @@ Parameter table
     * - **Minimal stage of charge** (storage)
       - ✖
       - 0
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/storage_params/soc_min`
@@ -1038,25 +966,25 @@ Parameter table
     * - **Minimal summed-up backward transport** (link)
       - ✖
       - 0
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_min_backward`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Minimal summed-up forward transport** (link)
       - ✖
       - 0
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`start_hubs[ID]/end_hubs[ID]/links[ID]/ec_params/sum_min_forward`
-      - :ref:`links.yaml<network_links_yaml>`
+      - :ref:`network_links.yaml<network_links_yaml>`
 
     * - **Minimal summed-up imports/exports** (import/export)
       - ✖
       - 0
-      - kWh
+      - ec
       - ✖
       - ✖
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/sum_min`
@@ -1065,7 +993,7 @@ Parameter table
     * - **Minimal summed-up output** (conversion)
       - ✖
       - 0
-      - kWh
+      - ec_out_main
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/conversion_params/out_sum_min`
@@ -1074,11 +1002,11 @@ Parameter table
     * - **Minimal unit capacity** (net_tech)
       - ✖
       - 0
-      - kW
+      - ec/h
       - **✓**
       - ✖
       - :code:`net_techs[ID]/unit_cap_min`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **Minimal unit capacity** (tech)
       - ✖
@@ -1092,25 +1020,16 @@ Parameter table
     * - **Nominal demand** (ebm)
       - ✖
       - 0
-      - kW
+      - ec/h
       - **✓**
       - **✓**
       - :code:`hubs[ID]/techs[ID]/ebm_params/demand_nominal`, :code:`hubs[ID]/techs[ID]/ebm_params/profile_path`
       - :ref:`hubs.yaml<hubs_yaml>`
 
-    * - **Nominal velocity** (wind)
-      - **✓**
-      -
-      - :math:`m/s`
-      - **✓**
-      - ✖
-      - :code:`hubs[ID]/techs[ID]/wind_params/velo_nominal`
-      - :ref:`techs.yaml<techs_yaml>`
-
     * - **Number of horizon timesteps** (system)
       - **✓**
       -
-      - 1
+      -
       - ✖
       - ✖
       - :code:`system_params/num_times_horizon`
@@ -1119,11 +1038,11 @@ Parameter table
     * - **Number of vehicles** (ebm)
       - **✓**
       -
-      - 1
+      -
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[id]/ebm_params/num_vehicles`
-      - :ref:`hubs_yaml`
+      - :ref:`hubs.yaml <hubs_yaml>`
 
     * - **One-time CAPEX cost** (net_tech)
       - ✖
@@ -1132,7 +1051,7 @@ Parameter table
       - **✓**
       - ✖
       - :code:`net_techs[ID]/costs/one_time_capex`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **One-time CAPEX cost** (tech)
       - ✖
@@ -1150,7 +1069,7 @@ Parameter table
       - **✓**
       - ✖
       - :code:`net_techs[ID]/costs/one_time_opex`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **One-time OPEX cost** (tech)
       - ✖
@@ -1173,16 +1092,16 @@ Parameter table
     * - **OPEX cost per capacity** (net_tech)
       - ✖
       - 0
-      - CHF/kW/m
+      - CHF/((ec/h)*m)
       - **✓**
       - ✖
       - :code:`net_techs[ID]/costs/opex_per_cap`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **OPEX per output energy** (conversion)
       - ✖
       - 0
-      - CHF/kWh
+      - CHF/out_ec_main
       - **✓**
       - ✖
       - :code:`techs[ID]/costs/opex_per_energy`
@@ -1191,11 +1110,11 @@ Parameter table
     * - **OPEX per transported energy** (net_tech)
       - ✖
       - 0
-      - CHF/kWh/m
+      - CHF/(ec*m)
       - **✓**
       - ✖
       - :code:`net_techs[ID]/costs/opex_per_energy`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **Output ec** (conversion)
       - **✓**
@@ -1209,7 +1128,7 @@ Parameter table
     * - **Output efficiency** (conversion)
       - **✓**
       -
-      - 1
+      - ec_out/ec_in_main
       - **✓**
       - **✓**
       - :code:`techs[ID]/conversion_params/out_ecs[ID]/out_eff`
@@ -1218,7 +1137,7 @@ Parameter table
     * - **Output efficiency** (EBM)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`techs[ID]/ebm_params/out_eff`
@@ -1227,7 +1146,7 @@ Parameter table
     * - **Output efficiency** (storage)
       - ✖
       - 1
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`techs[ID]/storage_params/out_eff`
@@ -1236,7 +1155,7 @@ Parameter table
     * - **Peak cost, above** (load_shifting)
       - ✖
       - 0
-      - CHF/kW
+      - CHF/(ec/h)
       - ✖
       - ✖
       - :code:`load_shifting[ID]/peak_cost_above`
@@ -1245,7 +1164,7 @@ Parameter table
     * - **Peak cost, below** (load_shifting)
       - ✖
       - 0
-      - CHF/kW
+      - CHF/(ec/h)
       - ✖
       - ✖
       - :code:`load_shifting[ID]/peak_cost_below`
@@ -1254,25 +1173,25 @@ Parameter table
     * - **Price** (import/export)
       - ✖
       - 0
-      - CHF/kW
+      - CHF/ec
       - ✖
       - **✓**
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/price`, :code:`stages[ID]/hubs[ID]/ecs[ID]/profile_path`
       - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
 
-    * - **Rotor area** (wind)
-      - **✓**
-      -
-      - :math:`m^2`
-      - **✓**
+    * - **Self-sufficiency calculation method** (self-sufficiency)
       - ✖
-      - :code:`hubs[ID]/techs[ID]/wind_params/rotor_area`
-      - :ref:`techs.yaml<techs_yaml>`
+      - "none"
+      -
+      -
+      -
+      - :code:`system_params/self_sufficiency_calculation_method`
+      - :ref:`stages.yaml<stages_yaml>`
 
     * - **Specific heat capacity of aquifer** (ates)
       - (**✓**)
       -
-      - :math:`J/(kg*K)`
+      - Ws/(kg*K)
       - ✖
       - ✖
       - :code:`hubs[ID]/ates_params/specific_heat_capacity_aquifer`
@@ -1281,7 +1200,7 @@ Parameter table
     * - **Solar area** (solar)
       - ✖
       - 0
-      - :math:`m^2`
+      - m^2
       - ✖
       - ✖
       -
@@ -1290,7 +1209,7 @@ Parameter table
     * - **Solar irradiation** (solar)
       - ✖
       - 0
-      - kW/:math:`m^2`
+      - (ec/h)/m^2
       - ✖
       - ✖
       -
@@ -1335,7 +1254,7 @@ Parameter table
     * - **Start year** (stage)
       - **✓**
       -
-      - 1
+      -
       - ✖
       - ✖
       - :code:`stages[ID]/start_year`
@@ -1344,7 +1263,7 @@ Parameter table
     * - **Standby loss** (ebm)
       - ✖
       - 0
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/standby_loss`
@@ -1353,7 +1272,7 @@ Parameter table
     * - **Standby loss** (storage)
       - ✖
       - 0
-      - 1
+      - [-]
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/storage_params/standby_loss`
@@ -1362,7 +1281,7 @@ Parameter table
     * - **Storage capacity** (ebm)
       - **✓**
       -
-      - kWh
+      - ec
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/storage_cap`
@@ -1371,16 +1290,34 @@ Parameter table
     * - **Storativity of aquifer** (ates)
       - (**✓**)
       -
-      - :math:`1`
+      - [-]
       - ✖
       - ✖
       - :code:`hubs[ID]/ates_params/storativity_aquifer`
       - :ref:`hubs.yaml<hubs_yaml>`
 
+    * - **Temperature, heating inlet** (heatpump)
+      - (**✓**)
+      -
+      - K
+      - **✓**
+      - **✓**
+      - :code:`hubs[ID]/techs[ID]/heatpump_params/temp_heat_in`, :code:`hubs[ID]/techs[ID]/heatpump_params/profile_path`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Temperature, heating outlet** (heatpump)
+      - (**✓**)
+      -
+      - K
+      - **✓**
+      - **✓**
+      - :code:`hubs[ID]/techs[ID]/heatpump_params/temp_heat_out`, :code:`hubs[ID]/techs[ID]/heatpump_params/profile_path`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Thermal radius per cold well** (ates)
       - ✖
       -
-      - :math:`m`
+      - m
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/thermal_radius_per_cold_well`
@@ -1389,7 +1326,7 @@ Parameter table
     * - **Thermal radius per warm well** (ates)
       - ✖
       -
-      - :math:`m`
+      - m
       - **✓**
       - ✖
       - :code:`hubs[ID]/techs[ID]/ates_params/schedule_params[ID]/thermal_radius_per_warm_well`
@@ -1398,34 +1335,34 @@ Parameter table
     * - **Thickness of aquifer** (ates)
       - (**✓**)
       -
-      - :math:`m`
+      - m
       - ✖
       - ✖
       - :code:`hubs[ID]/ates_params/thickness_aquifer`
       - :ref:`hubs.yaml<hubs_yaml>`
 
-    * - **Transmission loss** (net_tech)
+    * - **Transmission decay** (net_tech)
       - ✖
       - 0
       - 1/m
       - **✓**
       - ✖
-      - :code:`net_techs[ID]/trans_loss`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :code:`net_techs[ID]/trans_decay`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **TRL** (net_tech)
       - ✖
       - :math:`\infty`
-      - 1
+      -
       - **✓**
       - ✖
       - :code:`net_techs[ID]/trl`
-      - :ref:`net_techs.yaml<network_techs_yaml>`
+      - :ref:`network_techs.yaml<network_techs_yaml>`
 
     * - **TRL** (tech)
       - ✖
       - :math:`\infty`
-      - 1
+      -
       - **✓**
       - ✖
       - :code:`techs[ID]/tech_params/trl`
@@ -1434,20 +1371,11 @@ Parameter table
     * - **TRL threshold** (system)
       - ✖
       - 0
-      - 1
+      -
       - ✖
       - ✖
       - :code:`system_params/trl_threshold`
       - :ref:`stages.yaml<stages_yaml>`
-
-    * - **Turbine footprint** (wind)
-      - **✓**
-      -
-      - :math:`m^2`
-      - **✓**
-      - ✖
-      - :code:`hubs[ID]/techs[ID]/wind_params/turbine_footprint`
-      - :ref:`techs.yaml<techs_yaml>`
 
     * - **Well pair area calculation method** (ates)
       - ✖
@@ -1458,29 +1386,26 @@ Parameter table
       - :code:`techs[ID]/ates_params/well_pair_area_calc_method`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **Well distance** (ates)
+      - **(✓)**
+      -
+      - m
+      - ✓
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/ates_params/well_distance`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Well radius** (ates)
       - (**✓**)
       -
-      - :math:`m`
+      - m
       - ✖
       - ✖
       - :code:`techs[ID]/ates_params/well_radius`
       - :ref:`techs.yaml<techs_yaml>`
 
-    * - **Wind area** (wind)
-      - ✖
-      - 0
-      - :math:`m^2`
-      - ✖
-      - ✖
-      -
-      - :ref:`wind_areas.csv<wind_areas_csv>`
+.. only:: latex
 
-    * - **Wind velocity** (wind)
-      - ✖
-      - 0
-      - m/s
-      - ✖
-      - ✖
-      -
-      - :ref:`wind_velocity.csv<wind_velocity_csv>`
+   .. raw:: latex
+
+      \end{landscape}

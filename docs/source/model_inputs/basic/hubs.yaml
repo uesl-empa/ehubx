@@ -25,8 +25,11 @@ hubs:
 
   - tech_id: X4
     ates_params:
+      well_pairs_min: 3
+      well_pairs_max: 5
       elec_per_energy_heat: [[2020, 0.1], [2025, 0.09]]
       elec_per_energy_cool: [[2020, 0.08], [2025, 0.07]]
+      well_distance: 100 m
       schedule_params:
       - schedule_id: AS1
         max_pump_rate_per_warm_well: [[2020, 1.2], [2025, 1.1]]
@@ -35,6 +38,8 @@ hubs:
         thermal_radius_per_cold_well: [[2020, 140], [2025, 135]]
         max_heat_over_cool: 1.5
         max_cool_over_heat: 1.5
+        availability: [[2020, 0.9], [2025, 0.91]]
+        profile_path: ates_profiles.csv
 
   - tech_id: X5
     ebm_params:
@@ -48,6 +53,7 @@ hubs:
       cop: [[2020, 3.5], [2025, 4.0]]
       temp_heat_in: 38
       temp_heat_out: 65
+      availability: [[2020, 0.9], [2025, 0.91]]
       profile_path: hub_profiles.csv
 
   - tech_id: X8

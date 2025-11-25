@@ -1,0 +1,9 @@
+stage_id,S1
+hub_id,H15
+tech_id,X15Ates
+ates_schedule_id,AS15
+profile_key,availability
+unit,1
+1,0.5
+2,0.8
+3,1

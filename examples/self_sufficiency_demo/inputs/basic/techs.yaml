@@ -1,0 +1,14 @@
+techs:
+- tech_id: XConv
+  type: conversion
+  tech_params:
+    lifetime: 20 a
+  costs:
+    capex_per_cap: 100 CHF/kW
+  conversion_params:
+    in_ecs:
+    - in_id: Solar
+      in_part: 1 kWh
+    out_ecs:
+    - ec_id: El
+      out_eff: 0.1

@@ -1,3 +1,9 @@
+.. only:: latex
+
+   .. raw:: latex
+
+      \begin{landscape}
+
 .. role:: raw-math(raw)
     :format: latex html
 
@@ -26,13 +32,12 @@ The ehubX model is built from sub-models (or *modules*) that address different a
         |-- stor_tech_model
         |-- conv_tech_model
             |-- solar_tech_model
-            |-- wind_tech_model
         |-- ebm_tech_model
         |-- ates_model
         |-- hp_tech_model
-    |-- autarky_model
+    |-- self_sufficiency_model
 
-
+Each model is responsible for a specific aspect of the energy system and most models are built independently from each other, relying only on models which lie higher up in the hierarchy. This modular structure allows for easy extension of the framework by adding new models or modifying existing ones. The :ref:`energy system model<energy_system_model>` serves as the overarching bridge that integrates all sub-models into a cohesive whole. We will start here with the individual model although some users may find it more intuitive to start with the :ref:`energy system model<energy_system_model>` first.
 
 .. _stage_model:
 
@@ -82,19 +87,25 @@ Import of energy carriers is possible for certain tuples of stages, hubs and ecs
 denotes the import amounts per time step. These values may be constrained
 
 a) in a piecewise manner by :math:`min[s, h, e, t] \le \mathcal{V}_{Imp}[s, h, e, t] \le max[s, h, e, t]` where :math:`min` and :math:`max` are parameters from :ref:`imports.yaml<imports_yaml>`.
-b) in a summed-up manner by :math:`sum\_min[s, h, e] \le \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] \le sum\_max[s, h, e]` where :math:`sum\_min` and :math:`sum_\max` are parameters from :ref:`imports.yaml<imports_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value.
+b) in a summed-up manner by :math:`sum\_min[s, h, e] \le \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] \le sum\_max[s, h, e]` where :math:`sum\_min` and :math:`sum\_max` are parameters from :ref:`imports.yaml<imports_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value.
 
 Certain costs are associated with imports which are defined per import tuple using the parameter :math:`price` from :ref:`imports.yaml<imports_yaml>` by a fixed variable
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{ImpCost}: \mathcal{S}_{ImpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ImpCost}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot price[s, h, e, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{ImpCost}: \mathcal{S}_{ImpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ImpCost}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot price[s, h, e, t] \cdot \mathcal{V}_{Imp}[s, h, e, t]
+\end{align*}`
 
 Similarily, imports might come with CO2 emissions. These are quantified using the parameter :math:`co2` from :ref:`imports.yaml<imports_yaml>` and tracked in a  fixed variable
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{ImpCo2}: \mathcal{S}_{ImpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ImpCo2}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot co2[s, h, e, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{ImpCo2}: \mathcal{S}_{ImpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ImpCo2}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot co2[s, h, e, t] \cdot \mathcal{V}_{Imp}[s, h, e, t]
+\end{align*}`
 
 Information about costs and CO2 for imports are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variables for convenience:
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{ImpCostTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ImpCostTotal} &= \sum_{(s, h, e) \in \mathcal{S}_{ImpTuple}} \mathcal{V}_{ImpCost}[s, h, e] \\ \mathcal{V}_{ImpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ImpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ImpTuple} \\ s'=s}} \mathcal{V}_{ImpCo2}[s', h, e] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{ImpCostTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ImpCostTotal} &= \sum_{(s, h, e) \in \mathcal{S}_{ImpTuple}} \mathcal{V}_{ImpCost}[s, h, e] \\ \mathcal{V}_{ImpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ImpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ImpTuple} \\ s'=s}} \mathcal{V}_{ImpCo2}[s', h, e]
+\end{align*}`
 
 
 
@@ -110,19 +121,25 @@ Export of energy carriers is possible for certain tuples of stages, hubs and ecs
 denotes the export amounts per time step. These values may be constrained
 
 a) in a piecewise manner by :math:`min[s, h, e, t] \le \mathcal{V}_{Exp}[s, h, e, t] \le max[s, h, e, t]` where :math:`min` and :math:`max` are parameters from :ref:`exports.yaml<exports_yaml>`.
-b) in a summed-up manner by :math:`sum\_min[s, h, e] \le \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Exp}[s, h, e, t] \le sum\_max[s, h, e]` where :math:`sum\_min` and :math:`sum_\max` are parameters from :ref:`exports.yaml<exports_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value.
+b) in a summed-up manner by :math:`sum\_min[s, h, e] \le \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Exp}[s, h, e, t] \le sum\_max[s, h, e]` where :math:`sum\_min` and :math:`sum\_max` are parameters from :ref:`exports.yaml<exports_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value.
 
 Certain profits are associated with exports which are defined per export tuple using the parameter :math:`price` from :ref:`exports.yaml<exports_yaml>` by a fixed variable
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{ExpProfit}: \mathcal{S}_{ExpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ExpProfit}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot price[s, h, e, t] \cdot \mathcal{V}_{Exp}[s, h, e, t] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{ExpProfit}: \mathcal{S}_{ExpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ExpProfit}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot price[s, h, e, t] \cdot \mathcal{V}_{Exp}[s, h, e, t]
+\end{align*}`
 
 Similarily, exports might come with reductions in CO2 emissions. These are quantified using the parameter :math:`co2` from :ref:`exports.yaml<exports_yaml>` and tracked in a  fixed variable
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{ExpCo2}: \mathcal{S}_{ExpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ExpCo2}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot co2[s, h, e, t] \cdot \mathcal{V}_{Exp}[s, h, e, t] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{ExpCo2}: \mathcal{S}_{ExpTuple} &\to \mathbb{R} \\ \mathcal{V}_{ExpCo2}[s, h, e] &= \sum_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot co2[s, h, e, t] \cdot \mathcal{V}_{Exp}[s, h, e, t]
+\end{align*}`
 
 Information about profits and CO2 for exports are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variables for convenience:
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{ExpProfitTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ExpProfitTotal} &= \sum_{(s, h, e) \in \mathcal{S}_{ExpTuple}} \mathcal{V}_{ExpProfit}[s, h, e] \\ \mathcal{V}_{ExpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ExpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ExpTuple} \\ s'=s}} \mathcal{V}_{ExpCo2}[s', h, e] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{ExpProfitTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ExpProfitTotal} &= \sum_{(s, h, e) \in \mathcal{S}_{ExpTuple}} \mathcal{V}_{ExpProfit}[s, h, e] \\ \mathcal{V}_{ExpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ExpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ExpTuple} \\ s'=s}} \mathcal{V}_{ExpCo2}[s', h, e]
+\end{align*}`
 
 
 
@@ -131,13 +148,34 @@ Information about profits and CO2 for exports are required in the :ref:`energy s
 Demand model
 --------------
 
-There are demand values for certain tuples of stages, hubs and ecs, as defined piecewise in :ref:`demands.yaml<demands_yaml>`. The set of all demand tuples is labeled :math:`\mathcal{S}_{DemandTuple} \subset \mathcal{S}_{Stage} \times \mathcal{S}_{Hub} \times \mathcal{S}_{Ec}`. This set is required by the :ref:`energy system model<energy_system_model>`.
+There are demand values for certain tuples of stages, hubs and ecs, as defined piecewise in :ref:`demands.yaml<demands_yaml>`. As indicated in this file, there are two types of demands: Demand-profiles (given per time step), and demand-sums (indicating a demand to the total supply over the entire time horizon). Since each of these applies to a tuple of stage, hub, and ec, we define accordingly:
 
-Additionally, certain formulations in other modules require a so-called *big-M* parameter which is very common in MILP formulations. Essentially, this is a positive value that is "as large as it needs to be", usually larger than any values an optimization variable is going to assume. Since it's important that this parameter is chosen "tightly", ehubX will try to calculate it specifically for the occasions where it is needed. However, sometimes the chosen input parameters don't allow this and we require a fallback option. For this reason, the demand module calculates a generic big-M parameter which is larger than any value we are likely to encounter in our energy system. This parameter is given by
+:raw-math:`\begin{align*}
+\mathcal{S}_{DemandProfileTuple}, ~\mathcal{S}_{DemandSumTuple} \subset &\mathcal{S}_{Stage} \times \mathcal{S}_{Hub} \times \mathcal{S}_{Ec}, \quad \mathcal{S}_{DemandProfileTuple} \cap \mathcal{S}_{DemandSumTuple} = \emptyset
+\end{align*}`
 
-:raw-math:`$$ \mathcal{P}_{BigMGeneric} = \left \{ \begin{array}{rl} 10^6, & \text{if } \mathcal{S}_{DemandTuple} = \emptyset \\ 10^3 \left( \max\limits_{\substack{s \in \mathcal{S}_{Stage} \\ t \in \mathcal{S}_{Time}}} \sum\limits_{\substack{(s', h, e) \in \mathcal{S}_{DemandTuple} \\ s' = s}} demand[s', h, e, t] \right) + 10^{-5}, & else \end{array} \right . $$`
+We also label the joint set of all demand tuples as
 
-Note the underlying assumption here that the demand series will be able to quantify the general dimensionality of the system. Especially in systems with small demand profiles (but also in general), it might be prudent to explicitly set values for certain parameters so that the generic big-M parameter does not have to be used. Tailored warning messages are routinely logged for this reason, notifying the user which parameters are missing to calculate a specific big-M parameter (the most common candidate for this is :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>` and :ref:`network_links.yaml<network_links_yaml>`).
+:raw-math:`$$ \mathcal{S}_{DemandTuple} = \mathcal{S}_{DemandProfileTuple} \cup \mathcal{S}_{DemandSumTuple} $$`
+
+For each of these demand tuples, the system has to provide a supply that meets the demand values.
+
+:raw-math:`$$ \mathcal{V}_{DemandSupply}: \mathcal{S}_{DemandTuple} \times \mathcal{S}_{Time} \to \mathbb{R}^+_0 $$`
+
+Now these variables need to be properly constrained according to the type of demand. For demand-profiles, this is handled by the overarching :ref:`energy system model<energy_system_model>` since the supply is not only influenced by the demand values itself, but also by the load shifting and load shedding impacts. For the demand-sums, load shedding and load shifting are disallowed, so we can define the constraint here:
+
+:raw-math:`$$ \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{DemandSupply}[s, h, e, t] = demand\_sum[s, h, e]. $$`
+
+Additionally, certain formulations in other modules require a so-called *big-M* parameter which is very common in MILP formulations. Essentially, this is a positive value that is "as large as it needs to be" for the situation at hand. As an example, if a binary variable :math:`y \in \{0,1\}` needs to be true for an associated continuous variable :math:`x \in \mathbb{R}` to be larger than zero, we would use a constraint of the form :math:`x \le M \cdot y` with a value :math:`M > 0`. However, if :math:`y = 1` is the case, the variable :math:`x` should still be allowed to reach any value in its permitted range. If :math:`x` has an upper limit :math:`\overline{x}` from the model formulation already, the case is easy: Just use :math:`M = \overline{x}`. However, this is often not the case from our model formulations (as an example, a technology's capacity variable might not have a *cap_max* setting). For these cases, we require a *generic* big-M parameter that is larger than any value our variables are likely to assume. This is obviously not an exact science since we are dealing with unrestricted variables but we can use the demand module to make an educated guess:
+
+* For a demand-profile tuple :math:`(s, h, e) \in \mathcal{S}_{DemandProfileTuple}` and a time :math:`t \in \mathcal{S}_{Time}`, the value :math:`demand\_profile[s, h, e, t]` can serve as an indicator for the magnitude of the system. We can therefore derive a big-M parameter
+  :raw-math:`$$ BigM_{DemandProfile}[s, h, e, t] = C_{BigM} \cdot demand\_profile[s, h, e, t] $$`
+  which we postulate to be larger than an an inflow or outflow to an energy balance node (cf. the energy balance equation in the :ref:`energy system model<energy_system_model>`) from any module. Here, :math:`C_{BigM} \approx \mathcal{O}(10)` is reasonable multiplier. The factor of 10 is somewhat arbitrary but should be large enough to cover most situations.
+* Similar to the point above, we sometimes require a big-M parameter for the *sum* of inflows/outflows to energy balance nodes. For this, we use
+  :raw-math:`$$ BigM_{DemandProfileSum}[s, h, e] = C_{BigMSum} \cdot \max\limits_{t \in \mathcal{S}_{Time}} demand\_profile[s, h, e, t] $$`
+  with a similar logic than above. Since these values tend to be much larger than the per-timestep values above, we tend to use a smaller multiplier of :math:`C_{BigMSum} \approx \mathcal{O}(1)` to keep the system relatively well-scaled.
+
+Note the underlying assumption in this approach that the demand series will be able to quantify the general dimensionality of the system. Especially in systems with small demand profiles (but also in general), it might be prudent to explicitly set values for certain parameters so that the generic big-M parameter does not have to be used. Tailored warning messages are routinely logged for this reason, notifying the user which parameters are missing to calculate a specific big-M parameter (the most common candidate for this is :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>` and :ref:`network_links.yaml<network_links_yaml>`). Additionally, if no demand series exists for a specific carrier, a fallback option is required. For our case, this comes in the form of the parameter *heur_max* from :ref:`ecs.yaml<ecs_yaml>` which is therefore mandatory for ecs without a demand series.
 
 
 
@@ -152,13 +190,17 @@ The load shedding module parses the data model for the set of stage-hub-ec tuple
 
 measures the amount of demand that is chosen not be delivered by the system. This variable is constrained from above in the following way:
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{LoadShedding}[s, h, e, t] \le \min \big( &max\_abs[s, h, e, t], \\ &max\_rel[s, h, e, t] \cdot demand[s, h, e, t] \big) \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{LoadShedding}[s, h, e, t] \le \min \big( &max\_abs[s, h, e, t], \\ &max\_rel[s, h, e, t] \cdot demand[s, h, e, t] \big)
+\end{align*}`
 
 where :math:`max\_abs`, :math:`max\_rel` and :math:`demand` are parameters from :ref:`demands.yaml<demands_yaml>`. Due to the integration of :math:`\mathcal{V}_{LoadShedding}` into the :ref:`energy system model<energy_system_model>`, the variable is not able to take values larger than :math:`\mathcal{V}_{Demand}`, thereby ensuring that the model is not able to shed more amounts than the actual demand. Additionally, a warning is logged if :math:`max\_rel` is set to a value larger than one to make the user aware of this circumstance.
 
 Shedding loads is associated with certain costs. These are measure by the fixed variable
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{LoadSheddingCost}: \mathcal{S}_{LoadShedding} &\to \mathbb{R}^+_0, \\ \mathcal{V}_{LoadSheddingCost}[s, h, e] &= \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot energy\_cost[s, h, e, t] \cdot \mathcal{V}_{LoadShedding}[s, h, e, t] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{LoadSheddingCost}: \mathcal{S}_{LoadShedding} &\to \mathbb{R}^+_0, \\ \mathcal{V}_{LoadSheddingCost}[s, h, e] &= \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot energy\_cost[s, h, e, t] \cdot \mathcal{V}_{LoadShedding}[s, h, e, t]
+\end{align*}`
 
 Here, :math:`energy\_cost` is a parameter from :ref:`demands.yaml<demands_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value. Inforomation about these costs are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variable for convenience:
 
@@ -179,21 +221,21 @@ The variable
 
 represents the amount of load shifting being performed at each time step, with positive values indicating an over-production of the ec and negative values indicating an under-production. We also use the terminology *above/below the demand curve* in connection to positive/negative load shifting values. The essential characteristic of any load shifting model is that no energy can be created or destroyed by it, only shifts along the time axis can occur. In ehubX, the way this characteristic is formulated is through *load shifting intervals*: The time horizon :math:`\mathcal{S}_{TimeHorizon}` is segmented into equidistant intervals
 
-:raw-math:`$$ \begin{align*} \mathcal{S}_{TimeHorizon} &= \Big \{ \underbrace{1, ... , interval\_length}_{\mathcal{I}_1}, ~\underbrace{interval\_length + 1, ..., 2 \cdot interval\_length}_{\mathcal{I}_2}, ... \Big \} \\ &= \mathcal{I}_1 ~\cup~ \mathcal{I}_2 ~\cup~ ... ~\cup~ \mathcal{I}_N ~\cup~ \mathcal{R} \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{S}_{TimeHorizon} &= \Big \{ \underbrace{1, ... , interval\_length}_{\mathcal{I}_1}, ~\underbrace{interval\_length + 1, ..., 2 \cdot interval\_length}_{\mathcal{I}_2}, ... \Big \} \\ &= \mathcal{I}_1 ~\cup~ \mathcal{I}_2 ~\cup~ ... ~\cup~ \mathcal{I}_N ~\cup~ \mathcal{R}
+\end{align*}`
 
 Here, :math:`interval\_length` is a parameter from :ref:`demands.yaml<demands_yaml>` and :math:`\mathcal{R}` holds the remaining time indices at the end of the horizon that did not fit into an interval anymore. We now demand *neutrality* on each load shifting interval (:math:`n=1,...,N`) through the constraints
 
-:raw-math:`$$ \begin{align*} \sum\limits_{t \in \mathcal{I}_n} \mathcal{V}_{LoadShifting}[s, h, e, cluster\_ts[s, t]] = 0 \end{align*} $$`
+:raw-math:`\begin{align*}
+\sum\limits_{t \in \mathcal{I}_n} \mathcal{V}_{LoadShifting}[s, h, e, t] = 0
+\end{align*}`
 
-Here, :math:`cluster\_ts` is a :ref:`clustering<rom>` value mapping giving us the cluster timestep that represents the horizon timestep :math:`t`. This constraint ensures that no energy can be created or destroyed within any load shifting interval. To also account for the remainder set :math:`\mathcal{R}`, we additionally introduce a *global neutrality condition*
+This constraint ensures that no energy can be created or destroyed within any load shifting interval. To also account for the remainder set :math:`\mathcal{R}`, we additionally introduce a *global neutrality condition*
 
-:raw-math:`$$ \sum\limits_{t \in \mathcal{S}_{TimeHorizon}} \mathcal{V}_{LoadShifting}[s, h, e, cluster\_ts[s, t]] = 0 $$`
+:raw-math:`$$ \sum\limits_{t \in \mathcal{S}_{TimeHorizon}} \mathcal{V}_{LoadShifting}[s, h, e, t] = 0 $$`
 
-Be aware that because of the way clustering works, the above equality is equivalent to
-
-:raw-math:`$$ \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{LoadShifting} [s, h, e, t] = 0 $$`
-
-where :math:`weight` is a :ref:`clustering<rom>` value. The fact that both over-deliverance and under-deliverance of the demand curve is measured in the variable :math:`\mathcal{V}_{LoadShifting}` motivates a splitting of this variable into a positive and negative part. This is done by introducing two nonnegative variables
+The fact that both over-deliverance and under-deliverance of the demand curve is measured in the variable :math:`\mathcal{V}_{LoadShifting}` motivates a splitting of this variable into a positive and negative part. This is done by introducing two nonnegative variables
 
 :raw-math:`$$ \mathcal{V}_{LoadShiftingAbove}, \mathcal{V}_{LoadShiftingBelow}: \mathcal{S}_{LoadShiftingTuple} \times \mathcal{S}_{Time} \to \mathbb{R}^+_0 $$`
 
@@ -210,23 +252,41 @@ Without the presence of costs for the sub-variables, these two solutions would b
 
 Next, let us introduce the fixed variables which quantify the energy costs we mentioned above:
 
-:raw-math:`$$ \begin{align*} &\mathcal{V}_{LoadShiftingCostEnergy}: \mathcal{S}_{LoadShiftingTuple} \to \mathbb{R}, \\ &\mathcal{V}_{LoadShiftingCostEnergy}[s, h, e] = \sum\limits_{t \in \mathcal{S}_{LoadShiftingTuple}} \bigg( \\ &weight[s, t] \cdot \big( energy\_cost\_above[s, h, e, t] \cdot \mathcal{V}_{LoadShiftingAbove}[s, h, e, t] \\ &+ energy\_cost\_below[s, h, e, t] \cdot \mathcal{V}_{LoadShiftingBelow}[s, h, e, t] ) \bigg) \end{align*} $$`
+:raw-math:`\begin{align*}
+&\mathcal{V}_{LoadShiftingCostEnergy}: \mathcal{S}_{LoadShiftingTuple} \to \mathbb{R}, \\ &\mathcal{V}_{LoadShiftingCostEnergy}[s, h, e] = \sum\limits_{t \in \mathcal{S}_{LoadShiftingTuple}} \bigg( \\ energy\_cost\_above[s, h, e, t] \cdot \mathcal{V}_{LoadShiftingAbove}[s, h, e, t] \\ &+ energy\_cost\_below[s, h, e, t] \cdot \mathcal{V}_{LoadShiftingBelow}[s, h, e, t] \bigg)
+\end{align*}`
 
-Here, :math:`energy\_cost\_above` and :math:`energy\_cost\_below` are parameters from :ref:`demands.yaml<demands_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value. Because of the reasons explained above, a warning is written to the logfile if the energy cost parameters are chosen as zero.
+Here, :math:`energy\_cost\_above` and :math:`energy\_cost\_below` are parameters from :ref:`demands.yaml<demands_yaml>`. Because of the reasons explained above, a warning is written to the logfile if the energy cost parameters are chosen as zero.
 
 Moving on to the next constraint, the maximum load shifting amounts above and below the demand curve may be bounded as follows:
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{LoadShiftingAbove}[s, h, e, t] \le \min \big( &max\_above\_abs[s, h, e, t], \\ &max\_above\_rel[s, h, e, t] \cdot demand[s, h, e, t] \big) \\ \mathcal{V}_{LoadShiftingBelow}[s, h, e, t] \le \min \big( &max\_below\_abs[s, h, e, t], \\ &max\_below\_rel[s, h, e, t] \cdot demand[s, h, e, t] \big) \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{LoadShiftingAbove}[s, h, e, t] \le \min \big( &max\_above\_abs[s, h, e, t], \\ &max\_above\_rel[s, h, e, t] \cdot demand[s, h, e, t] \big) \\ \mathcal{V}_{LoadShiftingBelow}[s, h, e, t] \le \min \big( &max\_below\_abs[s, h, e, t], \\ &max\_below\_rel[s, h, e, t] \cdot demand[s, h, e, t] \big)
+\end{align*}`
 
 The parameters :math:`max\_above\_abs`, :math:`max\_above\_rel`, :math:`max\_below\_abs` and :math:`max\_below\_rel` are input parameters of :ref:`demands.yaml<demands_yaml>`. A warning is included if :math:`max\_below\_rel` is larger than one since we cannot withhold more from the demand side than the actual demand itself.
 
-Another limiting factor that is included in the load shifting module is a concept of available *capacity*, specified as a parameter in :ref:`demands.yaml<demands_yaml>`. This relates to the total energy that can be shifted either above or below the demand curve on each load shifting interval:
+Another limiting factor that is included in the load shifting module is a concept of available *capacity*, which determines the maximal amount of load shifting which may occur on a single interval. The optimizer is free to scale this capacity itself by using the variables
 
-:raw-math:`$$ \sum\limits_{t \in \mathcal{I}_n} \mathcal{V}_{LoadShiftingAbove}[s, h, e, cluster\_ts[s, t]] \le capacity[s, h, e] $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{LoadShiftingCap}, \mathcal{V}_{LoadShiftingCapInstl}: \mathcal{S}_{LoadShiftingTuple} \to \mathbb{R}_0^+
+\end{align*}`
+
+Here, :math:`\mathcal{V}_{LoadShiftingCap}` is the total capacity available for load shifting on a single interval, while :math:`\mathcal{V}_{LoadShiftingCapInstl}` is amount of additionally installed capacity by the optimizer. Together with the parameter *cap_init* from :ref:`demands.yaml<demands_yaml>`, these two variables are connected by the constraint:
+
+:raw-math:`$$ \mathcal{V}_{LoadShiftingCap}[s, h, e] = cap\_init[s, h, e] + \mathcal{V}_{LoadShiftingCapInstl}[s, h, e] $$`
+
+The capacity variable limits the amount of load shifting which may occur on each interval:
+
+:raw-math:`$$ \sum\limits_{t \in \mathcal{I}_n} \mathcal{V}_{LoadShiftingAbove}[s, h, e, t] \le \mathcal{V}_{LoadShiftingCap}[s, h, e] $$`
 
 Note that because of the interval neutrality condition, the above constraint is equivalent to
 
-:raw-math:`$$ \sum\limits_{t \in \mathcal{I}_n} \mathcal{V}_{LoadShiftingBelow}[s, h, e, cluster\_ts[s, t]] \le capacity[s, h, e] $$`
+:raw-math:`$$ \sum\limits_{t \in \mathcal{I}_n} \mathcal{V}_{LoadShiftingBelow}[s, h, e, t] \le \mathcal{V}_{LoadShiftingCap}[s, h, e] $$`
+
+The installation of capacity is associated with certain costs parametrized by the *capex_per_cap* from :ref:`demands.yaml<demands_yaml>`. These costs are measured by the fixed variable
+
+:raw-math:`$$ \mathcal{V}_{LoadShiftingCostCapex}: \mathcal{S}_{LoadShiftingTuple} \to \mathbb{R}, \qquad \mathcal{V}_{LoadShiftingCostCapex}[s, h, e] = capex\_per\_cap[s, h, e] \cdot \mathcal{V}_{LoadShiftingCapInstl}[s, h, e] $$`
 
 Another kind of cost that can be attributed to the load shifting process is the peak amount of load shifting that ever occurs on the time horizon. In order to quantify this, we first need variables measuring the peak value in each direction:
 
@@ -234,11 +294,15 @@ Another kind of cost that can be attributed to the load shifting process is the 
 
 If we want to maintain linearity of the model, we cannot simply set these variables to the maximum of :math:`\mathcal{V}_{LoadShiftingAbove}` and :math:`\mathcal{V}_{LoadShiftingBelow}`. Instead, we repeat the solution we already applied for the energy costs above. First, we set a bound in one direction as follows:
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{LoadShiftingAbove}[s, h, e, t] &\le \mathcal{V}_{LoadShiftingAbovePeak}[s, h, e] \\ \mathcal{V}_{LoadShiftingBelow}[s, h, e, t] &\le \mathcal{V}_{LoadShiftingBelowPeak}[s, h, e] \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{LoadShiftingAbove}[s, h, e, t] &\le \mathcal{V}_{LoadShiftingAbovePeak}[s, h, e] \\ \mathcal{V}_{LoadShiftingBelow}[s, h, e, t] &\le \mathcal{V}_{LoadShiftingBelowPeak}[s, h, e]
+\end{align*}`
 
 This will require the peak variables to be larger or equal to the largest shift-variables. Next, if the cost associated with the peak variables is nonzero, the optimizer will try to get them as small as possible, thereby forcing them to exactly the maximum value. We measure this cost by the fixed variable
 
-:raw-math:`$$ \begin{align*} \mathcal{V}_{LoadShiftingCostPeak}: \mathcal{S}_{LoadShiftingTuple} \to &~\mathbb{R}, \\ \mathcal{V}_{LoadShiftingCostPeak}[s, h, e, t] = (&peak\_cost\_above[s, h, e] \cdot \mathcal{V}_{LoadShiftingAbovePeak}[s, h, e] \\ &peak\_cost\_below[s, h, e] \cdot \mathcal{V}_{LoadShiftingBelowPeak}[s, h, e]) \end{align*} $$`
+:raw-math:`\begin{align*}
+\mathcal{V}_{LoadShiftingCostPeak}: \mathcal{S}_{LoadShiftingTuple} \to &~\mathbb{R}, \\ \mathcal{V}_{LoadShiftingCostPeak}[s, h, e, t] = (&peak\_cost\_above[s, h, e] \cdot \mathcal{V}_{LoadShiftingAbovePeak}[s, h, e] \\ &peak\_cost\_below[s, h, e] \cdot \mathcal{V}_{LoadShiftingBelowPeak}[s, h, e])
+\end{align*}`
 
 Here, :math:`peak\_cost\_above` and :math:`peak\_cost\_below` are parameters taken from :ref:`demands.yaml<demands_yaml>`.
 
@@ -252,15 +316,17 @@ It has to be mentioned that adding this variable to the model might make it exce
 
 The big-M parameter needs to be larger than any value the left-hand side could possibly take. For our purposes, we choose the following value:
 
-:raw-math:`$$ \begin{align*} BigM_{LoadShiftTotal}[s, h, e, t] = \min \Big( &max\_above\_abs[s, h, e, t], max\_above\_rel[s, h, e, t] \cdot demand[s, h, e, t], \\ &10 \cdot demand[s, h, e, t] \Big) \\ + \min \Big( &max\_below\_abs[s, h, e, t], max\_below\_rel[s, h, e, t] \cdot demand[s, h, e, t], \\ &demand[s, h, e, t] \Big) \end{align*} $$`
+:raw-math:`\begin{align*}
+BigM_{LoadShiftTotal}[s, h, e, t] = \min \Big( &max\_above\_abs[s, h, e, t], max\_above\_rel[s, h, e, t] \cdot demand[s, h, e, t], \\ &10 \cdot demand[s, h, e, t] \Big) \\ + \min \Big( &max\_below\_abs[s, h, e, t], max\_below\_rel[s, h, e, t] \cdot demand[s, h, e, t], \\ &demand[s, h, e, t] \Big)
+\end{align*}`
 
 With the above constraint, :math:`\mathcal{V}_{YLoadShifting}` will always be 1 if :math:`\mathcal{V}_{LoadShifting}` is nonzero. Therefore, we can use it to specify the fixed cost variable
 
-:raw-math:`\begin{align*} &\mathcal{V}_{LoadShiftingCostFix}: \mathcal{S}_{LoadShifting} \to \mathbb{R}^+_0 \\ &\mathcal{V}_{LoadShiftingCostFix}[s, h, e] = \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot fix\_cost[s, h, e, t] \cdot \mathcal{V}_{YLoadShifting}[s, h, e, t] \end{align*}`
+:raw-math:`\begin{align*} &\mathcal{V}_{LoadShiftingCostFix}: \mathcal{S}_{LoadShifting} \to \mathbb{R}^+_0 \\ &\mathcal{V}_{LoadShiftingCostFix}[s, h, e] = \sum\limits_{t \in \mathcal{S}_{Time}} \cdot fix\_cost[s, h, e, t] \cdot \mathcal{V}_{YLoadShifting}[s, h, e, t] \end{align*}`
 
 Since all costs must enter the :ref:`energy system model<energy_system_model>`, we create a single variable that holds the entire load shifting costs of the model:
 
-:raw-math:`\begin{align*} \mathcal{V}_{LoadShiftingCostTotal} \in \mathbb{R}, \quad &\mathcal{V}_{LoadShiftingCostTotal} = \\ \sum\limits_{(s, h, e) \in \mathcal{S}_{LoadShiftingTuple}} \Big( &\mathcal{V}_{LoadShiftingCostEnergy}[s, h, e] + \mathcal{V}_{LoadShiftingCostPeak}[s, h, e] \\ &+ \mathcal{V}_{LoadShiftingCostFix}[s, h, e] \Big) \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{LoadShiftingCostTotal} \in \mathbb{R}, \quad &\mathcal{V}_{LoadShiftingCostTotal} = \\ \sum\limits_{(s, h, e) \in \mathcal{S}_{LoadShiftingTuple}} \Big( &\mathcal{V}_{LoadShiftingCostCapex}[s, h, e] + \mathcal{V}_{LoadShiftingCostEnergy}[s, h, e] \\ &+ \mathcal{V}_{LoadShiftingCostPeak}[s, h, e] + \mathcal{V}_{LoadShiftingCostFix}[s, h, e] \Big) \end{align*}`
 
 .. _tech_model:
 
@@ -278,11 +344,11 @@ The key feature of technologies is that they have a certain capacity
 
 This variable measures in an abstract way the amount of installed assets for each technology in each allowed stage and hub. This is a good moment to mention that the technology module in ehubX operates in a sense like an abstract module, meaning that it has no way of actually contributing to the balance of any energy carrier. Instead, this functionality is performed by the technology submodules which are
 
-* :ref:`conversion_model`,
-* :ref:`storage_model`,
-* :ref:`ebm_model`,
-* :ref:`ates_model`,
-* :ref:`heatpump_model`.
+* :ref:`conversion model <conversion_model>`,
+* :ref:`storage model<storage_model>`,
+* :ref:`EBM model<ebm_model>`,
+* :ref:`ATES model<ates_model>`,
+* :ref:`heatpump model <heatpump_model>`.
 
 The way this works internally is that when a technology is added to a model (e.g.; a storage technology), an entry is added to both the technology module and the storage module. The entry in the storage module handles storage-specific behavior whereas the entry in the technology module governs the more general, technology-related functionality described in this section.
 
@@ -298,9 +364,6 @@ Coming back to the capacity variable, each technology submodule has its own phys
       - Output power
       - kW
     * - Solar
-      - Area of installation
-      - :math:`m^2`
-    * - Wind
       - Area of installation
       - :math:`m^2`
     * - Storage
@@ -328,7 +391,7 @@ The initial capacity that is still operational in stage :math:`s` is given by
 
 :raw-math:`\begin{align*} Cap_{init}[s, h, x] = \left \{ \begin{array}{rl} cap\_init[h, x], &\text{if } start\_year[s] - init\_year < lifetime[x] - age\_init[h, x] \\ 0, &\text{else} \end{array} \right . \end{align*}`
 
-Here, :math:`cap\_init` and :math:`age\_init` are initial capacity parameters from :ref:`hubs_yaml`, :math:`start\_year` is the first year of a stage from :ref:`stages_yaml` and :math:`init\_year` is the start year of the first stage (earliest :math:`start\_year` in :ref:`stages_yaml`). The capacity installed in stage :math:`s_{instl}` that is still operational in stage :math:`s` is given by
+Here, :math:`cap\_init` and :math:`age\_init` are initial capacity parameters from :ref:`hubs.yaml<hubs_yaml>`, :math:`start\_year` is the first year of a stage from :ref:`stages.yaml<stages_yaml>` and :math:`init\_year` is the start year of the first stage (earliest :math:`start\_year` in :ref:`stages.yaml<stages_yaml>`). The capacity installed in stage :math:`s_{instl}` that is still operational in stage :math:`s` is given by
 
 :raw-math:`\begin{align*} Cap_{instl}[s_{instl}, s, h, x] = \left \{ \begin{array}{rl} \mathcal{V}_{TechCapInstl}[s_{instl}, h, x], &\text{if } 0 \le start\_year[s] - start\_year[s_{instl}] < lifetime[x] \\ 0, &\text{else} \end{array} \right . \end{align*}`
 
@@ -344,7 +407,7 @@ where the big-M parameter has to provide an upper bound to the technology capaci
 
 :raw-math:`\begin{align*} BigM_{TechCap}[s, h, x] = \left \{ \begin{array}{rl} cap\_max[s, h, x] + 10^{-5}, &\text{if } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
 
-Here, :math:`cap\_max` is the maximal capacity parameter from :ref:`hubs_yaml` and :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`.
+Here, :math:`cap\_max` is the maximal capacity parameter from :ref:`hubs.yaml<hubs_yaml>` and :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`.
 
 Similar to :math:`\mathcal{V}_{YTechCapInstl}`, we require another binary variable to monitor whether a certain technology was *used* at all, later used for the cost variable :math:`\mathcal{V}_{TechCostOpexCap}`. This variable is declared in the technology module as
 
@@ -352,19 +415,19 @@ Similar to :math:`\mathcal{V}_{YTechCapInstl}`, we require another binary variab
 
 Since the concept of *usage* may mean something different depending on the type of technology, each submodule declares its own constraint that ties this variable to a specific behavior pattern.
 
-Technology capacity is possibly subject to some constraint based on the input parameters, starting with :math:`unit\_cap\_min` from :ref:`techs_yaml`:
+Technology capacity is possibly subject to some constraint based on the input parameters, starting with :math:`unit\_cap\_min` from :ref:`techs.yaml<techs_yaml>`:
 
 :raw-math:`\begin{align*} \mathcal{V}_{TechCapInstl}[s, h, x] \ge unit\_cap\_min[s, x] \cdot \mathcal{V}_{YTechCapInstl}[s, h, x] \end{align*}`
 
-Another set of parameters that limits the capacity are :math:`cap\_min` and :math:`cap\_max` from :ref:`hubs_yaml`:
+Another set of parameters that limits the capacity are :math:`cap\_min` and :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>`:
 
 :raw-math:`\begin{align*} cap\_min[s, h, x] \le \mathcal{V}_{TechCap}[s, h, x] \le cap\_max[s, h, x] \end{align*}`
 
-Furthermore, there is the parameter :math:`last_inst_year` from :ref:`techs_yaml` which may forbid any installation after that year:
+Furthermore, there is the parameter :math:`last_inst_year` from :ref:`techs.yaml<techs_yaml>` which may forbid any installation after that year:
 
 :raw-math:`\begin{align*} \mathcal{V}_{YTechCapInstl}[s, h, x] = 0 \text{ if } start\_year[s] > last\_instl\_year[x] \end{align*}`
 
-For technologies, we allow the concept of *coupled technologies* (based on the section *coupling\_params* in :ref:`techs_yaml`). All technologies with this field are collected in a subset :math:`\mathcal{S}_{SubTech} \subset \mathcal{S}_{Tech}` and every :math:`x \in \mathcal{S}_{SubTech}` is assigned a :math:`main\_tech\_id[x] \in \mathcal{S}_{Tech}` with their associated main technology, and a :math:`cap\_factor[x] \in \mathbb{R}^+_0` describing the factor relating the capacities between this tech and their main tech:
+For technologies, we allow the concept of *coupled technologies* (based on the section *coupling\_params* in :ref:`techs.yaml<techs_yaml>`). All technologies with this field are collected in a subset :math:`\mathcal{S}_{SubTech} \subset \mathcal{S}_{Tech}` and every :math:`x \in \mathcal{S}_{SubTech}` is assigned a :math:`main\_tech\_id[x] \in \mathcal{S}_{Tech}` with their associated main technology, and a :math:`cap\_factor[x] \in \mathbb{R}^+_0` describing the factor relating the capacities between this tech and their main tech:
 
 :raw-math:`\begin{align*} \mathcal{V}_{TechCap}[s, h, x] = cap\_factor[x] \cdot \mathcal{V}_{TechCap}[s, h, main\_tech\_id[x]] \end{align*}`
 
@@ -380,9 +443,9 @@ The summand takes the following form:
 
 :raw-math:`\begin{align*} Capex_{Stage}[s_{instl}, s, h, x] ~=~ \left \{ \begin{array}{rl} capex\_per\_cap[s, x] \cdot \mathcal{V}_{TechCapInstl}[s_{instl}, h, x] & \\ +~ one\_time\_capex[s, x] \cdot \mathcal{V}_{YTechCapInstl}[s_{instl}, h, x], &\text{if } 0 \le start\_year[s] - start\_year[s_{instl}] < lifetime[x] \\ 0, &\text{else} \end{array} \right . \end{align*}`
 
-Here, :math:`capex\_per\_cap` and :math:`one\_time\_capex` are parameters from :ref:`techs_yaml`.
+Here, :math:`capex\_per\_cap` and :math:`one\_time\_capex` are parameters from :ref:`techs.yaml<techs_yaml>`.
 
-In addition to these installation-related CAPEX costs, operating and maintaining the technologies is associated with the *OPEX costs* parametrized by :math:`opex\_per\_cap` and :math:`one\_time\_opex` from :ref:`techs_yaml`:
+In addition to these installation-related CAPEX costs, operating and maintaining the technologies is associated with the *OPEX costs* parametrized by :math:`opex\_per\_cap` and :math:`one\_time\_opex` from :ref:`techs.yaml<techs_yaml>`:
 
 :raw-math:`\begin{align*} \mathcal{V}_{TechCostOpexCap}: \mathcal{S}_{TechTuple} &\to \mathbb{R}, \\ \mathcal{V}_{TechCostOpexCap}[s, h, x] &= opex\_per\_cap[s, x] \cdot \mathcal{V}_{TechCap}[s, h, x] + one\_time\_opex[s, x] \cdot \mathcal{V}_{YTechUsed}[s, h, x] \end{align*}`
 
@@ -394,7 +457,7 @@ Similar to the costs associated with tech installation, certain CO2-embodied emi
 
 :raw-math:`\begin{align*} \mathcal{V}_{TechCo2Instl}: \mathcal{S}_{TechTuple} &\to \mathbb{R} \\ \mathcal{V}_{TechCo2Instl}[s, h, x] &= \sum\limits_{\substack{s_{instl} \in \mathcal{S}_{Stage} \\ (s_{instl}, h, x) \in \mathcal{S}_{TechTuple} \\ 0 \le start\_year[s] - start\_year[s_{instl}] \le lifetime[x]}} \frac{co2\_per\_cap[s, x]}{lifetime[x]} \cdot \mathcal{V}_{TechCapInstl}[s_{instl}, h, x] \end{align*}`
 
-The parameter :math:`co\_per\_cap` comes from the :ref:`techs_yaml` file. As with the costs, we gather the total amount of CO2 emissions into a fixed variable for convenience:
+The parameter :math:`co\_per\_cap` comes from the :ref:`techs.yaml<techs_yaml>` file. As with the costs, we gather the total amount of CO2 emissions into a fixed variable for convenience:
 
 :raw-math:`\begin{align*} \mathcal{V}_{TechCo2Total}: \mathcal{S} \to \mathbb{R}, \qquad \mathcal{V}_{TechCo2Total}[s] = \sum\limits_{\substack{(s', h, x) \in \mathcal{S}_{TechTuple} \\ s = s'}} \mathcal{V}_{TechCo2Instl}[s', h, x] \end{align*}`
 
@@ -408,7 +471,7 @@ The *conversion model* defines its own set of tech tuples
 
 :raw-math:`\begin{align*} \mathcal{S}_{ConvTechTuple} = \big \{ (s, h, x) \in \mathcal{S}_{TechTuple}: ~ x \text{is a conversion technology } \big \} \end{align*}`
 
-In addition, a conversion technology may have multiple input and output ecs, as defined in :ref:`techs_yaml` and illustrated below for an example with three inputs and two outputs:
+In addition, a conversion technology may have multiple input and output ecs, as defined in :ref:`techs.yaml<techs_yaml>` and illustrated below for an example with three inputs and two outputs:
 
 .. image:: img/conversion_scheme.png
    :width: 400
@@ -416,7 +479,7 @@ In addition, a conversion technology may have multiple input and output ecs, as 
 
 The model defines sets of input and output combinations
 
-:raw-math:`\begin{align*} \mathcal{S}_{ConvTechIn} &= \big \{ (s, h, x, e): (s, h, x) \in \mathcal{S}_{ConvTechTuple}, e \text{ is in_ec of x } \big \} \\ \mathcal{S}_{ConvTechOut} &= \big \{ (s, h, x, e): (s, h, x) \in \mathcal{S}_{ConvTechTuple}, e \text{ is out_ec of x } \big \} \end{align*}`
+:raw-math:`\begin{align*} \mathcal{S}_{ConvTechIn} &= \big \{ (s, h, x, e): (s, h, x) \in \mathcal{S}_{ConvTechTuple}, e \text{ is in\_ec of x } \big \} \\ \mathcal{S}_{ConvTechOut} &= \big \{ (s, h, x, e): (s, h, x) \in \mathcal{S}_{ConvTechTuple}, e \text{ is out\_ec of x } \big \} \end{align*}`
 
 Based on these sets, the following variables track intakes and outputs of conversion technologies at every time step:
 
@@ -424,9 +487,9 @@ Based on these sets, the following variables track intakes and outputs of conver
 
 On the intake side, the ec amounts stand in a fixed relation to each other, expressed by the constraint
 
-:raw-math:`\begin{align*} \mathcal{V}_{ConvTechIn}[s, h, x, e, t] = in\_part[s, x, e] \cdot \sum\limits_{\substack{e' \in \mathcal{S}_{Ec} \\ (s, h, x, e') \in \mathcal{S}_{ConvTechIn}}} \mathcal{V}_{ConvTechIn}[s, h, x, e', t] \end{align*}`
+:raw-math:`\begin{align*} \frac{\mathcal{V}_{ConvTechIn}[s, h, x, e, t]}{in\_part[s, x, e]} = \frac{\mathcal{V}_{ConvTechIn}[s, h, x, main\_in\_ec[x], t]}{in\_part[s, x, main\_in\_ec[x]]} \end{align*}`
 
-where :math:`in\_part` is a parameter defined in :ref:`techs_yaml`. Similarily, the output amounts of each output ec are specified based on the efficiency parameter :math:`out\_eff` from :ref:`techs_yaml` which relates to the input of the main input ec :math:`main\_in\_ec`:
+where :math:`in\_part` is a parameter defined in :ref:`techs.yaml<techs_yaml>`. Similarily, the output amounts of each output ec are specified based on the efficiency parameter :math:`out\_eff` from :ref:`techs.yaml<techs_yaml>` which relates to the input of the main input ec :math:`main\_in\_ec`:
 
 :raw-math:`\begin{align*} \mathcal{V}_{ConvTechOut}[s, h, x, e, t] = out\_eff[s, x, e, t] \cdot \mathcal{V}_{ConvTechIn}[s, h, x, main\_in\_ec[x], t] \end{align*}`
 
@@ -438,19 +501,19 @@ Here, :math:`weight` is a clustering parameter from :ref:`reduced-order modeling
 
 :raw-math:`\begin{align*} BigM_{ConvMainOutSum}[s, h, x] = \left \{ \begin{array}{rl} out\_sum\_max[s, h, x], &\text{if } out\_sum\_max[s, h, x] < \infty \\ cap\_max[s, h, x] \cdot |\mathcal{S}_{TimeHorizon}| + 10^{-5}, &\text{elif } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
 
-We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`. Furthermore, :math:`out\_sum\_max` and `:math:`cap\_max` are parameters from :ref:`hubs_yaml`.
+We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`. Furthermore, :math:`out\_sum\_max` and `:math:`cap\_max` are parameters from :ref:`hubs.yaml<hubs_yaml>`.
 
-The amount of output a conversion technology can generate is not only limited by the :ref:`technology model<tech_model>`'s *capacity*` but also by the *availability* parameter from :ref:`hubs_yaml`. Since availability works as a percentage value, the constraint for this restriction looks as follows:
+The amount of output a conversion technology can generate is not only limited by the :ref:`technology model<tech_model>`'s *capacity*` but also by the *availability* parameter from :ref:`hubs.yaml<hubs_yaml>`. Since availability works as a percentage value, the constraint for this restriction looks as follows:
 
 :raw-math:`\begin{align*} \mathcal{V}_{ConvTechOut}[s, h, x, main\_out\_ec, t] \le availability[s, h, x, t] \cdot \mathcal{V}_{TechCap}[s, h, x] \end{align*}`
 
-Note that restricting the :math:`main\_out\_ec` (see :ref:`techs_yaml`), all other output ecs are restricted accordingly due to the input-output dynamics defined above.
+Note that restricting the :math:`main\_out\_ec` (see :ref:`techs.yaml<techs_yaml>`), all other output ecs are restricted accordingly due to the input-output dynamics defined above.
 
-The :ref:`techs_yaml` offers the parameter :math:`out\_sum\_min` and :math:`out\_sum\_max` to limit the output amounts of the main output ec over the entire time horizon. Using the parameter :math:`weight` from the :ref:`clustering<rom>` logic, this is formulated as follows:
+The :ref:`techs.yaml<techs_yaml>` offers the parameter :math:`out\_sum\_min` and :math:`out\_sum\_max` to limit the output amounts of the main output ec over the entire time horizon. Using the parameter :math:`weight` from the :ref:`clustering<rom>` logic, this is formulated as follows:
 
 :raw-math:`\begin{align*} out\_sum\_min[s, h, x] \le \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, out\_ec\_main[x], t] \le out\_sum\_max[s, h, x] \end{align*}`
 
-Lastly, the conversion technology model has its own cost concept in addition to the costs defined in the :ref:`tech model<tech_model>`, namely OPEX costs that arise proportionally to the amount of energy that is being output by the conversion technologies. The calculation of these costs uses the cost parameter :math:`opex\_per\_energy` from :ref:`techs_yaml`:
+Lastly, the conversion technology model has its own cost concept in addition to the costs defined in the :ref:`tech model<tech_model>`, namely OPEX costs that arise proportionally to the amount of energy that is being output by the conversion technologies. The calculation of these costs uses the cost parameter :math:`opex\_per\_energy` from :ref:`techs.yaml<techs_yaml>`:
 
 :raw-math:`\begin{align*} \mathcal{V}_{ConvTechCostOpexOut}&: \mathcal{S}_{ConvTechTuple} \to \mathbb{R}, \\ \mathcal{V}_{ConvTechCostOpexOut}[s, h, x] &= \sum\limits_{\substack{e \in \mathcal{S}_{Ec} \\ (s, h, x, e) \in \mathcal{S}_{ConvTechOut}}} opex\_per\_energy[s, h, x] \cdot \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, e, t] \end{align*}`
 
@@ -473,25 +536,17 @@ The main input variable associated with solar technologies is the *solar tech in
 
 :raw-math:`\begin{align*} \mathcal{V}_{SolarTechIncident}[s, h, x, t] = solar\_irradiation[s, e_{sol}[x], t] \cdot \mathcal{V}_{TechCap}[s, h, x] \end{align*}`
 
-The parameter :math:`solar\_irradiation` comes from the file :ref:`solar_irradiation_csv` which contains an irradiation amount per :math:`m^2` which is why the capacity variable :math:`\mathcal{V}_{TechCap}` for solar technologies is understood in :math:`m^2` as well. In order for this to work, the solar model disables the conversion-specific capacity limitation constraint (there understood in :math:`kW`) and defines its own version of this as follows:
+The parameter :math:`solar\_irradiation` comes from the file :ref:`solar_irradiation.csv<solar_irradiation_csv>` which contains an irradiation amount per :math:`m^2` which is why the capacity variable :math:`\mathcal{V}_{TechCap}` for solar technologies is understood in :math:`m^2` as well. In order for this to work, the solar model disables the conversion-specific capacity limitation constraint (there understood in :math:`kW`) and defines its own version of this as follows:
 
 :raw-math:`\begin{align*} \mathcal{V}_{ConvTechIn}[s, h, x, e_{sol}[x], t] \le availability[s, h, x, t] \cdot \mathcal{V}_{SolarTechIncident}[s, h, x, t] \end{align*}`
 
-In contrast to the conversion model, it is the single input ec which is limited proportionally by the availability. Another difference lies in the fact that production of solar electricity can not always be freely chosen between zero and the upper limit from the previous constraint. Instead, *curtailment* must be employed to down-regulate the production of PV panels which is subject to the parameter :math:`curtail\_max\_rel` from :ref:`techs_yaml`:
+In contrast to the conversion model, it is the single input ec which is limited proportionally by the availability. Another difference lies in the fact that production of solar electricity can not always be freely chosen between zero and the upper limit from the previous constraint. Instead, *curtailment* must be employed to down-regulate the production of PV panels which is subject to the parameter :math:`curtail\_max\_rel` from :ref:`techs.yaml<techs_yaml>`:
 
 :raw-math:`\begin{align*} \mathcal{V}_{ConvTechIn}[s, h, x, e_{sol}[x], t] \ge (1 - curtail\_max\_rel[s, x]) \cdot availability[s, h, x, t] \cdot \mathcal{V}_{SolarTechIncident}[s, h, x, t] \end{align*}`
 
-Finally, we need to limit installed solar capacity (i.e.; area) by the total available area as defined in the file :ref:`solar_areas_csv`. This file is parsed into a parameter :math:`solar\_area` for which the following constraint has to hold:
+Finally, we need to limit installed solar capacity (i.e.; area) by the total available area as defined in the file :ref:`solar_areas.csv<solar_areas_csv>`. This file is parsed into a parameter :math:`solar\_area` for which the following constraint has to hold:
 
 :raw-math:`\begin{align*} \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x) \in \mathcal{S}_{SolarTechTuple} \\ e = e_{sol}[x]}} \mathcal{V}_{TechCap}[s, h, x] \le solar\_area[s, h, e] \end{align*}`
-
-.. _wind_model:
-
-Wind model
-------------
-
-Test
-
 
 .. _storage_model:
 
@@ -514,11 +569,11 @@ In addition, a storage technology has exactly one ec that can be stored, defined
 
 :raw-math:`\begin{align*} \mathcal{P}_{StorTechEc}: \mathcal{S}_{StorTech} \to \mathcal{S}_{Ec} \end{align*}`
 
-This mapping from storage technology to ec works using the parameter :math:`ec` from the section :math:`storage_params` in :ref:`techs_yaml`. During every time step, a storage technology is able to charge and discharge its stored ec using the variables
+This mapping from storage technology to ec works using the parameter :math:`ec` from the section :math:`storage_params` in :ref:`techs.yaml<techs_yaml>`. During every time step, a storage technology is able to charge and discharge its stored ec using the variables
 
 :raw-math:`\begin{align*} \mathcal{V}_{StorTechInflow}, \mathcal{V}_{StorTechOutflow}: \mathcal{S}_{StorTechTuple} \times \mathcal{S}_{Time} \to \mathbb{R}_0^+ \end{align*}`
 
-The extent to which this is possible can be limited by the parameters :math:`charge\_max` and :math:`discharge\_max` from :ref:`techs_yaml`:
+The extent to which this is possible can be limited by the parameters :math:`charge\_max` and :math:`discharge\_max` from :ref:`techs.yaml<techs_yaml>`:
 
 :raw-math:`\begin{align*} \mathcal{V}_{StorTechInflow}[s, h, x, t] &\le charge\_max[s, x] \cdot \mathcal{V}_{TechCap}[s, h, x] \\ \mathcal{V}_{StorTechOutflow}[s, h, x, t] &\le discharge\_max[s, x] \cdot \mathcal{V}_{TechCap}[s, h, x] \end{align*}`
 
@@ -540,7 +595,7 @@ Note that this variable is not defined on the (possibly clustered) time domain :
 
 :raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergy}[s, h, x, t_h^+] = &(1 - standby\_loss[s, x]) \cdot \mathcal{V}_{StorTechEnergy}[s, h, x, t_h] \\ &+ in\_eff[s, x] \cdot \mathcal{V}_{StorTechInflow}[s, h, x, t\_cl[t_h]] - out\_eff[s, x]^{-1} \cdot \mathcal{V}_{StorTechOutflow}[s, h, x, t\_cl[t_h]] \end{align*}`
 
-The parameters :math:`standby\_loss`, :math:`in\_eff` and :math:`out_eff` come from :ref:`techs_yaml`. It is important to note that the above constraint is formulated for every horizon time step :math:`t_h \in \mathcal{S}_{TimeHorizon}`. We have used the parameter :math:`t\_cl[t_h]` from the :ref:`clustering<rom>` procedure which assigns every horizon time step :math:`t_h` to its clustering time step. There is also the concept of a *next* time step which we define as
+The parameters :math:`standby\_loss`, :math:`in\_eff` and :math:`out_eff` come from :ref:`techs.yaml<techs_yaml>`. It is important to note that the above constraint is formulated for every horizon time step :math:`t_h \in \mathcal{S}_{TimeHorizon}`. We have used the parameter :math:`t\_cl[t_h]` from the :ref:`clustering<rom>` procedure which assigns every horizon time step :math:`t_h` to its clustering time step. There is also the concept of a *next* time step which we define as
 
 :raw-math:`\begin{align*} t_h^+ = \left \{ \begin{array}{rl} \text{first horizon time step}, &\text{if } t_h \text{ is the last horizon time step } \\ \text{horizon time step after } t_h, &\text{else} \end{array} \right . \end{align*}`
 
@@ -550,7 +605,7 @@ The storage energy levels are additionally constrained by the parameters :math:`
 
 :raw-math:`\begin{align*} soc\_min[s, x] \cdot \mathcal{V}_{TechCap}[s, h, x] \le \mathcal{V}_{StorTechEnergy}[s, h, x, t_h] \le \min(soc\_max[s, x], 1) \cdot \mathcal{V}_{TechCap}[s, h, x] \end{align*}`
 
-For a final consideration, the energy storage level is currently able to 'start' at any initial value on the time horizon but has to follow the prescribed dynamics afterwards. Depending on the model at hand, this behavior may be desirable or we may want to set an initial value for the storage level. ehubX handles this by considering the parameter :math:`soc\_init` from :ref:`hubs_yaml`: If this parameter is infinite (which is its default value), no constraint will be set. Otherwise, the parameter will be used to fix the initial energy storage value:
+For a final consideration, the energy storage level is currently able to 'start' at any initial value on the time horizon but has to follow the prescribed dynamics afterwards. Depending on the model at hand, this behavior may be desirable or we may want to set an initial value for the storage level. ehubX handles this by considering the parameter :math:`soc\_init` from :ref:`hubs.yaml<hubs_yaml>`: If this parameter is infinite (which is its default value), no constraint will be set. Otherwise, the parameter will be used to fix the initial energy storage value:
 
 :raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergy}[s, h, x, t_{h,0}] = \left \{ \begin{array}{rl} \mathcal{V}_{StorTechEnergy}[s_0, h, x, t_{h,0}], &\text{if } s \neq s_0 \\ soc\_init[h, x] \cdot \mathcal{V}_{TechCap}[s, h, x], &\text{if } s = s_0 \text{ and } soc\_init[h, x] < \infty \end{array} \right . \end{align*}`
 
@@ -583,21 +638,21 @@ and *EBM tech tuples*
 
 :raw-math:`\begin{align*} \mathcal{S}_{EbmTechTuple} = \big \{ (s, h, x) \in \mathcal{S}_{TechTuple}: ~ x \in \mathcal{S}_{EbmTech} \big \} \end{align*}`
 
-The first deviation from the storage technology comes from the fact that the capacity of the EBM fleet is a fixed value that cannot be changed by the optimizer, originating from the parameters *num_vehicles* (from :ref:`hubs_yaml`) and *storage_cap* (from :ref:`techs_yaml`):
+The first deviation from the storage technology comes from the fact that the capacity of the EBM fleet is a fixed value that cannot be changed by the optimizer, originating from the parameters *num_vehicles* (from :ref:`hubs.yaml<hubs_yaml>`) and *storage_cap* (from :ref:`techs.yaml<techs_yaml>`):
 
 :raw-math:`\begin{align*} \mathcal{V}_{TechCap}[s, h, x] = num\_vehicles[s, h, x] \cdot storage\_cap[s, x] \end{align*}`
 
-All capacity-related parameters from the :ref:`technology model<tech_model>` can still be specified and will work as intended yet their values will have no outcome on the optimization results. Note specifically that if no *cap_init* is specified in :ref:`hubs_yaml`, ehubX will install the necessary capacity itself, thereby modifying the total system cost.
+All capacity-related parameters from the :ref:`technology model<tech_model>` can still be specified and will work as intended yet their values will have no outcome on the optimization results. Note specifically that if no *cap_init* is specified in :ref:`hubs.yaml<hubs_yaml>`, ehubX will install the necessary capacity itself, thereby modifying the total system cost.
 
 Moving on, an EBM technology has exactly one ec that operates it, defined as the parameter
 
 :raw-math:`\begin{align*} \mathcal{P}_{EbmTechEc}: \mathcal{S}_{EbmTech} \to \mathcal{S}_{Ec} \end{align*}`
 
-This mapping from EBM technology to ec works using the parameter :math:`ec` from the section :math:`ebm_params` in :ref:`techs_yaml`. During every time step, an EBM technology can charge and discharge its stored ec using the variables
+This mapping from EBM technology to ec works using the parameter :math:`ec` from the section :math:`ebm_params` in :ref:`techs.yaml<techs_yaml>`. During every time step, an EBM technology can charge and discharge its stored ec using the variables
 
 :raw-math:`\begin{align*} \mathcal{V}_{EbmTechInflow}, \mathcal{V}_{EbmTechOutflow}: \mathcal{S}_{EbmTechTuple} \times \mathcal{S}_{Time} \to \mathbb{R}_0^+ \end{align*}`
 
-The extent to which this is possible is firstly limited by the parameters :math:`charge\_max` and :math:`discharge\_max` from :ref:`techs_yaml`. Second, the time-dependent parameter *availability* from :ref:`hubs_yaml` specifies the percentage of the fleet that is available for charging and discharging at any given point. Third and final, the parameter *discharge_controllability* from :ref:`techs_yaml` further dampens the fleet's ability to discharge at will. This results in the following constraints:
+The extent to which this is possible is firstly limited by the parameters :math:`charge\_max` and :math:`discharge\_max` from :ref:`techs.yaml<techs_yaml>`. Second, the time-dependent parameter *availability* from :ref:`hubs.yaml<hubs_yaml>` specifies the percentage of the fleet that is available for charging and discharging at any given point. Third and final, the parameter *discharge_controllability* from :ref:`techs.yaml<techs_yaml>` further dampens the fleet's ability to discharge at will. This results in the following constraints:
 
 :raw-math:`\begin{align*} \mathcal{V}_{EbmTechInflow}[s, h, x, t] &\le num\_vehicles[s, h, x] \cdot availability[s, h, x] \cdot charge\_max[s, x] \\ \mathcal{V}_{StorTechOutflow}[s, h, x, t] &\le num\_vehicles[s, h, x] \cdot availability[s, h, x] \cdot discharge\_controllability[s, x] \cdot discharge\_max[s, x] \end{align*}`
 
@@ -619,7 +674,7 @@ Note that this variable is not defined on the (possibly clustered) time domain :
 
 :raw-math:`\begin{align*} \mathcal{V}_{EbmTechEnergy}[s, h, x, t_h^+] = &(1 - standby\_loss[s, x]) \cdot \mathcal{V}_{EbmTechEnergy}[s, h, x, t_h] \\ &+ in\_eff[s, x] \cdot \mathcal{V}_{EbmTechInflow}[s, h, x, t\_cl[t_h]] - out\_eff[s, x]^{-1} \cdot \mathcal{V}_{EbmTechOutflow}[s, h, x, t\_cl[t_h]] \\ &- num\_vehicles[s, h, x] \cdot demand\_modifier[s, h, x] \cdot demand\_nominal[s, h, x, t] \end{align*}`
 
-The parameters :math:`standby\_loss`, :math:`in\_eff` and :math:`out_eff` come from :ref:`techs_yaml` whereas  :math:`num\_vehicles`, :math:`demand_modifier` and :math:`demand_nominal` can be specified in :ref:`hubs_yaml`. It is important to note that the above constraint is formulated for every horizon time step :math:`t_h \in \mathcal{S}_{TimeHorizon}`. We have used the parameter :math:`t\_cl[t_h]` from the :ref:`clustering<rom>` procedure which assigns every horizon time step :math:`t_h` to its clustering time step. There is also the concept of a *next* time step which we define as
+The parameters :math:`standby\_loss`, :math:`in\_eff` and :math:`out_eff` come from :ref:`techs.yaml<techs_yaml>` whereas  :math:`num\_vehicles`, :math:`demand_modifier` and :math:`demand_nominal` can be specified in :ref:`hubs.yaml<hubs_yaml>`. It is important to note that the above constraint is formulated for every horizon time step :math:`t_h \in \mathcal{S}_{TimeHorizon}`. We have used the parameter :math:`t\_cl[t_h]` from the :ref:`clustering<rom>` procedure which assigns every horizon time step :math:`t_h` to its clustering time step. There is also the concept of a *next* time step which we define as
 
 :raw-math:`\begin{align*} t_h^+ = \left \{ \begin{array}{rl} \text{first horizon time step}, &\text{if } t_h \text{ is the last horizon time step } \\ \text{horizon time step after } t_h, &\text{else} \end{array} \right . \end{align*}`
 
@@ -629,7 +684,7 @@ The EBM energy levels are additionally constrained by the parameters :math:`soc\
 
 :raw-math:`\begin{align*} \mathcal{V}_{EbmTechEnergy}[s, h, x, t_h] &\ge soc\_min[s, x] \cdot num\_vehicles[s, h, x] \cdot storage\_cap[s, x] \\ \mathcal{V}_{EbmTechEnergy}[s, h, x, t_h] &\le soc\_max[s, x] \cdot num\_vehicles[s, h, x] \cdot storage\_cap[s, x] \end{align*}`
 
-For a final consideration, the energy level is currently able to 'start' at any initial value on the time horizon but has to follow the prescribed dynamics afterwards. Depending on the model at hand, this behavior may be desirable or we may want to set an initial value for the energy level. ehubX handles this by considering the parameter :math:`soc\_init` from :ref:`hubs_yaml`: If this parameter is infinite (which is its default value), no constraint will be set. Otherwise, the parameter will be used to fix the initial energy storage value:
+For a final consideration, the energy level is currently able to 'start' at any initial value on the time horizon but has to follow the prescribed dynamics afterwards. Depending on the model at hand, this behavior may be desirable or we may want to set an initial value for the energy level. ehubX handles this by considering the parameter :math:`soc\_init` from :ref:`hubs.yaml<hubs_yaml>`: If this parameter is infinite (which is its default value), no constraint will be set. Otherwise, the parameter will be used to fix the initial energy storage value:
 
 :raw-math:`\begin{align*} \mathcal{V}_{EbmTechEnergy}[s, h, x, t_{h,0}] = \left \{ \begin{array}{rl} \mathcal{V}_{EbmTechEnergy}[s_0, h, x, t_{h,0}], &\text{if } s \neq s_0 \\ soc\_init[h, x] \cdot num\_vehicles[s, h, x] \cdot storage\_cap[s, x], &\text{if } s = s_0 \text{ and } soc\_init[h, x] < \infty \end{array} \right . \end{align*}`
 
@@ -651,7 +706,7 @@ The ATES model defines its own set of tech tuples
 
 :raw-math:`\begin{align*} \mathcal{S}_{AtesTechTuple} = \big \{ (s, h, x) \in \mathcal{S}_{TechTuple}: ~ x \text{ is an ATES technology } \big \} \end{align*}`
 
-A key characteristic of an ATES is that any given year will contain two time periods: One during which the fluid is pumped from warm wells to cold wells (*warm-to-cold phase*) and another where the direction is reversed (*cold-to-warm phase*). We call this division of the horizon an *ATES schedule*. The decision when to switch from one phase to the other cannot be fully optimized by ehubX while still maintaining a linear model. Instead, we offer a set of schedules per hub (cf. *schedules* in :ref:`hubs_yaml`), collected in the set :math:`\mathcal{S}_{AtesSchedule}`. This leads to the set of ATES technologies per schedule:
+A key characteristic of an ATES is that any given year will contain two time periods: One during which the fluid is pumped from warm wells to cold wells (*warm-to-cold phase*) and another where the direction is reversed (*cold-to-warm phase*). We call this division of the horizon an *ATES schedule*. The decision when to switch from one phase to the other cannot be fully optimized by ehubX while still maintaining a linear model. Instead, we offer a set of schedules per hub (cf. *schedules* in :ref:`hubs.yaml<hubs_yaml>`), collected in the set :math:`\mathcal{S}_{AtesSchedule}`. This leads to the set of ATES technologies per schedule:
 
 :raw-math:`\begin{align*} \mathcal{S}_{AtesTechTupleSchedule} = \big \{ (s, h, x, i) \in \mathcal{S}_{AtesTechTuple} \times \mathcal{S}_{AtesSchedule}: i \text{ is an ATES schedule of } h \big \} \end{align*}`
 
@@ -663,7 +718,7 @@ The capacity subdivison itself is organized in a straightforward manner by the f
 
 :raw-math:`\begin{align*} \mathcal{V}_{TechCap}[s, h, x] = \sum\limits_{\substack{i \in \mathcal{S}_{AtesSchedule} \\ (s, h, x, i) \in \mathcal{S}_{AtesTechTupleSchedule}}} \mathcal{V}_{AtesTechCapSchedule}[s, h, x, i] \end{align*}`
 
-Similar to the :ref:`solar_model`, the ATES model interprets the technology capacity :math:`\mathcal{V}_{TechCap}` (and :math:`\mathcal{V}_{AtesTechCapSchedule}`) as the amount of area that is covered by installed ATES technologies. Therefore, we also need to respect the total available area which is quantified by the parameter *available_area* from :ref:`hubs_yaml`:
+Similar to the :ref:`solar model<solar_model>`, the ATES model interprets the technology capacity :math:`\mathcal{V}_{TechCap}` (and :math:`\mathcal{V}_{AtesTechCapSchedule}`) as the amount of area that is covered by installed ATES technologies. Therefore, we also need to respect the total available area which is quantified by the parameter *available_area* from :ref:`hubs.yaml<hubs_yaml>`:
 
 :raw-math:`\begin{align*} \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x) \in \mathcal{S}_{AtesTechTuple}}} \mathcal{V}_{TechCap}[s, h, x] \le available\_area[s, h]. \end{align*}`
 
@@ -683,17 +738,17 @@ These variables quantify how much power is produced (for heating and cooling) or
 
 :raw-math:`\begin{align*} \mathcal{V}_{AtesTechHeatSchedule}[s, h, x, i, t] = 0 \text{ if } t \text{ is not in } i\text{'s warm-to-cold phase} \\ \mathcal{V}_{AtesTechCoolSchedule}[s, h, x, i, t] = 0 \text{ if } t \text{ is not in } i\text{'s cold-to-warm phase} \end{align*}`
 
-Furthermore, the relation between heating/cooling outputs and the electricity consumption is defined by the parameters *elec_per_energy_heat* and *elec_per_energy_cool* from the ATES technology data (cf. :ref:`hubs_yaml`):
+Furthermore, the relation between heating/cooling outputs and the electricity consumption is defined by the parameters *elec_per_energy_heat* and *elec_per_energy_cool* from the ATES technology data (cf. :ref:`hubs.yaml<hubs_yaml>`):
 
 :raw-math:`\begin{align*} \mathcal{V}_{AtesTechElecSchedule}[s, h, x, i, t] = &elec\_per\_energy\_heat[s, h, x] \cdot \mathcal{V}_{AtesTechHeatSchedule}[s, h, x, i, t] \\ +~ &elec\_per\_energy\_cool[s, h, x] \cdot \mathcal{V}_{AtesTechCoolSchedule}[s, h, x, i, t] \end{align*}`
 
-It might be desireable to keep an ATES system in balance between its warm-to-cold and cold-to-warm periods, as not to completely deplete one of the wells in favor of the other. To achieve this, we use the parameters *max_heat_over_cool* and *max_cool_over_heat* from :ref:`hubs_yaml` to formulate the following constraints:
+It might be desireable to keep an ATES system in balance between its warm-to-cold and cold-to-warm periods, as not to completely deplete one of the wells in favor of the other. To achieve this, we use the parameters *max_heat_over_cool* and *max_cool_over_heat* from :ref:`hubs.yaml<hubs_yaml>` to formulate the following constraints:
 
 :raw-math:`\begin{align*} \sum_{t \in \mathcal{S}_{Time}} \mathcal{V}_{AtesTechHeatSchedule}[s, h, x, i, t] \le max\_heat\_over\_cool[s, h, x, i] \cdot \sum_{t \in \mathcal{S}_{Time}} \mathcal{V}_{AtesTechCoolSchedule}[s, h, x, i, t] \\ \sum_{t \in \mathcal{S}_{Time}} \mathcal{V}_{AtesTechCoolSchedule}[s, h, x, i, t] \le max\_cool\_over\_heat[s, h, x, i] \cdot \sum_{t \in \mathcal{S}_{Time}} \mathcal{V}_{AtesTechHeatSchedule}[s, h, x, i, t] \end{align*}`
 
-Continuing with the next ATES property, the produced thermal power(s) need to be limited by the amount of installed capacity (i.e.; covered aquifer area). The following constraints will relate the generated thermal powers to the concept of area capacity:
+Continuing with the next ATES property, the produced thermal power(s) need to be limited by the amount of installed capacity (i.e.; covered aquifer area) and the *availability* (an ATES parameter from :ref:`hubs.yaml<hubs_yaml>`) at every timestep. The following constraints will relate the generated thermal powers to the concept of area capacity, respecting the availability:
 
-:raw-math:`\begin{align*} \mathcal{V}_{AtesTechHeatSchedule}[s, h, x, i, t] &\le max\_power\_density\_heat[s, h, x, i] \cdot \mathcal{V}_{AtesTechCapSchedule}[s, h, x, i] \\ \mathcal{V}_{AtesTechCoolSchedule}[s, h, x, i, t] &\le max\_power\_density\_cool[s, h, x, i] \cdot \mathcal{V}_{AtesTechCapSchedule}[s, h, x, i] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{AtesTechHeatSchedule}[s, h, x, i, t] \le &~ max\_power\_density\_heat[s, h, x, i] \cdot availability[s, h, x, i, t] \\ &* \mathcal{V}_{AtesTechCapSchedule}[s, h, x, i] \\ \mathcal{V}_{AtesTechCoolSchedule}[s, h, x, i, t] \le &~ max\_power\_density\_cool[s, h, x, i] \cdot availability[s, h, x, i, t] \\ &* \mathcal{V}_{AtesTechCapSchedule}[s, h, x, i] \end{align*}`
 
 These equations contain maximal power densities for heating and cooling which are calculated as
 
@@ -703,25 +758,31 @@ and similarly for cooling (in general, the following equations are calculated id
 
 :raw-math:`\begin{align*} max\_heat\_power\_per\_well\_pair[s, h, x, i] = &~density\_fluid[x] \cdot specific\_heat\_capacity\_fluid[x] \\ &\cdot max\_pump\_rate\_per\_warm\_well[s, h, x, i] \cdot max\_temperature\_spread\_warm[h] \end{align*}`
 
-The parameters :math:`density\_fluid`, :math:`specific\_heat\_capacity\_fluid`, and :math:`max\_temperature\_spread\_warm` are input parameters. The parameter :math:`max\_pump\_rate\_per\_warm\_well` is also a potential input parameter. However, if it is not specified, ehubX will try to alternatively calculate a maximal pumping rate based on the Theis equation, using the parameters :math:`well\_radius`, :math:`storativity\_aquifer`, :math:`hydraulic\_conductivity\_aquifer`, :math:`thickness\_aquifer`, and :math:`max\_drawdown`. The details of this calculation are carried out in [Ates25].
+The parameters :math:`density\_fluid`, :math:`specific\_heat\_capacity\_fluid`, and :math:`max\_temperature\_spread\_warm` are input parameters. The parameter :math:`max\_pump\_rate\_per\_warm\_well` is also a potential input parameter. However, if it is not specified, ehubX will try to alternatively calculate a maximal pumping rate based on the Cooper-Jacobs approximation of the Theis equation, using the parameters :math:`well\_radius`, :math:`well\_distance`, :math:`hydraulic\_conductivity\_aquifer`, :math:`thickness\_aquifer`, and :math:`max\_drawdown`. The details of this calculation are carried out in [Ates25].
 
 Returning to the maximal power density equation above, the denominator is given by the thermally affected area of a well pair. ehubX will start the calculation of this property by considering the circular areas of each well that are thermally affected. The radius of these circles is called the *thermal radius* of a well. This thermal radius can either be given as an input parameter (*thermal\_radius\_per\_warm\_well* and *thermal\_radius\_per\_cold\_well*). If it is not specified, ehubX will try to calculate it based on the input parameters *specific_heat_capacity_fluid*`*, *max_pump_rate_per_warm_well*, *specific_heat_capacity_aquifer*, *thickness_aquifer*, and *groundwater_velocity*. For the details of this calculation, we refer again to [Ates25].
 
 Given the now calculated areas of the two wells, ehubX offers different options for how these will combine to the total area of a well pair. The calculation method can be set by the input parameter *well\_pair\_area\_calculation\_method*, leading to:
 
-:raw-math:`\begin{align*} area\_per\_well\_pair[s, h, x, i] = \left \{ \begin{array}{rl} \pi \cdot (r_{th,warm}[s, h, x, i]^2 + r_{th,cold}[s, h, x, i]^2), &\text{if method = 'two_circles'} \\ \max(r_{th,warm}, r_{th,cold}) \cdot (r_{th,warm} + r_{th,cold}), &\text{if method = 'smallest_rectangle'} \end{array} \right . \end{align*}`
+:raw-math:`\begin{align*} area\_per\_well\_pair[s, h, x, i] = \left \{ \begin{array}{rl} \pi \cdot (r_{th,warm}[s, h, x, i]^2 + r_{th,cold}[s, h, x, i]^2), &\text{if method = 'two\_circles'} \\ \max(r_{th,warm}, r_{th,cold}) \cdot (r_{th,warm} + r_{th,cold}), &\text{if method = 'smallest\_rectangle'} \end{array} \right . \end{align*}`
 
-We can see from the previous equations that the area for a well pair is generally not easily known at the input level, and instead calculated by ehubX based on a multitude of other parameters. Therefore, it will be hard for a user to correctly specify certain parameters from the :ref:`tech_model` in the conventional way. For example, the parameter *capex_per_cap* would in this case need to be given in the units :math:`CHF/m^2` which is fairly unconventional for energy system designers. Instead, a system designer would rather specify the price for each pair of wells. For this reason, we deactivate the conventional CAPEX, OPEX and CO2 calculations from the tech model and offer the parameters *capex_per_well_pair*, *opex_per_well_pair*, and *co2_per_well_pair* instead. These parameters correspond to the :ref:`technology<tech_model>` parameters *capex_per_cap*, *opex_per_cap*, and *co2_per_cap* which are approximated dynamically as, e.g.;
+We can see from the previous equations that the area for a well pair is generally not easily known at the input level, and instead calculated by ehubX based on a multitude of other parameters. Therefore, it will be hard for a user to correctly specify certain parameters from the :ref:`tech model<tech_model>` in the conventional way. For example, the parameter *capex_per_cap* would in this case need to be given in the units :math:`CHF/m^2` which is fairly unconventional for energy system designers. Instead, a system designer would rather specify the price for each pair of wells. For this reason, we deactivate the conventional CAPEX, OPEX and CO2 calculations from the tech model and offer the parameters *capex_per_well_pair*, *opex_per_well_pair*, and *co2_per_well_pair* instead. These parameters correspond to the :ref:`technology<tech_model>` parameters *capex_per_cap*, *opex_per_cap*, and *co2_per_cap* which are approximated dynamically as, e.g.;
 
 :raw-math:`\begin{align*} capex\_per\_cap[s, h, x] \approx capex\_per\_well\_pair[s, x] / area\_per\_well\_pair\_max[s, h, x], \end{align*}`
 
-and accordingly for OPEX and CO2. The parameter :math:`area\_per\_well\_pair\_max[s, h, x]` comes from an area calculation which is very similar to :math:`area\_per\_well\_pair` above, using maximal-area estimations. For full details of this calculation, we refer again to [Ates25].
+and accordingly for OPEX and CO2. The parameter :math:`area\_per\_well\_pair\_max[s, h, x]` comes from an area calculation which is very similar to :math:`area\_per\_well\_pair` above, using maximal-area estimations. For full details of this calculation, we refer again to [Ates25]. Additionally, we directly incorporate the number of well pairs per schedule in the module by introducing the fixed variable
 
-Finally, the variables :math:`\mathcal{V}_{AtesTechCoolSchedule}`, :math:`\mathcal{V}_{AtesTechHeatSchedule}` and :math:`\mathcal{V}_{AtesTechElecSchedule}` need to be capsulated into central input and output variables for the :ref:`energy_system_model`. These are indexed by the sets
+:raw-math:`\begin{align*} \mathcal{V}_{AtesTechNumWellPairs}:~ \mathcal{S}_{AtesTechTupleSchedule} &\to \mathbb{R}_0^+, \\ \mathcal{V}_{AtesTechNumWellPairs}[s, h, x, i] &= \frac{\mathcal{V}_{AtesTechCapSchedule}[s, h, x, i]}{area\_per\_well\_pair[s, h, x, i]} \end{align*}`
+
+Using the parameters *well_pairs_min* and *well_pairs_max* from :ref:`hubs.yaml<hubs_yaml>`, we can then add the constraints
+
+:raw-math:`\begin{align*} well\_pairs\_min[s, h, x, i] \le \mathcal{V}_{AtesTechNumWellPairs}[s, h, x, i] \le well\_pairs\_max[s, h, x, i] \end{align*}`
+
+Finally, the variables :math:`\mathcal{V}_{AtesTechCoolSchedule}`, :math:`\mathcal{V}_{AtesTechHeatSchedule}` and :math:`\mathcal{V}_{AtesTechElecSchedule}` need to be capsulated into central input and output variables for the :ref:`energy system model<energy_system_model>`. These are indexed by the sets
 
 :raw-math:`\begin{align*} \mathcal{S}_{AtesTechOut} &= \big \{ (s, h, x, e) \in \mathcal{S}_{AtesTechTuple} \times \mathcal{S}_{Ec}: e \in \{ec\_heat[x], ec\_cool[x] \} \big \} \\ \mathcal{S}_{AtesTechIn} &= \big \{ (s, h, x, e) \in \mathcal{S}_{AtesTechTuple} \times \mathcal{S}_{Ec}: e = ec\_elec[x] \big \} \end{align*}`
 
-where *ec_heat*, *ec_cool* and *ec_elec* are the ecs specified in the *ates_params|ecs* block of the ATES technology *x* in :ref:`techs_yaml`. Based on these set, the central variables are defined as
+where *ec_heat*, *ec_cool* and *ec_elec* are the ecs specified in the *ates_params|ecs* block of the ATES technology *x* in :ref:`techs.yaml<techs_yaml>`. Based on these set, the central variables are defined as
 
 :raw-math:`\begin{align*} \mathcal{V}_{AtesTechOut}: \mathcal{S}_{AtesTechOut} \times \mathcal{S}_{Time} &\to \mathbb{R}_0^+, \\ \mathcal{V}_{AtesTechOut}[s, h, x, ec\_heat[x], t] &= \sum\limits_{\substack{i \in \mathcal{S}_{AtesSchedule} \\ (s, h, x, i) \in \mathcal{S}_{AtesTechHeatSchedule}}} \mathcal{V}_{AtesTechHeatSchedule}[s, h, x, i, t] \\ \mathcal{V}_{AtesTechOut}[s, h, x, ec\_cool[x], t] &= \sum\limits_{\substack{i \in \mathcal{S}_{AtesSchedule} \\ (s, h, x, i) \in \mathcal{S}_{AtesTechCoolSchedule}}} \mathcal{V}_{AtesTechCoolSchedule}[s, h, x, i, t] \end{align*}`
 
@@ -750,7 +811,7 @@ The heat pump can operate either in heating or cooling mode but the interior wor
 * In heating mode, the evaporator is connected to a source medium (air, water, ...) and releases the condenser energy to a radiator or similar device.
 * In cooling mode, the heating intake on the evaporator side is used to operate a chiller and the condenser side takes the cold medium from a source.
 
-Since ehubX works based on energy carriers, we need to assign one energy carrier from :math:`\mathcal{S}_{Ec}` to each power node of this schematic. These are specified in :ref:`techs_yaml` and have the following interpretation:
+Since ehubX works based on energy carriers, we need to assign one energy carrier from :math:`\mathcal{S}_{Ec}` to each power node of this schematic. These are specified in :ref:`techs.yaml<techs_yaml>` and have the following interpretation:
 
 .. list-table:: Energy carrier of heat pump technology :math:`x`
     :header-rows: 1
@@ -801,13 +862,13 @@ An essential indicator for heat pumps is the Coefficient of Performance (COP). I
 
 :raw-math:`\begin{align*} \mathcal{V}_{HpTechOut}[s, h, x, ec\_ht\_out[x], t] &= cop[s, h, x, t] \cdot \mathcal{V}_{HpTechElecHt}[s, h, x, t] \\ \mathcal{V}_{HpTechIn}[s, h, x, ec\_co\_in[x], t] &= cop[s, h, x, t] \cdot \mathcal{V}_{HpTechElecCo}[s, h, x, t] \end{align*}`
 
-As an input, :math:`cop` can either be specified directly in :ref:`hubs_yaml`. If it is not given as a default or profile value, ehubX will try to calculate it from the parameters :math:`temp\_heat\_in`, :math:`temp\_heat\_out` and :math:`cop\_factor` (also from :ref:`hubs_yaml`) using a dampened Carnot efficiency model as follows:
+As an input, :math:`cop` can either be specified directly in :ref:`hubs.yaml<hubs_yaml>`. If it is not given as a default or profile value, ehubX will try to calculate it from the parameters :math:`temp\_heat\_in`, :math:`temp\_heat\_out` and :math:`cop\_factor` (also from :ref:`hubs.yaml<hubs_yaml>`) using a dampened Carnot efficiency model as follows:
 
 :raw-math:`\begin{align*} cop[s, h, x, t] = cop\_factor[s, x] \cdot \frac{temp\_heat\_out[s, h, x, t]}{temp\_heat\_out[s, h, x, t] - temp\_heat\_in[s, h, x, t]} \end{align*}`
 
-The heat pump module still needs to be linked to two quantities from the :ref:`tech model<tech_model>`, namely installed capacity and technology usage. For the capacity, it is common to measure heat pump capacity in terms of condenser power. For this model, this results in the following constraint:
+The heat pump module still needs to be linked to two quantities from the :ref:`tech model<tech_model>`, namely installed capacity and technology usage. For the capacity, it is common to measure heat pump capacity in terms of condenser power. For this model, this results in the following constraint, dampened by the factor *availability* from :ref:`hubs.yaml<hubs_yaml>`:
 
-:raw-math:`\begin{align*} \mathcal{V}_{HpTechOut}[s, h, x, ec\_ht\_out, t] + \mathcal{V}_{HpTechIn}[s, h, x, ec\_co\_in, t] \le \mathcal{V}_{TechCap}[s, h, x] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{HpTechOut}[s, h, x, ec\_ht\_out, t] + \mathcal{V}_{HpTechIn}[s, h, x, ec\_co\_in, t] \le availability[s, h, x, t] \cdot \mathcal{V}_{TechCap}[s, h, x] \end{align*}`
 
 Finally, detecting heat pump usage is also formulated using the condenser power:
 
@@ -817,7 +878,7 @@ Here, :math:`weight` is a :ref:`clustering<rom>` value and :math:`BigM_{HpCondSu
 
 :raw-math:`\begin{align*} BigM_{HpTechCap}[s, h, x] = \left \{ \begin{array}{rl} cap\_max[s, h, x] \cdot |\mathcal{S}_{TimeHorizon}| + 10^{-5}, &\text{if } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
 
-We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`. Furthermore, :math:`cap\_max` is a parameter from :ref:`hubs_yaml`.
+We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`. Furthermore, :math:`cap\_max` is a parameter from :ref:`hubs.yaml<hubs_yaml>`.
 
 
 
@@ -831,15 +892,15 @@ Network model
    :width: 700
    :alt: Network scheme
 
-The network model makes it possible to transfer energy between different hubs of the model. In :ref:`network_links_yaml`, a set of link is defined running between hubs. We gather these in a set
+The network model makes it possible to transfer energy between different hubs of the model. In :ref:`network_links.yaml<network_links_yaml>`, a set of link is defined running between hubs. We gather these in a set
 
 :raw-math:`\begin{align*} \mathcal{S}_{NetLink} = \big \{ \ell: \ell \text{ is a network link } \big \} \end{align*}`
 
-In addition, :ref:`network_techs_yaml` defines a set of network technologies that can be installed and used for the actual transfer, here collected in the set
+In addition, :ref:`network_techs.yaml<network_techs_yaml>` defines a set of network technologies that can be installed and used for the actual transfer, here collected in the set
 
 :raw-math:`\begin{align*} \mathcal{S}_{NetTech} = \big \{ n: n \text{ is a network technology } \big \} \end{align*}`
 
-:ref:`network_links_yaml` additionally defines a connectivity structure between hubs and ecs defined on the links. This structure can be expressed for all *inputs to the network* by the following set:
+:ref:`network_links.yaml<network_links_yaml>` additionally defines a connectivity structure between hubs and ecs defined on the links. This structure can be expressed for all *inputs to the network* by the following set:
 
 :raw-math:`\begin{align*} \mathcal{S}_{NetLinkIn} = &\big \{ (h, \ell, e): \ell \in \mathcal{S}_{NetLink}, ~ e \text{ is ec of } \ell, ~ h \text{ is } start\_hub \text{ of } \ell \big \} \\ &\cup \big \{ (h, \ell, e): \ell \in \mathcal{S}_{NetLink}, ~ \ell \text{ is bidirectional}, ~e \text{ is ec of } \ell, ~ h \text{ is } end\_hub \text{ of } \ell \big \} \end{align*}`
 
@@ -863,11 +924,11 @@ The connection between link inputs/outputs and hub inputs/outputs is naturally g
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetHubIn}[s, h, e, t] &= \sum\limits_{\substack{\ell \in \mathcal{S}_{NetLink} \\ (h, \ell, e) \in \mathcal{S}_{NetLinkIn}}} \mathcal{V}_{NetLinkIn}[s, h, e, t] \\    \mathcal{V}_{NetHubOut}[s, h, e, t] &= \sum\limits_{\substack{\ell \in \mathcal{S}_{NetLink} \\ (h, \ell, e) \in \mathcal{S}_{NetLinkOut}}} \mathcal{V}_{NetLinkOut}[s, h, e, t]  \end{align*}`
 
-In a next step, we consider that network transfer is possible through network technologies. Similar to the :ref:`technology model <tech_model>`, these technologies may only be eligible for certain stages (due to its *technology readiness level*, see :ref:`network_techs_yaml`) or certain links (due to *allowed_net_tech_lists*, see :ref:`network_links_yaml`). The stage-link-tech tuples of all allowed combinations is captured in the set :math:`\mathcal{S}_{NetTechTuple} \subset \mathcal{S}_{Stage} \times \mathcal{S}_{NetLink} \times \mathcal{S}_{NetTech}`. Based on these set, we can define the set of all possible network technologies that could contribute to a network transfer along a specific link in the sets
+In a next step, we consider that network transfer is possible through network technologies. Similar to the :ref:`technology model <tech_model>`, these technologies may only be eligible for certain stages (due to its *technology readiness level*, see :ref:`network_techs.yaml<network_techs_yaml>`) or certain links (due to *allowed_net_tech_lists*, see :ref:`network_links.yaml<network_links_yaml>`). The stage-link-tech tuples of all allowed combinations is captured in the set :math:`\mathcal{S}_{NetTechTuple} \subset \mathcal{S}_{Stage} \times \mathcal{S}_{NetLink} \times \mathcal{S}_{NetTech}`. Based on these set, we can define the set of all possible network technologies that could contribute to a network transfer along a specific link in the sets
 
 :raw-math:`\begin{align*} \mathcal{S}_{NetTechIn} &= \big \{ (s, h, \ell, n) \in \mathcal{S}_{Stage} \times \mathcal{S}_{Hub} \times \mathcal{S}_{NetLink} \times \mathcal{S}_{NetTech}: (s, \ell, n) \in \mathcal{S}_{NetTechTuple}, (h, \ell, ec[n]) \in \mathcal{S}_{NetLinkIn} \big \} \\    \mathcal{S}_{NetTechOut} &= \big \{ (s, h, \ell, n) \in \mathcal{S}_{Stage} \times \mathcal{S}_{Hub} \times \mathcal{S}_{NetLink} \times \mathcal{S}_{NetTech}: (s, \ell, n) \in \mathcal{S}_{NetTechTuple}, (h, \ell, ec[n]) \in \mathcal{S}_{NetLinkOut} \big \} \end{align*}`
 
-Here we have used the parameter :math:`ec[n]` from :ref:`network_techs_yaml` which maps each network technology to its unique ec. As for the other sets, we assign the amount of network link transfer handled by each network technology to the variables
+Here we have used the parameter :math:`ec[n]` from :ref:`network_techs.yaml<network_techs_yaml>` which maps each network technology to its unique ec. As for the other sets, we assign the amount of network link transfer handled by each network technology to the variables
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechIn}&: \mathcal{S}_{NetTechIn} \times \mathcal{S}_{Time} \to \mathbb{R}_0^+ \\    \mathcal{V}_{NetTechOut}&: \mathcal{S}_{NetTechOut} \times \mathcal{S}_{Time} \to \mathbb{R}_0^+ \end{align*}`
 
@@ -887,13 +948,13 @@ where each layer is defined as the aggregated sum of the layer below it.
 
 In a next step, we connect the input and output amounts for the network technologies by the following constraint:
 
-:raw-math:`\begin{align*} \mathcal{V}_{NetTechOut}[s, h_{out}, \ell, n, t] = (1 - trans\_loss[s, n])^{length[\ell]} \cdot \mathcal{V}_{NetTechIn}[s, h_{in}[\ell], \ell, n, t] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{NetTechOut}[s, h_{out}, \ell, n, t] = exp \big( -trans\_decay[s,n] \cdot length[\ell] \big) \cdot \mathcal{V}_{NetTechIn}[s, h_{in}[\ell], \ell, n, t] \end{align*}`
 
-where :math:`trans\_loss` is the transmission loss parameter from :ref:`network_techs_yaml`, :math:`length` is the link length from :ref:`network_links_yaml` and :math:`h_{in}` is given by
+where :math:`trans\_decay` is the transmission decay parameter from :ref:`network_techs.yaml<network_techs_yaml>`, :math:`length` is the link length from :ref:`network_links.yaml<network_links_yaml>` and :math:`h_{in}` is given by
 
 :raw-math:`\begin{align*} h_{in}[\ell] = \left \{ \begin{array}{rl} hub\_start[\ell], &\text{if } h_{out} = hub\_end[\ell] \\ hub\_end[\ell], &\text{if } h_{out} = hub\_start[\ell] \end{array} \right . \end{align*}`
 
-In :ref:`network_links_yaml`, the parameters :math:`trans\_sum\_min\_forward`, :math:`trans\_sum\_min\_backward`, :math:`trans\_sum\_max\_forward` and :math:`trans\_sum\_max\_backward` denote maximal and minimal transmission amounts for an ec along each link in forward and backward directions. They result in the constraints
+In :ref:`network_links.yaml<network_links_yaml>`, the parameters :math:`trans\_sum\_min\_forward`, :math:`trans\_sum\_min\_backward`, :math:`trans\_sum\_max\_forward` and :math:`trans\_sum\_max\_backward` denote maximal and minimal transmission amounts for an ec along each link in forward and backward directions. They result in the constraints
 
 :raw-math:`\begin{align*} trans\_sum\_min[s, h_{out}, \ell, e] ~\le~ \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{NetLinkOut}[s, h_{out}, \ell, e, t] ~\le~ trans\_sum\_max[s, h_{out}, \ell, e] \end{align*}`
 
@@ -913,7 +974,7 @@ The capacity restrictions then take the following form for all :math:`s \in \mat
 
 :raw-math:`\begin{align*} cap\_min[s, \ell, e] \le \sum\limits_{\substack{n \in \mathcal{S}_{NetTech} \\ e = ec[n]}} \mathcal{V}_{NetTechCap}[s, \ell, n] \le cap\_max[s, \ell, e] \end{align*}`
 
-The total capacity of a network technology along a link is composed of both the remnants of the *initial capacity* (:math:`cap\_init` in :ref:`network_links_yaml`) and the *installed capacity* from previous stages, which ehubX can decide upon via the variable
+The total capacity of a network technology along a link is composed of both the remnants of the *initial capacity* (:math:`cap\_init` in :ref:`network_links.yaml<network_links_yaml>`) and the *installed capacity* from previous stages, which ehubX can decide upon via the variable
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechCapInstl}: \mathcal{S}_{Stage} \times \mathcal{S}_{NetLink} \times \mathcal{S}_{NetTech} \to \mathbb{R}_0^+ \end{align*}`
 
@@ -925,11 +986,11 @@ The initial capacity that is still operational in stage :math:`s` is given by
 
 :raw-math:`\begin{align*} Cap_{init}[s, \ell, n] = \left \{ \begin{array}{rl} cap\_init[\ell, n], &\text{if } start\_year[s] - init\_year < lifetime[n] - age\_init[\ell, n] \\ 0, &\text{else} \end{array} \right . \end{align*}`
 
-Here, :math:`cap\_init` and :math:`age\_init` are initial capacity parameters from :ref:`network_links_yaml`, :math:`start\_year` is the first year of a stage from :ref:`stages_yaml`, and :math:`init\_year` is the start year of the first stage (earliest :math:`start\_year` in :ref:`stages_yaml`). The capacity installed in stage :math:`s_{instl}` that is still operational in stage :math:`s` is given by
+Here, :math:`cap\_init` and :math:`age\_init` are initial capacity parameters from :ref:`network_links.yaml<network_links_yaml>`, :math:`start\_year` is the first year of a stage from :ref:`stages.yaml<stages_yaml>`, and :math:`init\_year` is the start year of the first stage (earliest :math:`start\_year` in :ref:`stages.yaml<stages_yaml>`). The capacity installed in stage :math:`s_{instl}` that is still operational in stage :math:`s` is given by
 
 :raw-math:`\begin{align*} Cap_{instl}[s_{instl}, s, \ell, n] = \left \{ \begin{array}{rl} \mathcal{V}_{NetTechCapInstl}[s_{instl}, \ell, n], &\text{if } 0 \le start\_year[s] - start\_year[s_{instl}] < lifetime[n] \\ 0, &\text{else} \end{array} \right . \end{align*}`
 
-:math:`lifetime` is the lifetime of a network technology parametrized in :ref:`network_techs_yaml`.
+:math:`lifetime` is the lifetime of a network technology parametrized in :ref:`network_techs.yaml<network_techs_yaml>`.
 
 Now that network technology capacity can be installed by the optimizer, we need to limit the actual network inputs by this capacity, as follows:
 
@@ -937,7 +998,7 @@ Now that network technology capacity can be installed by the optimizer, we need 
 
 The sum over the hubs in this formulation only accounts for the fact that the link :math:`\ell` might have a single input hub (just :math:`hub\_start[\ell]` if :math:`\ell` is unidirectional) or two input hubs (:math:`hub\_start[\ell]` and :math:`hub\_end[\ell]` if :math:`\ell` is bidirectional).
 
-As a next step, we need to respect the parameter :math:`unit\_cap\_min` from :ref:`network_techs_yaml` which declares the minimal amount of capacity that has to be installed if any installation takes place at all. To implement this, we first require a binary variable monitoring whether any installation takes place at all, given by
+As a next step, we need to respect the parameter :math:`unit\_cap\_min` from :ref:`network_techs.yaml<network_techs_yaml>` which declares the minimal amount of capacity that has to be installed if any installation takes place at all. To implement this, we first require a binary variable monitoring whether any installation takes place at all, given by
 
 :raw-math:`\begin{align*} \mathcal{V}_{YNetTechCapInstl}: \mathcal{S}_{Stage} \times \mathcal{S}_{NetLink} \times \mathcal{S}_{NetTech} \to \{0, 1 \} \end{align*}`
 
@@ -945,13 +1006,13 @@ This variable is forced to activate if :math:`\mathcal{V}_{NetTechCapInstl}` is 
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechCapInstl[s, \ell, n]} \le BigM_{NetTechCap}[s, \ell, n] \cdot \mathcal{V}_{YNetTechCapInstl}[s, \ell, n] \end{align*}`
 
-where the big-M parameter can be parametrized with :math:`cap\_max` from :ref:`network_links_yaml` and the generic big-M value :math:`\mathcal{P}_{BigMGeneric}` from the :ref:`demand model<demand_model>` as
+where the big-M parameter can be parametrized with :math:`cap\_max` from :ref:`network_links.yaml<network_links_yaml>` and the generic big-M value :math:`\mathcal{P}_{BigMGeneric}` from the :ref:`demand model<demand_model>` as
 
 :raw-math:`\begin{align*} BigM_{NetTechCap}[s, \ell, n] = \left \{ \begin{array}{rl} 10^{-5} + cap\_max[s, \ell, ec[n]], &\text{if } cap\_max[s, \ell, ec[n]] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
 
-Now that we have the binary variable :math:`\mathcal{V}_{YNetTechCapInstl}`, we can include the functionality of :math:`unit\_cap\_min` from :ref:`network_techs_yaml` by demanding that
+Now that we have the binary variable :math:`\mathcal{V}_{YNetTechCapInstl}`, we can include the functionality of :math:`unit\_cap\_min` from :ref:`network_techs.yaml<network_techs_yaml>` by demanding that
 
-:raw-math:`\begin{align*} \mathcal{V}_{NetTechCapInstl}[s, \ell, n] \ge unit\_cap\_min[s, n] \cdot \mathcal{V}_{YNetTechCapInstl[s, \ell, n] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{NetTechCapInstl}[s, \ell, n] \ge unit\_cap\_min[s, n] \cdot \mathcal{V}_{YNetTechCapInstl}[s, \ell, n] \end{align*}`
 
 We also need to track if a network technology is *used* at all on a specific stage-link tuple which is monitored by a binary variable
 
@@ -965,13 +1026,13 @@ Here, the big-M parameter :math:`BigM_{NetTechLinkIn}[s, \ell, n]` is a tight up
 
 :raw-math:`\begin{align*} BigM_{NetTechLinkIn}[s, \ell, n] = \left \{ \begin{array}{rl} 10^{-5} + cap\_max[s, \ell, e] \cdot |\mathcal{S}_{TimeHorizon}|, &\text{if } cap\_max[s, \ell, e] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right .\end{align*}`
 
-:math:`cap\_max` is the maximal capacity parameter from :ref:`network_links_yaml` and :math:`\mathcal{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`.
+:math:`cap\_max` is the maximal capacity parameter from :ref:`network_links.yaml<network_links_yaml>` and :math:`\mathcal{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`.
 
 At this point, we can consider the costs that arise from network technology installation and maintenance. Starting with CAPEX costs, we introduce the fixed variable
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechCostCapex}: \mathcal{S}_{NetTechTuple} &\to \mathbb{R}, \\ \mathcal{V}_{NetTechCostCapex}[s, \ell, n] &= length[\ell] \cdot CRF(interest\_rate[n], lifetime[n]) \cdot \sum\limits_{\substack{s_{instl} \in \mathcal{S}_{Stage} \\ (s_{instl}, \ell, n) \in \mathcal{S}_{NetTechTuple}}} \cdot Capex_{Stage}[s_{instl}, s, \ell, n] \end{align*}`
 
-where we have used the same formulation as in the :ref:`technology model<tech_model>` but added the link length parameter :math:`length` from :ref:`network_links_yaml`. :math:`CRF` is a standard *capital recovery factor* calculated from the technology's lifetime and interest rate as follows:
+where we have used the same formulation as in the :ref:`technology model<tech_model>` but added the link length parameter :math:`length` from :ref:`network_links.yaml<network_links_yaml>`. :math:`CRF` is a standard *capital recovery factor* calculated from the technology's lifetime and interest rate as follows:
 
 :raw-math:`\begin{align*} CRF(i, N) = \frac{i \cdot (i+1)^N}{(i+1)^{N-1}} \end{align*}`
 
@@ -979,13 +1040,13 @@ The summand takes the following form:
 
 :raw-math:`\begin{align*} Capex_{Stage}[s_{instl}, s, \ell, n] ~=~ \left \{ \begin{array}{rl} capex\_per\_cap[s, n] \cdot \mathcal{V}_{NetTechCapInstl}[s_{instl}, \ell, n] & \\ +~ one\_time\_capex[s, n] \cdot \mathcal{V}_{YNetTechCapInstl}[s_{instl}, \ell, n], &\text{if } 0 \le start\_year[s] - start\_year[s_{instl}] < lifetime[n] \\ 0, &\text{else} \end{array} \right . \end{align*}`
 
-Here, :math:`capex\_per\_cap` and :math:`one\_time\_capex` are parameters from :ref:`network_techs_yaml`.
+Here, :math:`capex\_per\_cap` and :math:`one\_time\_capex` are parameters from :ref:`network_techs.yaml<network_techs_yaml>`.
 
-In addition to these installation-related CAPEX costs, operating and maintaining the network technologies is associated with the *OPEX costs* parametrized by :math:`opex\_per\_cap` and :math:`one\_time\_opex` from :ref:`network_techs_yaml`:
+In addition to these installation-related CAPEX costs, operating and maintaining the network technologies is associated with the *OPEX costs* parametrized by :math:`opex\_per\_cap` and :math:`one\_time\_opex` from :ref:`network_techs.yaml<network_techs_yaml>`:
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechCostOpexCap}: \mathcal{S}_{NetTechTuple} &\to \mathbb{R}, \\ \mathcal{V}_{NetTechCostOpexCap}[s, \ell, n] &= length[ell] \cdot \big( opex\_per\_cap[s, n] \cdot \mathcal{V}_{NetTechCap}[s, \ell, n] + one\_time\_opex[s, n] \cdot \mathcal{V}_{YNetTechUsed}[s, \ell, n] \big) \end{align*}`
 
-As can be seen, both costs have a part that arises per amount of installed capacity while another enters any time any amount of network technology is installed or used at all. On top of these capacity-related costs, the network model contains a cost factor that arises from the parameter :math:`opex\_per\_energy` in :ref:`network_techs_yaml`, given for the amount of transmitted energy by the variable
+As can be seen, both costs have a part that arises per amount of installed capacity while another enters any time any amount of network technology is installed or used at all. On top of these capacity-related costs, the network model contains a cost factor that arises from the parameter :math:`opex\_per\_energy` in :ref:`network_techs.yaml<network_techs_yaml>`, given for the amount of transmitted energy by the variable
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechCostOpexTrans}: \mathcal{S}_{NetTechTuple} &\to \mathbb{R}, \\ \mathcal{V}_{NetTechCostOpexTrans}[s, \ell, n] &= length[\ell] \cdot opex\_per\_energy[s, n] \cdot \sum\limits_{\substack{h \in \mathcal{S}_{Hub} \\ (s, h, \ell, n) \in \mathcal{S}_{NetTechIn}}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{NetTechIn}[s, h, \ell, n, t] \end{align*}`
 
@@ -997,9 +1058,9 @@ Similar to the costs associated with network technologies, certain CO2-embodied 
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechCo2Instl}: \mathcal{S}_{NetTechTuple} &\to \mathbb{R} \\ \mathcal{V}_{NetTechCo2Instl}[s, \ell, n] &= length[\ell] \cdot \sum\limits_{\substack{s_{instl} \in \mathcal{S}_{Stage} \\ (s_{instl}, \ell, n) \in \mathcal{S}_{NetTechTuple} \\ 0 \le start\_year[s] - start\_year[s_{instl}] \le lifetime[n]}} \frac{co2\_per\_cap[s, n]}{lifetime[n]} \cdot \mathcal{V}_{NetTechCapInstl}[s_{instl}, \ell, n] \end{align*}`
 
-The parameter :math:`co\_per\_cap` comes from the :ref:`network_techs_yaml` file.
+The parameter :math:`co\_per\_cap` comes from the :ref:`network_techs.yaml<network_techs_yaml>` file.
 
-In addition to installation-related CO2 emissions, they may arise relative to the total amount of transmitted energy, as parametrized by :math:`co2\_per\_energy` from :ref:`network_techs_yaml` and tracked by the fixed variable
+In addition to installation-related CO2 emissions, they may arise relative to the total amount of transmitted energy, as parametrized by :math:`co2\_per\_energy` from :ref:`network_techs.yaml<network_techs_yaml>` and tracked by the fixed variable
 
 :raw-math:`\begin{align*} \mathcal{V}_{NetTechCo2Trans}: \mathcal{S}_{NetTechTuple} &\to \mathbb{R} \\ \mathcal{V}_{NetTechCo2Trans}[s, \ell, n] &= length[\ell] \cdot co2\_per\_energy[s, n] \cdot \sum\limits_{\substack{h \in \mathcal{S}_{Hub} \\ (s, h, \ell, n) \in \mathcal{S}_{NetTechIn}}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, n] \cdot \mathcal{V}_{NetTechIn}[s, h, \ell, n, t] \end{align*}`
 
@@ -1009,71 +1070,71 @@ In addition to installation-related CO2 emissions, they may arise relative to th
 
 
 
-.. _autarky_model:
+.. _self_sufficiency_model:
 
-Autarky model
----------------
+Self-sufficiency model
+-----------------------
 
-In ehubX, the concept of autarky is calculated by two kinds of energy imports. The first is called *cross-border imports*, measured in a fixed scalar variable
+In ehubX, the concept of self-sufficiency is calculated by two kinds of energy imports. The first is called *cross-border imports*, measured in a fixed scalar variable
 
-:raw-math:`\begin{align*} \mathcal{V}_{AutarkyImpCross} &\in \mathbb{R}_0^+, \\ \mathcal{V}_{AutarkyImpCross} &= \sum\limits_{\substack{(s, h, e) \in \mathcal{S}_{ImpTuple} \\ is\_energy[e] = True \\ imp\_exp\_type[e] = cross}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SelfSufficiencyImpCross} &\in \mathbb{R}_0^+, \\ \mathcal{V}_{SelfSufficiencyImpCross} &= \sum\limits_{\substack{(s, h, e) \in \mathcal{S}_{ImpTuple} \\ is\_energy[e] = True \\ imp\_exp\_type[e] = cross}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] \end{align*}`
 
-The ec-specific parameters :math:`is\_energy` and :math:`imp\_exp\_type` can be specified in :ref:`ecs_yaml`, and :math:`weight` is a :ref:`clustering<rom>` parameter. The idea behind this variable is that it should measure all imports into the system that would be unavailable if neighboring energy systems were not able to provide them. We think of energy carriers like electricity or gas that are purchased from different countries or regions.
+The ec-specific parameters :math:`is\_energy` and :math:`imp\_exp\_type` can be specified in :ref:`ecs.yaml<ecs_yaml>`, and :math:`weight` is a :ref:`clustering<rom>` parameter. The idea behind this variable is that it should measure all imports into the system that would be unavailable if neighboring energy systems were not able to provide them. We think of energy carriers like electricity or gas that are purchased from different countries or regions.
 
-In contrast the these cross-import, the ehubX model also allows for "imports" that originate in natural resources and would remain be available if the energy system became completely isolated. These are e.g.; solar/wind energy or thermal resources. The total amount of these imports is measured in the fixed scalar variable
+In contrast the these cross-import, the ehubX model also allows for "imports" that originate in natural resources and would remain be available if the energy system became completely isolated. These are e.g.; solar energy or thermal resources. The total amount of these imports is measured in the fixed scalar variable
 
-:raw-math:`\begin{align*} \mathcal{V}_{AutarkyImpInternal} &\in \mathbb{R}_0^+, \\ \mathcal{V}_{AutarkyImpInternal} &= \sum\limits_{\substack{(s, h, e) \in \mathcal{S}_{ImpTuple} \\ is\_energy[e] = True \\ imp\_exp\_type[e] = internal}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] + \sum\limits_{\substack{(s, h, x, e) \in \mathcal{S}_{ConvTechOut} \\ x \in \mathcal{S}_{ConvTechInternal}}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, e, t] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SelfSufficiencyImpInternal} &\in \mathbb{R}_0^+, \\ \mathcal{V}_{SelfSufficiencyImpInternal} &= \sum\limits_{\substack{(s, h, e) \in \mathcal{S}_{ImpTuple} \\ is\_energy[e] = True \\ imp\_exp\_type[e] = internal}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] + \sum\limits_{\substack{(s, h, x, e) \in \mathcal{S}_{ConvTechOut} \\ x \in \mathcal{S}_{ConvTechInternal}}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, e, t] \end{align*}`
 
-The first summand in the above equation is a similar type of value as in the definition of :math:`\mathcal{V}_{AutarkyImpCross}`. The second term considers the internal import of ecs that are not directly measured in terms of energy. Examples include solar irradiation or wind speed. These ecs are characterized by the fact that they have :math:`is\_energy[e] = False` and :math:`imp\_exp\_type[e] = internal`. In order to accurately include these carriers into the internal imports, we have considered a special subset of conversion technologies, given by
+The first summand in the above equation is a similar type of value as in the definition of :math:`\mathcal{V}_{SelfSufficiencyImpCross}`. The second term considers the internal import of ecs that are not directly measured in terms of energy, like solar irradiation. These ecs are characterized by the fact that they have :math:`is\_energy[e] = False` and :math:`imp\_exp\_type[e] = internal`. In order to accurately include these carriers into the internal imports, we have considered a special subset of conversion technologies, given by
 
 :raw-math:`\begin{align*} \mathcal{S}_{ConvTechInternal} = \big \{ x \in \mathcal{S}_{ConvTech}: ~ x \text{ has } &\text{a single input } ec\_in \text{ with } is\_energy[ec\_in] = False \text{ and } imp\_exp\_type[ec\_in] = internal \\ \text{and } &\text{a single output } ec\_out \text{ with } is\_energy[ec\_out] = True \big \} \end{align*}`
 
 These technologies transform a single non-energy internal input ec into a single energy output ec, and the outputs of the conversion technology are included in the internal imports.
 
-Having calculated both internal imports and cross-border imports, the autarky measure is defined as
+Having calculated both internal imports and cross-border imports, the self-sufficiency measure is defined as
 
-:raw-math:`\begin{align*} Autarky = \frac{\mathcal{V}_{AutarkyImpInternal}}{\mathcal{V}_{AutarkyImpInternal} + \mathcal{V}_{AutarkyImpCross}} \end{align*}`
+:raw-math:`\begin{align*} SelfSufficiency = \frac{\mathcal{V}_{SelfSufficiencyImpInternal}}{\mathcal{V}_{SelfSufficiencyImpInternal} + \mathcal{V}_{SelfSufficiencyImpCross}} \end{align*}`
 
-The actual variable we use to track the autarky measure is given by
+The actual variable we use to track the self-sufficiency measure is given by
 
-:raw-math:`\begin{align*} \mathcal{V}_{Autarky} \in \mathbb{R}_0^+ \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SelfSufficiency} \in \mathbb{R}_0^+ \end{align*}`
 
-There are now two options, based on the autarky calculation method selected in :ref:`stages_yaml`. First, if the method **'quadratic'** is chosen, this nonlinear constraint is directly included in the model, making it a quadratically constrained system:
+There are now two options, based on the self-sufficiency calculation method selected in :ref:`stages.yaml<stages_yaml>`. First, if the method **'quadratic'** is chosen, this nonlinear constraint is directly included in the model, making it a quadratically constrained system:
 
-:raw-math:`\begin{align*} \mathcal{V}_{Autarky} \cdot \big(\mathcal{V}_{AutarkyImpInternal} + \mathcal{V}_{AutarkyImpCross}) = \mathcal{V}_{AutarkyImpInternal} \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SelfSufficiency} \cdot \big(\mathcal{V}_{SelfSufficiencyImpInternal} + \mathcal{V}_{SelfSufficiencyImpCross}) = \mathcal{V}_{SelfSufficiencyImpInternal} \end{align*}`
 
-Second, if the method 'linearized' is chosen, the original quadratic constraint relating :math:`\mathcal{V}_{Autarky}` to :math:`\mathcal{V}_{AutarkyImpInternal}` and :math:`\mathcal{V}_{AutarkyImpCross}` is replaced by a linearization to ensure compatibility with MILP solvers. ehubX will do this by computing a boxed domain
+Second, if the method 'linearized' is chosen, the original quadratic constraint relating :math:`\mathcal{V}_{SelfSufficiency}` to :math:`\mathcal{V}_{SelfSufficiencyImpInternal}` and :math:`\mathcal{V}_{SelfSufficiencyImpCross}` is replaced by a linearization to ensure compatibility with MILP solvers. ehubX will do this by computing a boxed domain
 
 :raw-math:`\begin{align*}
-\Omega &= [\mathcal{V}_{\mathrm{AutarkyImpInternal, min}}, \mathcal{V}_{\mathrm{AutarkyImpInternal, max}}]
-\times [\mathcal{V}_{\mathrm{AutarkyImpCross, min}}, \mathcal{V}_{\mathrm{AutarkyImpCross, max}}] \\[8pt]
+\Omega &= [\mathcal{V}_{\mathrm{SelfSufficiencyImpInternal, min}}, \mathcal{V}_{\mathrm{SelfSufficiencyImpInternal, max}}]
+\times [\mathcal{V}_{\mathrm{SelfSufficiencyImpCross, min}}, \mathcal{V}_{\mathrm{SelfSufficiencyImpCross, max}}] \\[8pt]
 \text{where} \quad
-&0 \leq \mathcal{V}_{\mathrm{AutarkyImpInternal, min}} < \mathcal{V}_{\mathrm{AutarkyImpInternal, max}}, \quad
-0 \leq \mathcal{V}_{\mathrm{AutarkyImpCross, min}} < \mathcal{V}_{\mathrm{AutarkyImpCross, max}}, \quad
+&0 \leq \mathcal{V}_{\mathrm{SelfSufficiencyImpInternal, min}} < \mathcal{V}_{\mathrm{SelfSufficiencyImpInternal, max}}, \quad
+0 \leq \mathcal{V}_{\mathrm{SelfSufficiencyImpCross, min}} < \mathcal{V}_{\mathrm{SelfSufficiencyImpCross, max}}, \quad
 0 \notin \Omega.
 \end{align*}`
 
 
-Furthermore, :math:`\mathcal{V}_{AutarkyImpInternal}` and :math:`\mathcal{V}_{AutarkyImpCross}` represent input variables. To facilitate the linearization process, the rectangular domain is segmented into simplexes (triangles). A grid is imposed on each dimension as follows:
+Furthermore, :math:`\mathcal{V}_{SelfSufficiencyImpInternal}` and :math:`\mathcal{V}_{SelfSufficiencyImpCross}` represent input variables. To facilitate the linearization process, the rectangular domain is segmented into simplexes (triangles). A grid is imposed on each dimension as follows:
 
 :raw-math:`\begin{align*}
-\mathcal{V}_{\mathrm{AutarkyImpInternal, min}} &= \hat{\mathcal{V}}_{\mathrm{AutarkyImpInternal, 1}} < \dots < \hat{\mathcal{V}}_{\mathrm{AutarkyImpInternal, n}} = \mathcal{V}_{\mathrm{AutarkyImpInternal, max}},
+\mathcal{V}_{\mathrm{SelfSufficiencyImpInternal, min}} &= \hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpInternal, 1}} < \dots < \hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpInternal, n}} = \mathcal{V}_{\mathrm{SelfSufficiencyImpInternal, max}},
 \quad n \in \mathbb{N}.
 \end{align*}`
 
 :raw-math:`\begin{align*}
-\mathcal{V}_{\mathrm{AutarkyImpCross, min}} &= \hat{\mathcal{V}}_{\mathrm{AutarkyImpCross, 1}} < \dots < \hat{\mathcal{V}}_{\mathrm{AutarkyImpCross, m}} = \mathcal{V}_{\mathrm{AutarkyImpCross, max}},
+\mathcal{V}_{\mathrm{SelfSufficiencyImpCross, min}} &= \hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpCross, 1}} < \dots < \hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpCross, m}} = \mathcal{V}_{\mathrm{SelfSufficiencyImpCross, max}},
 \quad m \in \mathbb{N}.
 \end{align*}`
 
 This results in :math:`n \cdot m` grid points, labeled as:
 
 :raw-math:`\begin{align*}
-\hat{x}_{ij} = (\hat{\mathcal{V}}_{\mathrm{AutarkyImpInternal, i}}, \hat{\mathcal{V}}_{\mathrm{AutarkyImpCross, j}})^\top,
+\hat{x}_{ij} = (\hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpInternal, i}}, \hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpCross, j}})^\top,
 \quad i = 1,\ldots,n,\quad j = 1,\ldots,m.
 \end{align*}`
 
-A key aspect of the formulation is that any point :math:`x = (\mathcal{V}_{AutarkyImpInternal},\mathcal{V}_{AutarkyImpCross}) \in \Omega` can be expressed as a convex combination of these grid points:
+A key aspect of the formulation is that any point :math:`x = (\mathcal{V}_{SelfSufficiencyImpInternal},\mathcal{V}_{SelfSufficiencyImpCross}) \in \Omega` can be expressed as a convex combination of these grid points:
 
 :raw-math:`\begin{align*}
 x &= \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{x}_{ij}, \\[8pt]
@@ -1084,8 +1145,8 @@ x &= \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{x}_{ij}, \\[8pt]
 Alternatively, splitting by dimension gives the equivalent formulation:
 
 :raw-math:`\begin{align*}
-\mathcal{V}_{AutarkyImpInternal} &= \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{\mathcal{V}}_{\mathrm{AutarkyImpInternal, i}}, \\[4pt]
-\mathcal{V}_{AutarkyImpCross} &= \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{\mathcal{V}}_{\mathrm{AutarkyImpCross, j}}.
+\mathcal{V}_{SelfSufficiencyImpInternal} &= \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpInternal, i}}, \\[4pt]
+\mathcal{V}_{SelfSufficiencyImpCross} &= \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpCross, j}}.
 \end{align*}`
 
 The representation above for :math:`x` is not unique, thus it is important that :math:`x` is assigned to exactly one triangle. Initially, there are :math:`L := 2 \cdot (n-1) \cdot (m-1)` triangles in total. A binary variable is introduced as
@@ -1113,23 +1174,23 @@ Once the indexing of the triangles and the corresponding assignment of grid
 points (via the corner sets) is set, the constraints above are fully specified.
 
 With the constraints in place, the linearized
-value for :math:`\mathcal{V}_{\mathrm{Autarky}}\bigl(\mathcal{V}_{\mathrm{AutarkyImpInternal}}, \mathcal{V}_{\mathrm{AutarkyImpCross}}\bigr) = \mathcal{V}_{\mathrm{Autarky}}(x)` is given by
+value for :math:`\mathcal{V}_{\mathrm{SelfSufficiency}}\bigl(\mathcal{V}_{\mathrm{SelfSufficiencyImpInternal}}, \mathcal{V}_{\mathrm{SelfSufficiencyImpCross}}\bigr) = \mathcal{V}_{\mathrm{SelfSufficiency}}(x)` is given by
 
 :raw-math:`\begin{align*}
-\mathcal{V}_{\mathrm{Autarky}} = \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{\mathcal{V}}_{\mathrm{Autarky, i, j}},
+\mathcal{V}_{\mathrm{SelfSufficiency}} = \sum_{i=1}^n \sum_{j=1}^m \lambda_{ij}\,\hat{\mathcal{V}}_{\mathrm{SelfSufficiency, i, j}},
 \end{align*}`
 
-where the precomputed values of :math:`\mathcal{V}_{Autarky}` at the grid points have been inserted
+where the precomputed values of :math:`\mathcal{V}_{SelfSufficiency}` at the grid points have been inserted
 
 :raw-math:`\begin{align*}
-\hat{\mathcal{V}}_{\mathrm{Autarky, i, j}} &= Autarky\bigl(\hat{\mathcal{V}}_{\mathrm{AutarkyImpInternal, i, j}},\hat{\mathcal{V}}_{\mathrm{AutarkyImpCross, i, j}}\bigr),
+\hat{\mathcal{V}}_{\mathrm{SelfSufficiency, i, j}} &= SelfSufficiency\bigl(\hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpInternal, i, j}},\hat{\mathcal{V}}_{\mathrm{SelfSufficiencyImpCross, i, j}}\bigr),
 \quad \forall\,i = 1,\ldots,n,\quad \forall\,j = 1,\ldots,m.
 \end{align*}`
 
 
-Finally, independent of the method that is used for the calculation of the variable :math:`\mathcal{V}_{Autarky}`, two additional constraints based on the parameters *autarky\_min* and *autarky\_max* from :ref:`stages_yaml` are added:
+Finally, independent of the method that is used for the calculation of the variable :math:`\mathcal{V}_{SelfSufficiency}`, two additional constraints based on the parameters *self_sufficiency_min* and *self_sufficiency_max* from :ref:`stages.yaml<stages_yaml>` are added:
 
-:raw-math:`\begin{align*} autarky\_min ~\le~ \mathcal{V}_{Autarky} ~\le~ autarky\_max \end{align*}`
+:raw-math:`\begin{align*} self\_sufficiency\_min ~\le~ \mathcal{V}_{SelfSufficiency} ~\le~ self\_sufficiency\_max \end{align*}`
 
 
 
@@ -1142,25 +1203,27 @@ The energy system model connects the variables from the submodels and defines th
 
 :raw-math:`\begin{align*} 0 =~ & \mathcal{V}_{Imp}^*[s, h, e, t] - \mathcal{V}_{Exp}^*[s, h, e, t] + \mathcal{V}_{DemandSupply}^*[s, h, e, t] \\    +&\sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x) \in \mathcal{S}_{StorTechTuple}}} \big( \mathcal{V}_{StorTechOutflow}[s, h, x, t] - \mathcal{V}_{StorTechInflow}[s, h, x, t] \big) \\    +& \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x) \in \mathcal{S}_{EbmTechTuple}}} \big( \mathcal{V}_{EbmTechOutflow}[s, h, x, t] - \mathcal{V}_{EbmTechInflow}[s, h, x, t] \big) \\     +& \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x, e) \in \mathcal{S}_{ConvTechOut}}} \mathcal{V}_{ConvTechOut}[s, h, x, e, t] - \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x, e) \in \mathcal{S}_{ConvTechIn}}} \mathcal{V}_{ConvTechIn}[s, h, x, e, t] \\    +& \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x, e) \in \mathcal{S}_{HpTechOut}}} \mathcal{V}_{HpTechOut}[s, h, x, e, t] - \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x, e) \in \mathcal{S}_{HpTechIn}}} \mathcal{V}_{HpTechIn}[s, h, x, e, t] \\    +& \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x, e) \in \mathcal{S}_{AtesTechOut}}} \mathcal{V}_{AtesTechOut}[s, h, x, e, t] - \sum\limits_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x, e) \in \mathcal{S}_{AtesTechIn}}} \mathcal{V}_{AtesTechIn}[s, h, x, e, t] \\    +& \mathcal{V}_{NetHubOut}^*[s, h, e, t] - \mathcal{V}_{NetHubIn}^*[s, h, e, t] \end{align*}`
 
-Some new elements have occured in this constraint. First of all, a star symbol has been added to simplify the notation. Take for example a tuple :math:`(s, h, e) \in \mathcal{S}_{Stage} \times \mathcal{S}_{Hub} \times \mathcal{S}_{Ec}`. Then we define
+In this constraint, a star symbol has been added to simplify the notation. Take for example a tuple :math:`(s, h, e) \in \mathcal{S}_{Stage} \times \mathcal{S}_{Hub} \times \mathcal{S}_{Ec}`. Then we define
 
 :raw-math:`\begin{align*} \mathcal{V}_{Imp}^*[s, h, e, t] = \left \{ \begin{array}{rl} \mathcal{V}_{Imp}[s, h, e, t], &\text{if } (s, h, e) \in \mathcal{S}_{ImpTuple} \\ 0, &\text{else} \end{array} \right . \end{align*}`
 
-and similarily for other star-notated variables where the tuple :math:`(s, h, e)` might not belong to the respective definition set. Second, the *amount of power dispatched to the demand side* is given by
+and similarily for other star-notated variables where the tuple :math:`(s, h, e)` might not belong to the respective definition set.
 
-:raw-math:`\begin{align*} \mathcal{V}_{DemandSupply}&: \mathcal{S}_{DemandTuple} \times \mathcal{S}_{Time} \to \mathbb{R}_0^+, \\ \mathcal{V}_{DemandSupply}&[s, h, e, t] = demand[s, h, e, t] - \mathcal{V}_{LoadShedding}^*[s, h, e, t] + \mathcal{V}_{LoadShifting}^*[s, h, e, t] \end{align*}`
+We also have to keep in mind that the supply variable :math:`\mathcal{V}_{DemandSupply}` has already been constrained by the :ref:`demand model<demand_model>` in case of a sum-type demand. For profile demands, the constraint needs to be set here in order to include load shedding and load shifting contributions:
 
-Here, :math:`demand` is the parameter for the load amount from :ref:`demands_yaml` and :math:`\mathcal{V}_{LoadShedding}`, :math:`\mathcal{V}_{LoadShifting}` come from the :ref:`load shedding model<loadshedding_model>` and :ref:`load shifting model<loadshifting_model>` respectively.
+:raw-math:`\begin{align*} \mathcal{V}_{DemandSupply}&[s, h, e, t] = demand\_profile[s, h, e, t] - \mathcal{V}_{LoadShedding}^*[s, h, e, t] + \mathcal{V}_{LoadShifting}^*[s, h, e, t] \qquad \text{if } (s, h, e) \in \mathcal{S}_{DemandProfileTuple} \end{align*}`
+
+Here, :math:`demand\_profile` is the demand-profile from :ref:`demands.yaml<demands_yaml>` and :math:`\mathcal{V}_{LoadShedding}`, :math:`\mathcal{V}_{LoadShifting}` come from the :ref:`load shedding model<loadshedding_model>` and :ref:`load shifting model<loadshifting_model>` respectively.
 
 In addition to energy balancing, the energy system model has the job of defining the overall *CO2 emissions* which are gathered in a global fixed variable
 
 :raw-math:`\begin{align*} \mathcal{V}_{SystemCo2}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{SystemCo2}[s] &= \mathcal{V}_{TechCo2Total}[s] + \mathcal{V}_{ImpCo2Total}[s] - \mathcal{V}_{ExpCo2Total}[s] + \mathcal{V}_{NetTechCo2Total}[s] \end{align*}`
 
-Every stage has the potential to include CO2 penalization costs via the optional parameter :math:`co2\_price` from :ref:`stages_yaml` which are defined as:
+Every stage has the potential to include CO2 penalization costs via the optional parameter :math:`co2\_price` from :ref:`stages.yaml<stages_yaml>` which are defined as:
 
 :raw-math:`\begin{align*} \mathcal{V}_{SystemCostCo2Penalty} \in \mathbb{R}, \quad \mathcal{V}_{SystemCostCo2Penalty} = \sum\limits_{s \in \mathcal{S}{Stage}} co2\_price[s] \cdot \mathcal{V}_{SystemCo2}[s] \end{align*}`
 
-In addition, :ref:`stages_yaml` contains the parameters :math:`co2\_min` and :math:`co2\_max` which result in the following straightforward constraints for the CO2 emission amounts:
+In addition, :ref:`stages.yaml<stages_yaml>` contains the parameters :math:`co2\_min` and :math:`co2\_max` which result in the following straightforward constraints for the CO2 emission amounts:
 
 :raw-math:`\begin{align*} co2\_min[s] \le \mathcal{V}_{SystemCo2}[s] \le co2\_max[s] \end{align*}`
 
@@ -1173,3 +1236,9 @@ Moving from system CO2 emissions to system costs, these are collected in a simil
 :raw-math:`\begin{align*} \mathcal{V}_{SystemCost} \in~ &\mathbb{R}, \\ \mathcal{V}_{SystemCost} =~ &\mathcal{V}_{TechCostTotal} + \mathcal{V}_{ConvTechCostTotal} + \mathcal{V}_{ImpCostTotal} - \mathcal{V}_{ExpProfitTotal} \\ &~ + \mathcal{V}_{LoadSheddingCostTotal} + \mathcal{V}_{LoadShiftingCostTotal} + \mathcal{V}_{NetTechCostTotal} + \mathcal{V}_{SystemCostCo2Penalty} \end{align*}`
 
 This variable is a possible objective function of the system alongside the CO2 total emissions.
+
+.. only:: latex
+
+   .. raw:: latex
+
+      \end{landscape}

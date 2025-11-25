@@ -2,6 +2,7 @@ stage_id,S1
 hub_id,H1
 ec_id,E1
 profile_key,price
+unit,CHF/kWh
 1,49.81425211
 2,56.69678931
 3,71.25948804

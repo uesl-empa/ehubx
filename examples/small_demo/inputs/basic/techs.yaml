@@ -3,107 +3,78 @@ techs:
 - tech_id: X1Conv
   type: conversion
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
     unit_cap_min:
   costs:
     interest_rate: 0.2
-    one_time_capex: 100
-    capex_per_cap: 10
+    one_time_capex: 100 CHF
+    capex_per_cap: 10 CHF/kW
     one_time_opex:
     opex_per_cap:
-    opex_per_energy: 0.5
+    opex_per_energy: 0.5 CHF/kWh
   emissions:
-    co2_per_cap: 20
+    co2_per_cap: 20 kg/kW
   conversion_params:
     in_ecs:
     - in_id: E1
-      in_part: 1
+      in_part: 1 kWh
     main_in_ec:
     out_ecs:
     - ec_id: E0
-      out_eff: 0.9
+      out_eff: 0.9 kWh/kWh
     main_out_ec:
 
 - tech_id: X2Stor
   type: storage
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
     unit_cap_min:
   costs:
     interest_rate:
-    one_time_capex: 100
-    capex_per_cap: 10
+    one_time_capex: 100 CHF
+    capex_per_cap: 10 CHF/kWh
     one_time_opex:
     opex_per_cap:
   emissions:
-    co2_per_cap: 50
+    co2_per_cap: 50 kg/kWh
   storage_params:
     ec: E0
     charge_max:
     discharge_max:
     in_eff: 1
     out_eff: 0.95
-    standby_loss: 0.01
+    standby_loss: 0.01 1/h
 
 - tech_id: X3Solar
   type: solar
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
   costs:
     interest_rate:
-    one_time_capex: 100
-    capex_per_cap: 10
+    one_time_capex: 100 CHF
+    capex_per_cap: 10 CHF/m^2
     one_time_opex:
     opex_per_cap:
     opex_per_energy:
   emissions:
-    co2_per_cap: 50
+    co2_per_cap: 50 kg/m^2
   conversion_params:
     in_ecs:
     - in_id: E3
-      in_part: 1
+      in_part: 1 kWh
     out_ecs:
     - ec_id: E0
-      out_eff: 0.5
+      out_eff: 0.5 kWh/kWh
   solar_params:
-    curtail_max_rel:
-
-- tech_id: X4Wind
-  type: wind
-  tech_params:
-    lifetime: 10
-    trl:
-  costs:
-    interest_rate:
-    one_time_capex: 100
-    capex_per_cap: 10
-    one_time_opex:
-    opex_per_cap:
-    opex_per_energy:
-  emissions:
-    co2_per_cap: 50
-  conversion_params:
-    in_ecs:
-    - in_id: E4
-      in_part: 1
-    out_ecs:
-    - ec_id: E0
-      out_eff: 1
-  wind_params:
-    turbine_footprint: 100
-    rotor_area: 1000
-    velo_cut_in: 3
-    velo_nominal: 11
-    velo_cut_off: 18
     curtail_max_rel:
 
 - tech_id: X10Conv
   type: conversion
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
     unit_cap_min:
   costs:
@@ -118,72 +89,73 @@ techs:
   conversion_params:
     in_ecs:
     - in_id: E10
-      in_part: 1
+      in_part: 1 kWh
     main_in_ec:
     out_ecs:
     - ec_id: E0
-      out_eff: 1
+      out_eff: 1 kWh/kWh
     main_out_ec:
 
 - tech_id: X11Conv
   type: conversion
   coupling_params:
     main_tech_id: X11Main
-    cap_factor: 0.5
+    cap_factor: 0.5 kW   # unit is kW/1 since X11Main's capacity is unitless
   conversion_params:
     in_ecs:
     - in_id: E11
-      in_part: 1
+      in_part: 1 kWh
     main_in_ec:
     out_ecs:
     - ec_id: E0
-      out_eff: 0.9
+      out_eff: 0.9 kWh/kWh
     main_out_ec:
 
 - tech_id: X11Main
+  # NOTE: Since X11Main does not have a type, its capacity is unitless
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
     unit_cap_min:
   costs:
     interest_rate:
-    one_time_capex: 100
-    capex_per_cap: 10
+    one_time_capex: 100 CHF
+    capex_per_cap: 10 CHF
     one_time_opex:
     opex_per_cap:
     opex_per_energy:
   emissions:
-    co2_per_cap: 50
+    co2_per_cap: 50 kg
 
 - tech_id: X12Conv
   type: conversion
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
     unit_cap_min:
   costs:
     interest_rate: 0.2
-    one_time_capex: 100
-    capex_per_cap: 10
+    one_time_capex: 100 CHF
+    capex_per_cap: 10 CHF/kW
     one_time_opex:
     opex_per_cap:
-    opex_per_energy: 0.5
+    opex_per_energy: 0.5 CHF/kWh
   emissions:
-    co2_per_cap: 20
+    co2_per_cap: 20 kg/kW
   conversion_params:
     in_ecs:
     - in_id: EG12
-      in_part: 1
+      in_part: 1 kWh
     main_in_ec:
     out_ecs:
     - ec_id: E0
-      out_eff: 0.9
+      out_eff: 0.9 kWh/kWh
     main_out_ec:
 
 - tech_id: X13Hp
   type: heatpump
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
     unit_cap_min:
   heatpump_params:
@@ -196,19 +168,38 @@ techs:
     cop_factor: 0.5
   costs:
     interest_rate: 0.2
-    one_time_capex: 100
-    capex_per_cap: 10
+    one_time_capex: 100 CHF
+    capex_per_cap: 10 CHF/kW
     one_time_opex:
     opex_per_cap:
   emissions:
-    co2_per_cap: 20
+    co2_per_cap: 20 kg/kW
 
 - tech_id: X14Ebm
   type: ebm
   tech_params:
-    lifetime: 10
+    lifetime: 10 a
     trl:
     unit_cap_min:
   ebm_params:
     ec: E0
-    storage_cap: 1
+    storage_cap: 1 kWh
+
+- tech_id: X15Ates
+  type: ates
+  tech_params:
+    lifetime: 10 a
+  ates_params:
+    ecs:
+      elec: E0
+      heat: E15a
+      cool: E15b
+    density_fluid: 1000 kg/m^3
+    specific_heat_capacity_fluid: 4180 Ws/(kg*K)
+    well_radius: 0.2 m
+    well_pair_area_calc_method: smallest rectangle
+  costs:
+    capex_per_well_pair: 40 CHF
+    opex_per_well_pair: 7 CHF
+  emissions:
+    co2_per_well_pair: 5 kg

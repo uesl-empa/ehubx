@@ -7,7 +7,6 @@
 #   - Hub H2 (storage hub): Import E0 and use XStor2 to balance out a misfit
 #                           between demand profile and import restrictions
 #   - Hub H3 (solar hub): Import E2 (solar) convert it to E0 with XSolar3
-#   - Hub H4 (wind hub): Import E3 (wind) convert it to E0 with XWind3
 #   - Hub H5 (load shedding hub): Import E0 to the max and shed the remaining
 #                                 demand
 #   - Hub H6 (load shifting hub): Import E0 and shift the load to balance out a

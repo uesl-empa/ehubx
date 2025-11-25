@@ -5,8 +5,6 @@ tech_lists:
   techs: [X2Stor]
 - tech_list_id: TL3
   techs: [X3Solar]
-- tech_list_id: TL4
-  techs: [X4Wind]
 - tech_list_id: TL10
   techs: [X10Conv]
 - tech_list_id: TL11
@@ -17,16 +15,20 @@ tech_lists:
   techs: X13Hp
 - tech_list_id: TL14
   techs: X14Ebm
+- tech_list_id: TL15
+  techs: X15Ates
 
 hubs:
 - hub_id: H1
   allowed_tech_lists: TL1
+  techs:
+  - tech_id: X1Conv
+    tech_params:
+      cap_max: 1000 kW
 - hub_id: H2
   allowed_tech_lists: TL2
 - hub_id: H3
   allowed_tech_lists: TL3
-- hub_id: H4
-  allowed_tech_lists: TL4
 - hub_id: H5
   allowed_tech_lists: []
 - hub_id: H6
@@ -41,21 +43,27 @@ hubs:
   allowed_tech_lists: TL10
 - hub_id: H11
   allowed_tech_lists: TL11
+  techs:
+  - tech_id: X11Main
+    tech_params:
+      cap_max: 100
 - hub_id: H12
   allowed_tech_lists: TL12
   techs:
   - tech_id: X12Conv_E12a
     tech_params:
-      cap_max: 5
+      cap_max: 5 kW
   - tech_id: X12Conv_E12b
     tech_params:
-      cap_max: 5
+      cap_max: 5 kW
 - hub_id: H13
   allowed_tech_lists: TL13
   techs:
   - tech_id: X13Hp
     heatpump_params:
       cop: 3.5
+      availability:
+      profile_path: profiles/hp.csv
 - hub_id: H14
   allowed_tech_lists: TL14
   techs:
@@ -63,3 +71,40 @@ hubs:
     ebm_params:
       num_vehicles: 2
       profile_path: profiles/ebm.csv
+- hub_id: H15
+  allowed_tech_lists: TL15
+  techs:
+  - tech_id: X15Ates
+    ates_params:
+      elec_per_energy_heat: 0.05
+      elec_per_energy_cool: 0.06
+      well_distance: 100 m
+      schedule_params:
+      - schedule_id: AS15
+        well_pairs_min: 0
+        well_pairs_max: 10
+        max_pump_rate_per_warm_well:
+        max_pump_rate_per_cold_well:
+        availability: 1
+        profile_path: profiles/ates.csv
+
+  ates_params:
+    groundwater_velocity: 1 m/d
+    density_aquifer: 2000 kg/m^3
+    specific_heat_capacity_aquifer: 900 Ws/(kg*K)
+    thickness_aquifer: 30 m
+    hydraulic_conductivity_aquifer: 10 m/d
+    storativity_aquifer: 0.15
+    max_drawdown: 7.5 m
+    max_temperature_spread_warm: 6 K
+    max_temperature_spread_cold: 6 K
+    available_area: 10 km^2
+    schedules:
+    - schedule_id: AS15
+      phase_w2c_start_id: 1
+      phase_w2c_end_id: 2
+      phase_c2w_start_id: 3
+      phase_c2w_end_id: 3
+
+- hub_id: H16
+  allowed_tech_lists: []

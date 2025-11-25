@@ -1,6 +1,7 @@
 stage_id,S1
 tech_id,X1
 ec_id,E1
+unit,kWh/kWh
 1,0.955183744
 2,0.803850215
 3,0.833441391

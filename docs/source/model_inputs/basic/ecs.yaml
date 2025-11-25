@@ -2,15 +2,18 @@ in_ec_groups:
 - ec_group_id: EG1
   ecs: [E1, E2]
 
-windparks:
-- windpark_id: WP1
-  ecs: [E1, E2]
-
 ecs:
 - ec_id: E1
   is_energy: True
   imp_exp_type: cross
+  unit: kWh
+  heur_max: 1000 kW
+  heur_sum_max: 10000 kWh
 - ec_id: E2
+  unit: kWh
 - ec_id: E3
+  unit: kWh
 - ec_id: E4
+  unit: kWh
 - ec_id: E5
+  unit: kWh

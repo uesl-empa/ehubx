@@ -10,8 +10,8 @@ from typing import List
 
 project = "ehubX"
 copyright = "Copyright 2024, Urban Energy Systems Lab, Empa"
-author = "Dennis Beermann"
-release = "2.1"
+author = "Urban Energy Systems Lab, Empa"
+release = "2.2.3"
 
 # -- General configuration ---------------------------------------------------
 
@@ -27,3 +27,21 @@ exclude_patterns: List[str] = []
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+
+# -- Options for PDF output --------------------------------------------------
+latex_engine = "xelatex"
+latex_documents = [
+    (
+        "index",
+        "ehubX.tex",
+        "ehubX Documentation",
+        "Urban Energy Systems Lab, Empa",
+        "manual",
+    ),
+]
+latex_elements = {
+    "preamble": r"""
+\usepackage{pdflscape}
+\usepackage{adjustbox}
+""",
+}
