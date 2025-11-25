@@ -9,21 +9,7 @@ ehubX is a Python platform for optimization-based energy system models. Its inpu
 
 ## Installation
 
-### Installation (local)
-
-Installation instructions are available as a video [here](https://empach.sharepoint.com/:v:/s/external-project_EXTEhubDevelopment/EVAizIAJ7KdAoS2KFGS_l6oBMQ6tDdA6JPNV5J_Tb7olwA?e=8anU48) (TODO: access currently Empa-internal)
-
-## Installation (devcontainer)
-
-Installation instructions are available as a video [here](https://empach.sharepoint.com/:v:/s/external-project_EXTEhubDevelopment/ETZmXKry2k9DrbPzJ-SGD1EBNIZGGlBNKQPGqyqAcqzHQw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=VrHD8O) (TODO: access currently Empa-internal)
-
-## Documentation
-
-Documentation is currently available locally. Run
-
-    sphinx-build -M html docs/source docs/build
-
-in a terminal and the documentation will be available under docs/build/html
+Use a clean and fresh virtual Python environment in which you should also install poetry. Then, simply navigating to the cloned repository and running "poetry install" inside that repository is all that is required.
 
 ## Examples
 
