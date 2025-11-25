@@ -117,6 +117,11 @@ jobs:
           poetry --version
           poetry install
 
+      - name: Install LaTeX and latexmk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-fonts-recommended latexmk
+
       - name: Build Sphinx docs (HTML + PDF)
         run: |
           poetry run sphinx-apidoc -o docs/source src/ehubx -f -T
