@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ehubx"
-version = "2.2.3"
+version = "2.2.4"
 description = "A platform for modeling and optimizing energy systems based on the energy hub concept"
 authors = ["Dennis Beermann <dennis.beermann@empa.ch>", "Fierz Leonie", "TODO"]
 classifiers=['Development Status :: Development',

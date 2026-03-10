@@ -89,12 +89,12 @@ hubs:
         profile_path: profiles/ates.csv
 
   ates_params:
-    groundwater_velocity: 1 m/d
-    density_aquifer: 2000 kg/m^3
-    specific_heat_capacity_aquifer: 900 Ws/(kg*K)
+    darcy_velocity: 1 m/d
+    density_rock: 2000 kg/m^3
+    specific_heat_capacity_rock: 900 Ws/(kg*K)
     thickness_aquifer: 30 m
     hydraulic_conductivity_aquifer: 10 m/d
-    storativity_aquifer: 0.15
+    porosity_aquifer: 0.15
     max_drawdown: 7.5 m
     max_temperature_spread_warm: 6 K
     max_temperature_spread_cold: 6 K

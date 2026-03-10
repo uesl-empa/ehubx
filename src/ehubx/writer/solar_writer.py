@@ -17,7 +17,7 @@ from ehubx.data.unit import DimlessUnit, TimeUnit
 from ehubx.data.value import Value
 from ehubx.model import ec_model, solar_tech_model
 from ehubx.parser.csv_parser import HeaderId
-from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_cl, create_dir
+from ehubx.writer.common_writer import DfStBuilder, add_to_df_ts_cl, create_dir
 
 
 # -------- #
@@ -54,7 +54,7 @@ ENTRY_SOLARTECHINCIDENT: str = (
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -86,8 +86,7 @@ def format_all(
             if not irradiation.has_values:
                 irradiation_def = irradiation.def_value
                 assert irradiation_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_IRRADIATION,
                     irradiation_def,
                     unit=irradiation_unit,
@@ -104,8 +103,7 @@ def format_all(
                 if e not in energy_system.solar_data.ecs:
                     continue
                 solar_area = energy_system.solar_data.get_area(s, h, e)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_AREA,
                     solar_area,
                     unit=(energy_system.length_unit**2),
@@ -118,14 +116,14 @@ def format_all(
 
     # Tech-specific values
     for tech_id in energy_system.solar_techs.ids_in_order:
-        _format_tech(energy_system, model, tech_id, df_st, df_ts_hor, df_ts_cl)
+        _format_tech(energy_system, model, tech_id, df_st_builder, df_ts_hor, df_ts_cl)
 
 
 def _format_tech(
     energy_system: EnergySystem,
     model: Model,
     x: TechId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -134,8 +132,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         curtail_max_rel = energy_system.solar_techs.get_curtail_max_rel(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CURTAILMAXREL,
             curtail_max_rel,
             unit=DimlessUnit(),

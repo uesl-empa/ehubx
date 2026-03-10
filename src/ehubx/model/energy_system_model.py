@@ -23,6 +23,7 @@ from ehubx.data.time_data import TimeId
 from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit, TimeUnit
 from ehubx.model import (
     ates_tech_model,
+    autonomy_model,
     conv_tech_model,
     demand_model,
     ebm_tech_model,
@@ -64,6 +65,9 @@ VAR_SYSTEMCO2TOTAL: str = "V_SystemCo2Total"
 VAR_SYSTEMSELFSUFFICIENCY: str = "V_SystemSelfSufficiency"
 """Name of variable for system-wide self-sufficiency"""
 
+VAR_SYSTEMAUTONOMY: str = "V_SystemAutonomy"
+"""Name of variable for system-wide autonomy"""
+
 CON_SYSTEMCO2PENALTY: str = "C_SystemCostCo2Penalty"
 """Name of constraint fixing the system-wide CO2 penalty variable"""
 
@@ -86,6 +90,9 @@ CON_SYSTEMCO2MAX: str = "C_SystemCo2Max"
 CON_SYSTEMSELFSUFFICIENCY: str = "C_SystemSelfSufficiencyTotal"
 """Name of constraint fixing the total system self-sufficiency"""
 
+CON_SYSTEMAUTONOMY: str = "C_SystemAutonomyTotal"
+"""Name of constraint fixing the total system autonomy"""
+
 CON_SYSTEMDEMANDSUPPLYPROFILE: str = "C_SystemDemandSupplyProfile"
 """Name of constraint fixing the system-wide demand supply for demand profiles"""
 
@@ -100,6 +107,9 @@ OBJ_SYSTEMCO2: str = "O_SystemCo2"
 
 OBJ_SYSTEMSELFSUFFICIENCY: str = "O_SystemSelfSufficiency"
 """Name of objective for system self-sufficiency"""
+
+OBJ_SYSTEMAUTONOMY: str = "O_SystemAutonomy"
+"""Name of objective for system autonomy"""
 
 
 def build(energy_system: EnergySystem) -> Model:
@@ -149,6 +159,7 @@ def _build_modules(model: Model, energy_system: EnergySystem) -> None:
     hp_tech_model.build(model, energy_system)
     ates_tech_model.build(model, energy_system)
     self_sufficiency_model.build(model, energy_system)
+    autonomy_model.build(model, energy_system)
 
 
 def _build_self(model: Model, energy_system: EnergySystem) -> None:
@@ -160,6 +171,7 @@ def _build_self(model: Model, energy_system: EnergySystem) -> None:
         energy_system.mass_unit,
     )
     _build_self_self_sufficiency(model)
+    _build_self_autonomy(model)
     _build_self_demand_supply_profile(
         model,
         energy_system.ecs,
@@ -213,6 +225,18 @@ def _build_self_self_sufficiency(model: Model) -> None:
     _con_system_self_sufficiency(model)
     # [OBJ] System self-sufficiency
     _obj_system_self_sufficiency(model)
+
+
+def _build_self_autonomy(model: Model) -> None:
+    # Skip this without presence of autonomy submodule
+    if autonomy_model.VAR_AUTONOMY not in model.component_map(Var):
+        return
+    # [VAR] System autonomy
+    setattr(model, VAR_SYSTEMAUTONOMY, Var(domain=NonNegativeReals))
+    # [CON] System autonomy
+    _con_system_autonomy(model)
+    # [OBJ] System autonomy
+    _obj_system_autonomy(model)
 
 
 def _build_self_demand_supply_profile(
@@ -368,6 +392,19 @@ def _con_system_self_sufficiency(model: Model) -> None:
     )
 
 
+def _con_system_autonomy(model: Model) -> None:
+    def __rule_system_autonomy(model):
+        return getattr(model, VAR_SYSTEMAUTONOMY) == getattr(
+            model, autonomy_model.VAR_AUTONOMY
+        )
+
+    setattr(
+        model,
+        CON_SYSTEMAUTONOMY,
+        Constraint(rule=__rule_system_autonomy),
+    )
+
+
 def _obj_system_self_sufficiency(model: Model):
     def __rule_system_self_sufficiency_obj(model):
         if self_sufficiency_model.VAR_SELFSUFFICIENCY in model.component_map(Var):
@@ -380,6 +417,20 @@ def _obj_system_self_sufficiency(model: Model):
         Objective(rule=__rule_system_self_sufficiency_obj),
     )
     getattr(model, OBJ_SYSTEMSELFSUFFICIENCY).deactivate()
+
+
+def _obj_system_autonomy(model: Model):
+    def __rule_system_autonomy_obj(model):
+        if autonomy_model.VAR_AUTONOMY in model.component_map(Var):
+            return -getattr(model, autonomy_model.VAR_AUTONOMY)
+        return 0.0
+
+    setattr(
+        model,
+        OBJ_SYSTEMAUTONOMY,
+        Objective(rule=__rule_system_autonomy_obj),
+    )
+    getattr(model, OBJ_SYSTEMAUTONOMY).deactivate()
 
 
 def _con_demand_supply_profile(
@@ -408,7 +459,9 @@ def _con_demand_supply_profile(
                 s, h, e, t
             ]
         return (
-            getattr(model, demand_model.VAR_DEMANDSUPPLY)[s, h, e, t] == demand_supply
+            getattr(model, demand_model.VAR_DEMANDSUPPLY)[s, h, e, t]
+            + getattr(model, demand_model.VAR_DEMANDUNMET)[s, h, e, t]
+            == demand_supply
         )
 
     setattr(

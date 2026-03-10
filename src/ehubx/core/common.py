@@ -31,6 +31,9 @@ class ObjectiveType(Enum):
     SELFSUFFICIENCY = "self-sufficiency"
     """Self-sufficiency (maximize)"""
 
+    AUTONOMY = "autonomy"
+    """Autonomy (maximize)"""
+
 
 class TimeSeriesKind(Enum):
     """Kinds of time series profiles"""

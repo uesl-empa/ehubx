@@ -13,7 +13,7 @@ from ehubx.data.unit import DimlessUnit, TimeUnit
 from ehubx.data.value import Value
 from ehubx.model import ec_model, stor_tech_model
 from ehubx.writer.common_writer import (
-    add_to_df_st,
+    DfStBuilder,
     add_to_df_ts_cl,
     add_to_df_ts_hor,
 )
@@ -69,34 +69,33 @@ ENTRY_ENERGY: str = f"Storage energy ({stor_tech_model.VAR_STORTECHENERGY})"
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
     # Tech-specific properties
     for tech_id in energy_system.stor_techs.ids_in_order:
-        _format_tech(energy_system, model, tech_id, df_st, df_ts_hor, df_ts_cl)
+        _format_tech(energy_system, model, tech_id, df_st_builder, df_ts_hor, df_ts_cl)
 
 
 def _format_tech(
     energy_system: EnergySystem,
     model: Model,
     x: TechId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
     # ec
     ec = energy_system.stor_techs.get_ec(x)
-    add_to_df_st(df_st, ENTRY_EC, ec.key, tech=x.key, source=SOURCE, in_res="input")
+    df_st_builder.add_row(ENTRY_EC, ec.key, tech=x.key, source=SOURCE, in_res="input")
 
     # in_eff
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         in_eff = energy_system.stor_techs.get_in_eff(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_INEFF,
             in_eff,
             unit=DimlessUnit(),
@@ -111,8 +110,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         out_eff = energy_system.stor_techs.get_out_eff(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_OUTEFF,
             out_eff,
             unit=DimlessUnit(),
@@ -127,8 +125,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         charge_max = energy_system.stor_techs.get_charge_max(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CHARGEMAX,
             charge_max,
             unit=(DimlessUnit() / TimeUnit.H),
@@ -143,8 +140,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         discharge_max = energy_system.stor_techs.get_discharge_max(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_DISCHARGEMAX,
             discharge_max,
             unit=(DimlessUnit() / TimeUnit.H),
@@ -159,8 +155,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         standby_loss = energy_system.stor_techs.get_standby_loss(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_STANDBYLOSS,
             standby_loss,
             unit=(DimlessUnit() / TimeUnit.H),
@@ -175,8 +170,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         soc_min = energy_system.stor_techs.get_soc_min(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SOCMIN,
             soc_min,
             unit=DimlessUnit(),
@@ -191,8 +185,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         soc_max = energy_system.stor_techs.get_soc_max(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SOCMAX,
             soc_max,
             unit=DimlessUnit(),
@@ -207,8 +200,7 @@ def _format_tech(
         if h not in energy_system.techs.get_allowed_hubs(x):
             continue
         soc_init = energy_system.stor_techs.get_soc_init(h, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SOCMAX,
             soc_init,
             unit=DimlessUnit(),

@@ -32,8 +32,21 @@ Legend
 Parameter table
 ----------------
 
+
+.. only:: latex
+
+   .. raw:: latex
+
+      \begingroup\scriptsize
+      \setlength{\tabcolsep}{2pt}%
+
+.. only:: latex
+
+   .. tabularcolumns:: p{0.17\linewidth}p{0.05\linewidth}p{0.06\linewidth}p{0.06\linewidth}p{0.05\linewidth}p{0.05\linewidth}p{0.36\linewidth}p{0.16\linewidth}
+
 .. list-table:: Parameter list
     :header-rows: 1
+    :widths: 15 6 10 8 5 5 30 10
 
     * - Name
       - Mandatory
@@ -225,6 +238,15 @@ Parameter table
       - :code:`techs[ID]/heatpump_params/cop_factor`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **Darcy velocity** (ates)
+      - (**✓**)
+      -
+      - m/d
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/darcy_velocity`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Demand** (demand)
       - ✖
       - 0
@@ -350,15 +372,6 @@ Parameter table
       - ✖
       - :code:`techs[ID]/ates_params`
       - :ref:`techs.yaml<techs_yaml>`
-
-    * - **Groundwater velocity** (ates)
-      - (**✓**)
-      -
-      - m/d
-      - ✖
-      - ✖
-      - :code:`hubs[ID]/ates_params/groundwater_velocity`
-      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **heur_max** (ec)
       - (**✓**)
@@ -1170,6 +1183,15 @@ Parameter table
       - :code:`load_shifting[ID]/peak_cost_below`
       - :ref:`demands.yaml<demands_yaml>`
 
+    * - **(Effective) Porosity of aquifer** (ates)
+      - (**✓**)
+      -
+      - [-]
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/porosity_aquifer`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Price** (import/export)
       - ✖
       - 0
@@ -1179,6 +1201,24 @@ Parameter table
       - :code:`stages[ID]/hubs[ID]/ecs[ID]/price`, :code:`stages[ID]/hubs[ID]/ecs[ID]/profile_path`
       - :ref:`imports.yaml<imports_yaml>`, :ref:`exports.yaml<exports_yaml>`
 
+    * - **Rock density** (ates)
+      - (**✓**)
+      -
+      - Ws/(kg*K)
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/density_rock`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Rock specific heat capacity** (ates)
+      - (**✓**)
+      -
+      - Ws/(kg*K)
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/ates_params/specific_heat_capacity_rock`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Self-sufficiency calculation method** (self-sufficiency)
       - ✖
       - "none"
@@ -1187,15 +1227,6 @@ Parameter table
       -
       - :code:`system_params/self_sufficiency_calculation_method`
       - :ref:`stages.yaml<stages_yaml>`
-
-    * - **Specific heat capacity of aquifer** (ates)
-      - (**✓**)
-      -
-      - Ws/(kg*K)
-      - ✖
-      - ✖
-      - :code:`hubs[ID]/ates_params/specific_heat_capacity_aquifer`
-      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **Solar area** (solar)
       - ✖
@@ -1286,15 +1317,6 @@ Parameter table
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/storage_cap`
       - :ref:`techs.yaml<techs_yaml>`
-
-    * - **Storativity of aquifer** (ates)
-      - (**✓**)
-      -
-      - [-]
-      - ✖
-      - ✖
-      - :code:`hubs[ID]/ates_params/storativity_aquifer`
-      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **Temperature, heating inlet** (heatpump)
       - (**✓**)
@@ -1403,6 +1425,12 @@ Parameter table
       - ✖
       - :code:`techs[ID]/ates_params/well_radius`
       - :ref:`techs.yaml<techs_yaml>`
+
+.. only:: latex
+
+   .. raw:: latex
+
+      \endgroup
 
 .. only:: latex
 

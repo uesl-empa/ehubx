@@ -19,7 +19,7 @@ from ehubx.model import conv_tech_model, ec_model
 from ehubx.parser.conv_tech_parser import YAMLKEY_AVAILABILITY, YAMLKEY_OUTEFF
 from ehubx.parser.csv_parser import HeaderId
 from ehubx.writer import solar_writer
-from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_cl, create_dir
+from ehubx.writer.common_writer import DfStBuilder, add_to_df_ts_cl, create_dir
 
 
 # -------- #
@@ -84,7 +84,7 @@ ENTRY_CONVTECHCOSTOPEXTOTAL: str = (
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -95,8 +95,7 @@ def format_all(
         conv_tech_cost_total = Value(
             conv_tech_cost_total_fl, energy_system.currency_unit
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CONVTECHCOSTOPEXTOTAL,
             conv_tech_cost_total,
             unit=energy_system.currency_unit,
@@ -106,24 +105,24 @@ def format_all(
 
     # Tech-specific properties
     for x in energy_system.conv_techs.ids_in_order:
-        _format_tech(energy_system, model, x, df_st, df_ts_hor, df_ts_cl)
+        _format_tech(energy_system, model, x, df_st_builder, df_ts_hor, df_ts_cl)
 
     # Child modules of this module
-    solar_writer.format_all(energy_system, model, df_st, df_ts_hor, df_ts_cl)
+    solar_writer.format_all(energy_system, model, df_st_builder, df_ts_hor, df_ts_cl)
 
 
 def _format_tech(
     energy_system: EnergySystem,
     model: Model,
     x: TechId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
     # in_ec_main
     in_ec_main = energy_system.conv_techs.get_in_ec_main(x)
-    add_to_df_st(
-        df_st, ENTRY_INECMAIN, in_ec_main.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_INECMAIN, in_ec_main.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # in_part
@@ -139,8 +138,7 @@ def _format_tech(
                 energy_system.mass_unit,
                 energy_system.power_unit,
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_INPART,
                 in_part,
                 unit=in_part_unit,
@@ -158,8 +156,7 @@ def _format_tech(
         energy_system.mass_unit,
         energy_system.power_unit,
     )
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_OUTECMAIN,
         out_ec_main.key,
         tech=x.key,
@@ -203,8 +200,7 @@ def _format_tech(
             if not out_eff.has_values:
                 out_eff_def = out_eff.def_value
                 assert out_eff_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_OUTEFF,
                     out_eff_def,
                     unit=out_eff_unit,
@@ -228,8 +224,7 @@ def _format_tech(
                 energy_system.mass_unit,
                 energy_system.power_unit,
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_OUTSUMMIN,
                 out_sum_min,
                 unit=out_sum_min_unit,
@@ -253,8 +248,7 @@ def _format_tech(
                 energy_system.mass_unit,
                 energy_system.power_unit,
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_OUTSUMMAX,
                 out_sum_max,
                 unit=out_sum_max_unit,
@@ -290,8 +284,7 @@ def _format_tech(
             if not availability.has_values:
                 availability_def = availability.def_value
                 assert availability_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_AVAILABILITY,
                     availability_def,
                     unit=DimlessUnit(),
@@ -307,8 +300,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         opex_per_energy = energy_system.conv_techs.get_opex_per_energy(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_OPEXPERENERGY,
             opex_per_energy,
             unit=(energy_system.currency_unit / out_ec_main_unit),
@@ -422,8 +414,7 @@ def _format_tech(
                 conv_tech_cost_opex_out = Value(
                     conv_tech_cost_opex_out_fl, energy_system.currency_unit
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_CONVTECHCOSTOPEXOUT,
                     conv_tech_cost_opex_out,
                     unit=energy_system.currency_unit,

@@ -698,9 +698,9 @@ For a final point, the current model allows for a simultaneous charging and disc
 ATES model
 ------------
 
-We would like to precede this chapter on ATES technology by mentioning a publication where the mathematical model has been first introduced by the authors of ehubX:
+We would like to precede this chapter on ATES technology by mentioning a publication where the mathematical model has been first introduced by the authors of ehubX in [Ates25]_:
 
-.. [Ates25] Beermann, D., Mutschler, R., Sulzer, M., Sørensen, S. N., Tønder, M., Daughty, C., Menberg, K. (2025). Integration of Aquifer Thermal Energy Storage (ATES) to linear energy system models. *TODO Journal*, 1-100.
+.. [Ates25] D. Beermann, S.N. Sørensen, M. Tønder, C. Doughty, P. Blum, K. Menberg, M. Wetter, M. Sulzer, R. Mutschler, "Integration of Aquifer Thermal Energy Storage (ATES) to linear energy system models", submitted to Applied Energy, 2026.
 
 The ATES model defines its own set of tech tuples
 
@@ -760,7 +760,7 @@ and similarly for cooling (in general, the following equations are calculated id
 
 The parameters :math:`density\_fluid`, :math:`specific\_heat\_capacity\_fluid`, and :math:`max\_temperature\_spread\_warm` are input parameters. The parameter :math:`max\_pump\_rate\_per\_warm\_well` is also a potential input parameter. However, if it is not specified, ehubX will try to alternatively calculate a maximal pumping rate based on the Cooper-Jacobs approximation of the Theis equation, using the parameters :math:`well\_radius`, :math:`well\_distance`, :math:`hydraulic\_conductivity\_aquifer`, :math:`thickness\_aquifer`, and :math:`max\_drawdown`. The details of this calculation are carried out in [Ates25].
 
-Returning to the maximal power density equation above, the denominator is given by the thermally affected area of a well pair. ehubX will start the calculation of this property by considering the circular areas of each well that are thermally affected. The radius of these circles is called the *thermal radius* of a well. This thermal radius can either be given as an input parameter (*thermal\_radius\_per\_warm\_well* and *thermal\_radius\_per\_cold\_well*). If it is not specified, ehubX will try to calculate it based on the input parameters *specific_heat_capacity_fluid*`*, *max_pump_rate_per_warm_well*, *specific_heat_capacity_aquifer*, *thickness_aquifer*, and *groundwater_velocity*. For the details of this calculation, we refer again to [Ates25].
+Returning to the maximal power density equation above, the denominator is given by the thermally affected area of a well pair. ehubX will start the calculation of this property by considering the circular areas of each well that are thermally affected. The radius of these circles is called the *thermal radius* of a well. This thermal radius can either be given as an input parameter (*thermal\_radius\_per\_warm\_well* and *thermal\_radius\_per\_cold\_well*). If it is not specified, ehubX will try to calculate it based on the input parameters *specific_heat_capacity_fluid*`*, *max_pump_rate_per_warm_well*, *specific_heat_capacity_aquifer*, *thickness_aquifer*, and *darcy_velocity*. For the details of this calculation, we refer again to [Ates25].
 
 Given the now calculated areas of the two wells, ehubX offers different options for how these will combine to the total area of a well pair. The calculation method can be set by the input parameter *well\_pair\_area\_calculation\_method*, leading to:
 

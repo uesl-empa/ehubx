@@ -20,15 +20,11 @@ from ehubx.model import ec_model, network_model
 from ehubx.parser.csv_parser import HeaderId
 from ehubx.parser.net_link_parser import YAMLKEY_AVAILABILITY
 from ehubx.writer.common_writer import (
-    COL_LOADSHIFT,
-    COL_NETLINK,
-    COL_NETTECH,
-    COL_TECH,
+    DfStBuilder,
+    DfStColumn,
     FileGranularity,
-    add_to_df_st,
     add_to_df_ts_cl,
     create_dir,
-    init_df_st,
     init_df_ts_cl,
     init_df_ts_hor,
 )
@@ -211,7 +207,7 @@ def format_all(
 ) -> List[Tuple[pd.DataFrame, str]]:
     # Initialize dataframes
     dfs: List[Tuple[pd.DataFrame, str]] = []
-    df_st = init_df_st()
+    df_st_builder = DfStBuilder()
     df_ts_hor = init_df_ts_hor(energy_system.times)
     df_ts_cl: Optional[pd.DataFrame] = None
     if energy_system.times.is_clustered:
@@ -223,8 +219,7 @@ def format_all(
         co2_total_fl = value(var[s.key], exception=False)
         if co2_total_fl is not None:
             co2_total = Value(co2_total_fl, unit=energy_system.mass_unit)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_NETTECHCO2TOTAL,
                 co2_total,
                 unit=energy_system.mass_unit,
@@ -293,19 +288,21 @@ def format_all(
 
     # Link-specific values
     for li in energy_system.net_links.ids_in_order:
-        _format_link(energy_system, model, li, df_st, df_ts_hor, df_ts_cl)
+        _format_link(energy_system, model, li, df_st_builder, df_ts_hor, df_ts_cl)
 
     # Tech-specific values
     for n in energy_system.net_techs.ids_in_order:
-        _format_tech(energy_system, model, n, df_st)
+        _format_tech(energy_system, model, n, df_st_builder)
 
     # Remove ununsed columns
-    cols_to_drop_st = [COL_TECH, COL_LOADSHIFT]
-    cols_to_drop_ts = [COL_TECH, COL_LOADSHIFT]
-    df_st.drop(columns=cols_to_drop_st, inplace=True)
+    cols_to_drop_st = {DfStColumn.TECH, DfStColumn.LOAD_SHIFT}
+    cols_to_drop_ts = [DfStColumn.TECH.value, DfStColumn.LOAD_SHIFT.value]
     df_ts_hor.columns = df_ts_hor.columns.droplevel(cols_to_drop_ts)
     if df_ts_cl is not None:
         df_ts_cl.columns = df_ts_cl.columns.droplevel(cols_to_drop_ts)
+
+    # Build all-in-one dataframe
+    df_st = df_st_builder.build(drop_columns=cols_to_drop_st)
 
     # Format for minimal file granularity
     dfs = _format_file_granularity(
@@ -320,14 +317,13 @@ def _format_link(
     energy_system: EnergySystem,
     model: Model,
     li: NetLinkId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
     # hub_start
     hub_start = energy_system.net_links.get_hub_start(li)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_HUBSTART,
         hub_start.key,
         net_link=li.key,
@@ -337,14 +333,17 @@ def _format_link(
 
     # hub_end
     hub_end = energy_system.net_links.get_hub_end(li)
-    add_to_df_st(
-        df_st, ENTRY_HUBEND, hub_end.key, net_link=li.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_HUBEND,
+        hub_end.key,
+        net_link=li.key,
+        source=SOURCE,
+        in_res="input",
     )
 
     # bidirectional
     bidirectional = energy_system.net_links.is_bidirectional(li)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_BIDIRECTIONAL,
         bidirectional,
         net_link=li.key,
@@ -354,8 +353,7 @@ def _format_link(
 
     # length
     length = energy_system.net_links.get_length(li)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_LENGTH,
         length,
         unit=energy_system.length_unit,
@@ -376,8 +374,7 @@ def _format_link(
             )
             cap_min = energy_system.net_links.get_cap_min(s, li, e)
             cap_unit = ec_unit / TimeUnit.H
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_CAPMIN,
                 cap_min,
                 unit=cap_unit,
@@ -400,8 +397,7 @@ def _format_link(
             )
             cap_max = energy_system.net_links.get_cap_max(s, li, e)
             cap_unit = ec_unit / TimeUnit.H
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_CAPMAX,
                 cap_max,
                 unit=cap_unit,
@@ -435,8 +431,7 @@ def _format_link(
             if not availability.has_values:
                 availability_def = availability.def_value
                 assert availability_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_AVAILABILITY,
                     availability_def,
                     unit=DimlessUnit(),
@@ -460,8 +455,7 @@ def _format_link(
             sum_min = energy_system.net_links.get_sum_min(
                 s, li, e, NetLinkDirection.FORWARD
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_SUMMIN,
                 sum_min,
                 unit=ec_unit,
@@ -476,8 +470,7 @@ def _format_link(
                 sum_min = energy_system.net_links.get_sum_min(
                     s, li, e, NetLinkDirection.BACKWARD
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_SUMMIN,
                     sum_min,
                     unit=ec_unit,
@@ -502,8 +495,7 @@ def _format_link(
             sum_max = energy_system.net_links.get_sum_max(
                 s, li, e, NetLinkDirection.FORWARD
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_SUMMAX,
                 sum_max,
                 unit=ec_unit,
@@ -518,8 +510,7 @@ def _format_link(
                 sum_max = energy_system.net_links.get_sum_max(
                     s, li, e, NetLinkDirection.BACKWARD
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_SUMMAX,
                     sum_max,
                     unit=ec_unit,
@@ -667,7 +658,7 @@ def _format_link(
 
 
 def _format_tech(
-    energy_system: EnergySystem, model: Model, n: NetTechId, df_st: pd.DataFrame
+    energy_system: EnergySystem, model: Model, n: NetTechId, df_st_builder: DfStBuilder
 ) -> None:
     # ec
     ec = energy_system.net_techs.get_ec(n)
@@ -680,8 +671,7 @@ def _format_tech(
     # Allowed stages
     for s in energy_system.stages.ids_in_order:
         allowed_in_stage = s in energy_system.net_techs.get_allowed_stages(n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_ALLOWEDINSTAGE,
             allowed_in_stage,
             stage=s.key,
@@ -693,8 +683,7 @@ def _format_tech(
     # Allowed links
     for li in energy_system.net_links.ids_in_order:
         allowed_on_link = li in energy_system.net_techs.get_allowed_net_links(n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_ALLOWEDONLINK,
             allowed_on_link,
             net_link=li.key,
@@ -704,12 +693,13 @@ def _format_tech(
         )
 
     # ec
-    add_to_df_st(df_st, ENTRY_EC, ec.key, net_tech=n.key, source=SOURCE, in_res="input")
+    df_st_builder.add_row(
+        ENTRY_EC, ec.key, net_tech=n.key, source=SOURCE, in_res="input"
+    )
 
     # lifetime
     lifetime = energy_system.net_techs.get_lifetime(n)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_LIFETIME,
         lifetime,
         unit=TimeUnit.H,
@@ -720,8 +710,7 @@ def _format_tech(
 
     # interest_rate
     interest_rate = energy_system.net_techs.get_interest_rate(n)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_INTERESTRATE,
         interest_rate,
         unit=DimlessUnit(),
@@ -735,8 +724,7 @@ def _format_tech(
         if s not in energy_system.net_techs.get_allowed_stages(n):
             continue
         unit_cap_min = energy_system.net_techs.get_unit_cap_min(s, n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_UNITCAPMIN,
             unit_cap_min,
             unit=cap_unit,
@@ -751,8 +739,7 @@ def _format_tech(
         if s not in energy_system.net_techs.get_allowed_stages(n):
             continue
         one_time_capex = energy_system.net_techs.get_one_time_capex(s, n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_ONETIMECAPEX,
             one_time_capex,
             unit=(energy_system.currency_unit / energy_system.length_unit),
@@ -770,8 +757,7 @@ def _format_tech(
         capex_per_cap_unit = energy_system.currency_unit / (
             cap_unit * energy_system.length_unit
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CAPEXPERCAP,
             capex_per_cap,
             unit=capex_per_cap_unit,
@@ -786,8 +772,7 @@ def _format_tech(
         if s not in energy_system.net_techs.get_allowed_stages(n):
             continue
         one_time_opex = energy_system.net_techs.get_one_time_opex(s, n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_ONETIMEOPEX,
             one_time_opex,
             unit=(energy_system.currency_unit / energy_system.length_unit),
@@ -805,8 +790,7 @@ def _format_tech(
         opex_per_cap_unit = energy_system.currency_unit / (
             cap_unit * energy_system.length_unit
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_OPEXPERCAP,
             opex_per_cap,
             unit=opex_per_cap_unit,
@@ -824,8 +808,7 @@ def _format_tech(
         opex_per_energy_unit = energy_system.currency_unit / (
             ec_unit * energy_system.length_unit
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_OPEXPERENERGY,
             opex_per_energy,
             unit=opex_per_energy_unit,
@@ -843,8 +826,7 @@ def _format_tech(
         co2_per_cap_unit = energy_system.mass_unit / (
             cap_unit * energy_system.length_unit
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CO2PERCAP,
             co2_per_cap,
             unit=co2_per_cap_unit,
@@ -862,8 +844,7 @@ def _format_tech(
         co2_per_energy_unit = energy_system.mass_unit / (
             ec_unit * energy_system.length_unit
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CO2PERENERGY,
             co2_per_energy,
             unit=co2_per_energy_unit,
@@ -878,8 +859,7 @@ def _format_tech(
         if s not in energy_system.net_techs.get_allowed_stages(n):
             continue
         trans_decay = energy_system.net_techs.get_trans_decay(s, n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_TRANSDECAY,
             trans_decay,
             unit=(DimlessUnit() / energy_system.length_unit),
@@ -892,8 +872,7 @@ def _format_tech(
     # cap_init
     for li in energy_system.net_links.ids_in_order:
         cap_init = energy_system.net_techs.get_cap_init(li, n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CAPINIT,
             cap_init,
             unit=cap_unit,
@@ -906,8 +885,7 @@ def _format_tech(
     # age_init
     for li in energy_system.net_links.ids_in_order:
         age_init = energy_system.net_techs.get_age_init(li, n)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_AGEINIT,
             age_init,
             unit=TimeUnit.A,
@@ -928,8 +906,7 @@ def _format_tech(
             y_net_tech_used_fl = value(var[s.key, li.key, n.key], exception=False)
             if y_net_tech_used_fl is not None:
                 y_net_tech_used = Value(y_net_tech_used_fl, DimlessUnit())
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_YNETTECHUSED,
                     y_net_tech_used,
                     unit=DimlessUnit(),
@@ -951,8 +928,7 @@ def _format_tech(
             cap_fl = value(var[s.key, li.key, n.key], exception=False)
             if cap_fl is not None:
                 cap = Value(cap_fl, cap_unit)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_NETTECHCAP,
                     cap,
                     unit=cap_unit,
@@ -974,8 +950,7 @@ def _format_tech(
             cap_instl_fl = value(var[s.key, li.key, n.key], exception=False)
             if cap_instl_fl is not None:
                 cap_instl = Value(cap_instl_fl, unit=cap_unit)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_NETTECHCAPINSTL,
                     cap_instl,
                     unit=cap_unit,
@@ -997,8 +972,7 @@ def _format_tech(
             y_cap_instl_fl = value(var[s.key, li.key, n.key], exception=False)
             if y_cap_instl_fl is not None:
                 y_cap_instl = Value(y_cap_instl_fl, DimlessUnit())
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_YNETTECHCAPINSTL,
                     y_cap_instl,
                     unit=DimlessUnit(),
@@ -1020,8 +994,7 @@ def _format_tech(
             capex_fl = value(var[s.key, li.key, n.key], exception=False)
             if capex_fl is not None:
                 capex = Value(capex_fl, unit=energy_system.currency_unit)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_NETTECHCOSTCAPEX,
                     capex,
                     unit=energy_system.currency_unit,
@@ -1043,8 +1016,7 @@ def _format_tech(
             opex_cap_fl = value(var[s.key, li.key, n.key], exception=False)
             if opex_cap_fl is not None:
                 opex_cap = Value(opex_cap_fl, unit=energy_system.currency_unit)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_NETTECHCOSTOPEXCAP,
                     opex_cap,
                     unit=energy_system.currency_unit,
@@ -1066,8 +1038,7 @@ def _format_tech(
             opex_trans_fl = value(var[s.key, li.key, n.key], exception=False)
             if opex_trans_fl is not None:
                 opex_trans = Value(opex_trans_fl, unit=energy_system.currency_unit)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_NETTECHCOSTOPEXTRANS,
                     opex_trans,
                     unit=energy_system.currency_unit,
@@ -1089,8 +1060,7 @@ def _format_tech(
             co2_instl_fl = value(var[s.key, li.key, n.key], exception=False)
             if co2_instl_fl is not None:
                 co2_instl = Value(co2_instl_fl, unit=energy_system.mass_unit)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_NETTECHCO2INSTL,
                     co2_instl,
                     unit=energy_system.mass_unit,
@@ -1112,8 +1082,7 @@ def _format_tech(
             co2_trans_fl = value(var[s.key, li.key, n.key], exception=False)
             if co2_trans_fl is not None:
                 co2_trans = Value(co2_trans_fl, unit=energy_system.mass_unit)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_NETTECHCO2TRANS,
                     co2_trans,
                     unit=energy_system.mass_unit,
@@ -1129,8 +1098,7 @@ def _format_tech(
     cost_total_fl = value(var, exception=False)
     if cost_total_fl is not None:
         cost_total = Value(cost_total_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_NETTECHCOSTTOTAL,
             cost_total,
             unit=energy_system.currency_unit,
@@ -1164,39 +1132,43 @@ def _format_file_granularity(
     # Format for default file granularity
     if file_granularity.value == FileGranularity.DEFAULT.value:
         # Static files
-        ids_st = df_st[COL_NETLINK].unique()
+        ids_st = df_st[DfStColumn.NET_LINK.value].unique()
         for li in ids_st:
             filename_st = SOURCE
             if li:
                 filename_st = f"{SOURCE}_{li}"
             filename_st = os.path.join(dir_path, f"{filename_st}.csv")
-            df_st_cur = df_st[df_st[COL_NETLINK] == li]
+            df_st_cur = df_st[df_st[DfStColumn.NET_LINK.value] == li]
             if len(df_st_cur) > 0:
                 dfs.append((df_st_cur, filename_st))
 
         # Horizon time files
-        ids_ts_hor = df_ts_hor.columns.get_level_values(COL_NETLINK).unique()
+        ids_ts_hor = df_ts_hor.columns.get_level_values(
+            DfStColumn.NET_LINK.value
+        ).unique()
         for li in ids_ts_hor:
             filename_ts_hor = f"{SOURCE}-TS"
             if li:
                 filename_ts_hor = f"{SOURCE}_{li}-TS"
             filename_ts_hor = os.path.join(dir_path, f"{filename_ts_hor}.csv")
             df_ts_hor_cur = df_ts_hor.xs(
-                li, axis=1, level=COL_NETLINK, drop_level=False
+                li, axis=1, level=DfStColumn.NET_LINK.value, drop_level=False
             )
             if len(df_ts_hor_cur) > 0:
                 dfs.append((df_ts_hor_cur, filename_ts_hor))
 
         # Clustered time files
         if df_ts_cl is not None:
-            ids_ts_cl = df_ts_cl.columns.get_level_values(COL_NETLINK).unique()
+            ids_ts_cl = df_ts_cl.columns.get_level_values(
+                DfStColumn.NET_LINK.value
+            ).unique()
             for li in ids_ts_cl:
                 filename_ts_cl = f"{SOURCE}-TSCL"
                 if li:
                     filename_ts_cl = f"{SOURCE}_{li}-TSCL"
                 filename_ts_cl = os.path.join(dir_path, f"{filename_ts_cl}.csv")
                 df_ts_cl_cur = df_ts_cl.xs(
-                    li, axis=1, level=COL_NETLINK, drop_level=False
+                    li, axis=1, level=DfStColumn.NET_LINK.value, drop_level=False
                 )
                 if len(df_ts_cl_cur) > 0:
                     dfs.append((df_ts_cl_cur, filename_ts_cl))
@@ -1204,7 +1176,9 @@ def _format_file_granularity(
     # Format for maximal file granularity
     if file_granularity.value == FileGranularity.MAX.value:
         # Static files
-        ids_st = df_st[[COL_NETLINK, COL_NETTECH]].drop_duplicates()
+        ids_st = df_st[
+            [DfStColumn.NET_LINK.value, DfStColumn.NET_TECH.value]
+        ].drop_duplicates()
         for li, n in ids_st.itertuples(index=False, name=None):
             filename_st = SOURCE
             if li:
@@ -1212,12 +1186,17 @@ def _format_file_granularity(
                 if n:
                     filename_st = f"{SOURCE}_{li}_{n}"
             filename_st = os.path.join(dir_path, f"{filename_st}.csv")
-            df_st_cur = df_st[(df_st[COL_NETLINK] == li) & (df_st[COL_NETTECH] == n)]
+            df_st_cur = df_st[
+                (df_st[DfStColumn.NET_LINK.value] == li)
+                & (df_st[DfStColumn.NET_TECH.value] == n)
+            ]
             if len(df_st_cur) > 0:
                 dfs.append((df_st_cur, filename_st))
 
         # Horizon time files
-        ids_ts_hor = df_ts_hor.columns.to_frame(index=False)[[COL_NETLINK, COL_NETTECH]]
+        ids_ts_hor = df_ts_hor.columns.to_frame(index=False)[
+            [DfStColumn.NET_LINK.value, DfStColumn.NET_TECH.value]
+        ]
         for li, n in ids_ts_hor.itertuples(index=False, name=None):
             filename_ts_hor = f"{SOURCE}-TS"
             if li:
@@ -1226,7 +1205,10 @@ def _format_file_granularity(
                     filename_ts_hor = f"{SOURCE}_{li}_{n}-TS"
             filename_ts_hor = os.path.join(dir_path, f"{filename_ts_hor}.csv")
             df_ts_hor_cur = df_ts_hor.xs(
-                (li, n), axis=1, level=(COL_NETLINK, COL_NETTECH), drop_level=False
+                (li, n),
+                axis=1,
+                level=(DfStColumn.NET_LINK.value, DfStColumn.NET_TECH.value),
+                drop_level=False,
             )
             if len(df_ts_hor_cur) > 0:
                 dfs.append((df_ts_hor_cur, filename_ts_hor))
@@ -1234,7 +1216,7 @@ def _format_file_granularity(
         # Clustered time files
         if df_ts_cl is not None:
             ids_ts_cl = df_ts_hor.columns.to_frame(index=False)[
-                [COL_NETLINK, COL_NETTECH]
+                [DfStColumn.NET_LINK.value, DfStColumn.NET_TECH.value]
             ]
             for li, n in ids_ts_cl:
                 filename_ts_cl = f"{SOURCE}-TSCL"
@@ -1244,7 +1226,10 @@ def _format_file_granularity(
                         filename_ts_cl = f"{SOURCE}_{li}_{n}-TSCL"
                 filename_ts_cl = os.path.join(dir_path, f"{filename_ts_cl}.csv")
                 df_ts_cl_cur = df_ts_cl.xs(
-                    (li, n), axis=1, level=(COL_NETLINK, COL_NETTECH), drop_level=False
+                    (li, n),
+                    axis=1,
+                    level=(DfStColumn.NET_LINK.value, DfStColumn.NET_TECH.value),
+                    drop_level=False,
                 )
                 if len(df_ts_cl_cur) > 0:
                     dfs.append((df_ts_cl_cur, filename_ts_cl))

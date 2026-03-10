@@ -64,15 +64,16 @@ hubs:
       profiles: ebm_profiles.csv
 
   ates_params:
-    groundwater_velocity: 1
-    specific_heat_capacity_aquifer: 0.15
-    thickness_aquifer: 30
-    hydraulic_conductivity_aquifer: 10
-    storativity_aquifer: 0.25
-    max_drawdown: 1
-    max_temperature_spread_warm: 6
-    max_temperature_spread_cold: 6.5
-    available_area: 1000
+    darcy_velocity: 0.025 m/d
+    density_rock: 2000 kg/m^3
+    specific_heat_capacity_rock: 1000 Ws/(kg*K)
+    thickness_aquifer: 30 m
+    hydraulic_conductivity_aquifer: 5 m/d
+    porosity_aquifer: 0.25
+    max_drawdown: 5 m
+    max_temperature_spread_warm: 6 K
+    max_temperature_spread_cold: 6.5 K
+    available_area: 1 km^2
     schedules:
     - schedule_id: AS1
       phase_w2c_start_id: 10

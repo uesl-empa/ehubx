@@ -56,23 +56,20 @@ def my_modifications(model: Model) -> None:
 if __name__ == "__main__":
     # Step 0: Create EhubX object and set path
     ehubx = EhubX()
-    # Set model path and parse
+    # Step 1: Set model path and parse
     ehubx.model_dir_path = os.path.abspath(os.path.dirname(__file__))
     ehubx.parse()
-    # Step 2 (optional): Deactivate or reactivate modules
-    ehubx.energy_system.deactivate_solar_techs()
-    ehubx.energy_system.reactivate_solar_techs()
-    # Step 3: Build the model. Use optional arguments to specify normalization
+    # Step 2: Build the model. Use optional arguments to specify normalization
     #         and clustering
     ehubx.build()
-    # Step 4 (optional): Add custom model modifications
+    # Step 3 (optional): Add custom model modifications
     ehubx.modify_model(my_modifications)
-    # Step 5 (optional): Manually set a solver and specify options
+    # Step 4 (optional): Manually set a solver and specify options
     solver = Gurobi()
     solver.set_mip_focus(1)
     solver.set_option_by_key("Method", 0)
     ehubx.set_solver(solver)
-    # Step 6: Solve the model.
+    # Step 5: Solve the model.
     ehubx.solve_single_obj(
         obj_type=ObjectiveType.COST, file_granularity=FileGranularity.MIN
     )
@@ -81,5 +78,5 @@ if __name__ == "__main__":
         obj_type_2=ObjectiveType.CO2,
         num_pareto_points=10,
     )
-    # Step 7 (optional): EhubX object can still be used to perform actions,
+    # Step 6 (optional): EhubX object can still be used to perform actions,
     #                    e.g.; modifying parameters and rebuilding the model

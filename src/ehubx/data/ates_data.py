@@ -39,15 +39,18 @@ class ExceptionKey(Enum):
     Key strings for exception messages occuring in the ATES data module
     """
 
-    GROUNDWATERVELOCITY_SET = "setting 'groundwater_velocity' of AtesData"
-    GROUNDWATERVELOCITY_GET = "getting 'groundwater_velocity' from AtesData"
-    GROUNDWATERVELOCITY_VAL = "validating 'groundwater_velocity' of AtesData"
-    DENSITYAQ_SET = "setting density_aquifer of AtesData"
-    DENSITYAQ_GET = "getting density_aquifer from AtesData"
-    DENSITYAQ_VAL = "validating density_aquifer of AtesData"
-    SPECIFICHEATCAPAQ_SET = "setting specific_heat_capacity_aquifer of AtesData"
-    SPECIFICHEATCAPAQ_GET = "getting specific_heat_capacity_aquifer from AtesData"
-    SPECIFICHEATCAPAQ_VAL = "validating specific_heat_capacity_aquifer of AtesData"
+    DARCYVELOCITY_SET = "setting 'darcy_velocity' of AtesData"
+    DARCYVELOCITY_GET = "getting 'darcy_velocity' from AtesData"
+    DARCYVELOCITY_VAL = "validating 'darcy_velocity' of AtesData"
+    DENSITYROCK_SET = "setting density_rock of AtesData"
+    DENSITYROCK_GET = "getting density_rock from AtesData"
+    DENSITYROCK_VAL = "validating density_rock of AtesData"
+    SPECIFICHEATCAPROCK_SET = "setting specific_heat_capacity_rock of AtesData"
+    SPECIFICHEATCAPROCK_GET = "getting specific_heat_capacity_rock from AtesData"
+    SPECIFICHEATCAPROCK_VAL = "validating specific_heat_capacity_rock of AtesData"
+    POROSITYAQ_SET = "setting 'porosity_aquifer' of AtesData"
+    POROSITYAQ_GET = "getting 'porosity_aquifer' from AtesData"
+    POROSITYAQ_VAL = "validating 'porosity_aquifer' of AtesData"
     THICKNESSAQ_SET = "setting 'thickness_aq' of AtesData"
     THICKNESSAQ_GET = "getting 'thickness_aq' from AtesData"
     THICKNESSAQ_VAL = "validating 'thickness_aq' of AtesData"
@@ -55,9 +58,6 @@ class ExceptionKey(Enum):
     HYDRAULICCONDUCTAQ_GET = "getting 'hydraulic_conductivity_aquifer from AtesData"
     HYDRAULICCONDUCTAQ_VAL = "validating 'hydraulic_conductivity_aquifer of AtesData"
     HYDRAULICTRANSMISAQ_GET = "getting 'hydraulic_transmissivity_aquifer from AtesData"
-    STORATIVITYAQ_SET = "setting 'storativity_aquifer' of AtesData"
-    STORATIVITYAQ_GET = "getting 'storativity_aquifer' from AtesData"
-    STORATIVITYAQ_VAL = "validating 'storativity_aquifer' of AtesData"
     MAXDRAWDOWN_SET = "setting 'max_drawdown' of AtesData"
     MAXDRAWDOWN_GET = "getting 'max_drawdown' from AtesData"
     MAXDRAWDOWN_VAL = "validating 'max_drawdown' of AtesData"
@@ -103,58 +103,76 @@ class AtesData:
     and validation methods to control data integrity
     """
 
-    # ------------------------------ #
-    # Property: groundwater_velocity #
-    # ------------------------------ #
-    def get_groundwater_velocity(self, h: HubId) -> Value:
+    # ------------------------ #
+    # Property: darcy_velocity #
+    # ------------------------ #
+    def get_darcy_velocity(self, h: HubId) -> Value:
         """
-        Get the groundwater velocity (specifically the Darcy velocity) which
-        influences the thermal radius of ATES wells. This parameter is
-        mandatory if one of the  parameters 'thermal_radius_per_warm_well',
-        'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
-        set, since then the groundwater velocity is required to calculate it.
+        Get the Darcy groundwater velocity which influences the thermal radius of
+        ATES wells. This parameter is mandatory if one of the  parameters
+        'thermal_radius_per_warm_well', 'thermal_radius_per_cold_well' from the
+        AtesTechs dataclass is not set, since then the groundwater velocity
+        is required to calculate it.
 
         :param h: Hub
         :type h: HubId
-        :return: Groundwater velocity
+        :return: Darcy velocity
         :rtype: Value
         """
-        if h not in self._groundwater_velocity:
+        if h not in self._darcy_velocity:
             raise exceptions.MissingIdException(
-                ExceptionKey.GROUNDWATERVELOCITY_GET.value, h, module=LOG_MODULE_STR
+                ExceptionKey.DARCYVELOCITY_GET.value, h, module=LOG_MODULE_STR
             )
-        return self._groundwater_velocity[h]
+        return self._darcy_velocity[h]
 
-    def set_groundwater_velocity(self, h: HubId, groundwater_velocity: Value) -> None:
+    def set_darcy_velocity(self, h: HubId, darcy_velocity: Value) -> None:
         """
-        Set the groundwater velocity (specifically the Darcy velocity) which
-        influences the thermal radius of ATES wells. This parameter is
-        mandatory if one of the  parameters 'thermal_radius_per_warm_well',
-        'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
-        set, since then the groundwater velocity is required to calculate it.
+        Set the the Darcy groundwater velocity which influences the thermal radius of
+        ATES wells. This parameter is mandatory if one of the  parameters
+        'thermal_radius_per_warm_well', 'thermal_radius_per_cold_well' from the
+        AtesTechs dataclass is not set, since then the groundwater velocity
+        is required to calculate it.
 
         :param h: Hub
         :type h: HubId
-        :param groundwater_velocity: Groundwater velocity
-        :type groundwater_velocity: Value
+        :param darcy_velocity: Darcy groundwater velocity
+        :type darcy_velocity: Value
         """
         expected_unit = LengthUnit.M / TimeUnit.D
-        if not groundwater_velocity.unit.same_type_as(expected_unit):
+        if not darcy_velocity.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.GROUNDWATERVELOCITY_SET.value,
+                ExceptionKey.DARCYVELOCITY_SET.value,
                 [h],
-                f"Unit of groundwater_velocity[{h}] = {groundwater_velocity} "
+                f"Unit of darcy_velocity[{h}] = {darcy_velocity} "
                 f"does not match expected unit {expected_unit}",
                 module=LOG_MODULE_STR,
             )
-        self._groundwater_velocity[h] = groundwater_velocity
+        self._darcy_velocity[h] = darcy_velocity
 
-    # ------------------------- #
-    # Property: density_aquifer #
-    # ------------------------- #
-    def get_density_aquifer(self, h: HubId) -> Value:
+    # ----------------------- #
+    # Property: Pore velocity #
+    # ----------------------- #
+    def get_pore_velocity(self, h: HubId) -> Value:
         """
-        Get the density of the aquifer. This parameter is
+        Get the pore groundwater velocity which influences the thermal radius of
+        ATES wells. This parameter is calculated as the Darcy velocity divided
+        by the porosity of the aquifer.
+
+        :param h: Hub
+        :type h: HubId
+        :return: Pore velocity
+        :rtype: Value
+        """
+        darcy_velo = self.get_darcy_velocity(h)
+        porosity_aq = self.get_porosity_aquifer(h)
+        return darcy_velo / porosity_aq
+
+    # ---------------------- #
+    # Property: density_rock #
+    # ---------------------- #
+    def get_density_rock(self, h: HubId) -> Value:
+        """
+        Get the density of the aquifer's rock material. This parameter is
         mandatory if one of the parameters 'thermal_radius_per_warm_well',
         'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
         set, since then the density is then required to
@@ -165,15 +183,15 @@ class AtesData:
         :return: Density
         :rtype: Value
         """
-        if h not in self._density_aquifer:
+        if h not in self._density_rock:
             raise exceptions.MissingIdException(
-                ExceptionKey.DENSITYAQ_GET.value, h, module=LOG_MODULE_STR
+                ExceptionKey.DENSITYROCK_GET.value, h, module=LOG_MODULE_STR
             )
-        return self._density_aquifer[h]
+        return self._density_rock[h]
 
-    def set_density_aquifer(self, h: HubId, density_aquifer: Value) -> None:
+    def set_density_rock(self, h: HubId, density_rock: Value) -> None:
         """
-        Set the density of the aquifer. This parameter is
+        Set the density of the aquifer's rock material. This parameter is
         mandatory if one of the parameters 'thermal_radius_per_warm_well',
         'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
         set, since then the density is then required to
@@ -181,26 +199,26 @@ class AtesData:
 
         :param h: Hub
         :type h: HubId
-        :param density_aquifer: Density
-        :type density_aquifer: Value
+        :param density_rock: Density
+        :type density_rock: Value
         """
         expected_unit = MassUnit.KG / (LengthUnit.M**3)
-        if not density_aquifer.unit.same_type_as(expected_unit):
+        if not density_rock.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.DENSITYAQ_SET.value,
+                ExceptionKey.DENSITYROCK_SET.value,
                 [h],
-                f"Unit of density_aquifer[{h}] = {density_aquifer} "
+                f"Unit of density_rock[{h}] = {density_rock} "
                 f"does not match expected unit {expected_unit}",
                 module=LOG_MODULE_STR,
             )
-        self._density_aquifer[h] = density_aquifer
+        self._density_rock[h] = density_rock
 
-    # ---------------------------------------- #
-    # Property: specific_heat_capacity_aquifer #
-    # ---------------------------------------- #
-    def get_specific_heat_capacity_aquifer(self, h: HubId) -> Value:
+    # ------------------------------------- #
+    # Property: specific_heat_capacity_rock #
+    # ------------------------------------- #
+    def get_specific_heat_capacity_rock(self, h: HubId) -> Value:
         """
-        Get the specific heat capacity of the aquifer. This parameter is
+        Get the specific heat capacity of the aquifer's rock material. This parameter is
         mandatory if one of the parameters 'thermal_radius_per_warm_well',
         'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
         set, since then the specific heat capacity is then required to
@@ -211,17 +229,17 @@ class AtesData:
         :return: Specific heat capacity
         :rtype: Value
         """
-        if h not in self._specific_heat_capacity_aquifer:
+        if h not in self._specific_heat_capacity_rock:
             raise exceptions.MissingIdException(
-                ExceptionKey.SPECIFICHEATCAPAQ_GET.value, h, module=LOG_MODULE_STR
+                ExceptionKey.SPECIFICHEATCAPROCK_GET.value, h, module=LOG_MODULE_STR
             )
-        return self._specific_heat_capacity_aquifer[h]
+        return self._specific_heat_capacity_rock[h]
 
-    def set_specific_heat_capacity_aquifer(
-        self, h: HubId, spec_heat_cap_aq: Value
+    def set_specific_heat_capacity_rock(
+        self, h: HubId, spec_heat_cap_rock: Value
     ) -> None:
         """
-        Set the specific heat capacity of the aquifer. This parameter is
+        Set the specific heat capacity of the aquifer's rock material. This parameter is
         mandatory if one of the parameters 'thermal_radius_per_warm_well',
         'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
         set, since then the specific heat capacity is then required to
@@ -230,18 +248,36 @@ class AtesData:
         :param h: Hub
         :type h: HubId
         :param spec_heat_cap_aq: Specific heat capacity
-        :type spec_heat_cap_aq: Value
+        :type spec_heat_cap_rock: Value
         """
         expected_unit = (PowerUnit.KW * TimeUnit.H) / (MassUnit.KG * TemperatureUnit.K)
-        if not spec_heat_cap_aq.unit.same_type_as(expected_unit):
+        if not spec_heat_cap_rock.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.SPECIFICHEATCAPAQ_SET.value,
+                ExceptionKey.SPECIFICHEATCAPROCK_SET.value,
                 [h],
-                f"Unit of spec_heat_cap_aq[{h}] = {spec_heat_cap_aq} "
+                f"Unit of spec_heat_cap_rock[{h}] = {spec_heat_cap_rock} "
                 f"does not match expected unit {expected_unit}",
                 module=LOG_MODULE_STR,
             )
-        self._specific_heat_capacity_aquifer[h] = spec_heat_cap_aq
+        self._specific_heat_capacity_rock[h] = spec_heat_cap_rock
+
+    # --------------------------------------- #
+    # Property: volumetric_heat_capacity_rock #
+    # --------------------------------------- #
+    def get_volumetric_heat_capacity_rock(self, h: HubId) -> Value:
+        """
+        Get the volumetric heat capacity of the aquifer's rock material. This
+        parameter is calculated as the product of density and specific heat
+        capacity of the rock material.
+
+        :param h: Hub
+        :type h: HubId
+        :return: Volumetric heat capacity
+        :rtype: Value
+        """
+        density_rock = self.get_density_rock(h)
+        spec_heat_cap_rock = self.get_specific_heat_capacity_rock(h)
+        return density_rock * spec_heat_cap_rock
 
     # --------------------------- #
     # Property: thickness_aquifer #
@@ -354,53 +390,53 @@ class AtesData:
         thickness_aq = self.get_thickness_aquifer(h)
         return hyd_cond_aq * thickness_aq
 
-    # ----------------------------- #
-    # Property: storativity_aquifer #
-    # ----------------------------- #
-    def get_storativity_aquifer(self, h: HubId) -> Value:
+    # -------------------------- #
+    # Property: porosity_aquifer #
+    # -------------------------- #
+    def get_porosity_aquifer(self, h: HubId) -> Value:
         """
-        Get the aquifer's storativity (or storage coefficient) which is the
-        volume of water released from storage per unit decline in hydraulic
-        head in the aquifer, per unit area of the aquifer. This parameter is
-        mandatory if one of the  parameters 'max_pump_rate_per_warm_well',
-        'max_pump_rate_per_cold_well' from the AtesTechs dataclass is not
-        set, since then the storativity is then equired to calculate it.
+        Get the porosity of the aquifer which indicates the ease
+        and speed of groundwater flow. XXX This parameter is mandatory if one of
+        the  parameters 'thermal_radius_per_warm_well',
+        'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
+        set, since then the hydraulic conductivity is then required to
+        calculate it.
 
         :param h: Hub
         :type h: HubId
-        :return: Storativity
+        :return: Porosity [-]
         :rtype: Value
         """
-        if h not in self._storativity_aquifer:
+        if h not in self._porosity_aquifer:
             raise exceptions.MissingIdException(
-                ExceptionKey.STORATIVITYAQ_GET.value, h, module=LOG_MODULE_STR
+                ExceptionKey.POROSITYAQ_GET.value, h, module=LOG_MODULE_STR
             )
-        return self._storativity_aquifer[h]
+        return self._porosity_aquifer[h]
 
-    def set_storativity_aquifer(self, h: HubId, storativity_aquifer: Value) -> None:
+    def set_porosity_aquifer(self, h: HubId, porosity_aq: Value) -> None:
         """
-        Set the aquifer's storativity (or storage coefficient) which is the
-        volume of water released from storage per unit decline in hydraulic
-        head in the aquifer, per unit area of the aquifer. This parameter is
-        mandatory if one of the  parameters 'max_pump_rate_per_warm_well',
-        'max_pump_rate_per_cold_well' from the AtesTechs dataclass is not
-        set, since then the storativity is then required to calculate it.
+        Set the porosity of the aquifer which indicates the ease
+        and speed of groundwater flow. XXX This parameter is mandatory if one of
+        the  parameters 'thermal_radius_per_warm_well',
+        'thermal_radius_per_cold_well' from the AtesTechs dataclass is not
+        set, since then the hydraulic conductivity is then required to
+        calculate it.
 
         :param h: Hub
         :type h: HubId
-        :param storativity_aquifer: Storativity
-        :type storativity_aquifer: Value
+        :param porosity_aq: Porosity
+        :type porosity_aq: Value
         """
         expected_unit = DimlessUnit()
-        if not storativity_aquifer.unit.same_type_as(expected_unit):
+        if not porosity_aq.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.STORATIVITYAQ_SET.value,
+                ExceptionKey.POROSITYAQ_SET.value,
                 [h],
-                f"Unit of storativity_aquifer[{h}] = {storativity_aquifer} "
+                f"Unit of porosity_aq[{h}] = {porosity_aq} "
                 f"does not match expected unit {expected_unit}",
                 module=LOG_MODULE_STR,
             )
-        self._storativity_aquifer[h] = storativity_aquifer
+        self._porosity_aquifer[h] = porosity_aq
 
     # ---------------------- #
     # Property: max_drawdown #
@@ -923,12 +959,12 @@ class AtesData:
     # Constructor #
     # ----------- #
     def __init__(self) -> None:
-        self._groundwater_velocity: Dict[HubId, Value] = {}
-        self._density_aquifer: Dict[HubId, Value] = {}
-        self._specific_heat_capacity_aquifer: Dict[HubId, Value] = {}
+        self._darcy_velocity: Dict[HubId, Value] = {}
+        self._density_rock: Dict[HubId, Value] = {}
+        self._specific_heat_capacity_rock: Dict[HubId, Value] = {}
         self._thickness_aquifer: Dict[HubId, Value] = {}
         self._hydraulic_conductivity_aquifer: Dict[HubId, Value] = {}
-        self._storativity_aquifer: Dict[HubId, Value] = {}
+        self._porosity_aquifer: Dict[HubId, Value] = {}
         self._max_drawdown: Dict[HubId, Value] = {}
         self._max_temperature_spread_warm: Dict[HubId, Value] = {}
         self._max_temperature_spread_cold: Dict[HubId, Value] = {}
@@ -955,11 +991,11 @@ class AtesData:
         :param times: Times data class
         :type times: Times
         """
-        self._validate_groundwater_velocity(hubs)
+        self._validate_darcy_velocity(hubs)
         self._validate_spec_heat_cap_aq(hubs)
         self._validate_thickness_aq(hubs)
         self._validate_hydr_cond_aq(hubs)
-        self._validate_storativity_aq(hubs)
+        self._validate_porosity_aq(hubs)
         self._validate_max_drawdown(hubs)
         self._validate_max_temp_spread_warm(hubs)
         self._validate_max_temp_spread_cold(hubs)
@@ -970,19 +1006,19 @@ class AtesData:
         self._validate_phase_c2w_end(hubs, times)
         self._validate_phases()
 
-    def _validate_groundwater_velocity(self, hubs: Hubs) -> None:
-        exc_key = ExceptionKey.GROUNDWATERVELOCITY_VAL.value
-        for h, velo in self._groundwater_velocity.items():
+    def _validate_darcy_velocity(self, hubs: Hubs) -> None:
+        exc_key = ExceptionKey.DARCYVELOCITY_VAL.value
+        for h, velo in self._darcy_velocity.items():
             if h not in hubs.ids:
-                msg = f"Unknown hub {h} in groundwater_velocity[{h}]"
+                msg = f"Unknown hub {h} in darcy_velocity[{h}]"
                 raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
             if velo.is_negative:
-                msg = f"{velo} = groundwater_velocity[{h}] < 0"
+                msg = f"{velo} = darcy_velocity[{h}] < 0"
                 raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
 
     def _validate_spec_heat_cap_aq(self, hubs: Hubs) -> None:
-        exc_key = ExceptionKey.SPECIFICHEATCAPAQ_VAL.value
-        for h, _ in self._specific_heat_capacity_aquifer.items():
+        exc_key = ExceptionKey.SPECIFICHEATCAPROCK_VAL.value
+        for h, _ in self._specific_heat_capacity_rock.items():
             if h not in hubs.ids:
                 msg = f"Unknown hub {h} in specific_heat_capacity_aquifer[{h}]"
                 raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
@@ -1001,14 +1037,14 @@ class AtesData:
                 msg = f"Unknown hub {h} in hydraulic_conductivity_aquifer[{h}]"
                 raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
 
-    def _validate_storativity_aq(self, hubs: Hubs) -> None:
-        exc_key = ExceptionKey.STORATIVITYAQ_VAL.value
-        for h, storativity in self._storativity_aquifer.items():
+    def _validate_porosity_aq(self, hubs: Hubs) -> None:
+        exc_key = ExceptionKey.POROSITYAQ_VAL.value
+        for h, porosity in self._porosity_aquifer.items():
             if h not in hubs.ids:
-                msg = f"Unknown hub {h} in storativity_aquifer[{h}]"
+                msg = f"Unknown hub {h} in porosity_aquifer[{h}]"
                 raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
-            if storativity <= Value(common.EPS_ZEROCHECK):
-                msg = f"{storativity} = storativity_aquifer[{h}] <= 0"
+            if porosity <= Value(common.EPS_ZEROCHECK):
+                msg = f"{porosity} = porosity_aquifer[{h}] <= 0"
                 raise exceptions.DataException(exc_key, [h], msg, module=LOG_MODULE_STR)
 
     def _validate_max_drawdown(self, hubs: Hubs) -> None:

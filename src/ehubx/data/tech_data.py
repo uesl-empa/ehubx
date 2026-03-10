@@ -5,7 +5,7 @@ Technology data module
 from enum import Enum
 from typing import Dict, List, Set, Tuple
 
-from ehubx.core import common, logging
+from ehubx.core import logging
 from ehubx.data import exceptions
 from ehubx.data.hub_data import HubId, Hubs
 from ehubx.data.index import Index, IndexKind
@@ -1503,7 +1503,7 @@ class Techs:
         exc_key = ExceptionKey.CAPMINALLOWEDHUBS_VAL.value
         for (s, h, x), cap_min in self._cap_min.items():
             # Check only makes sense for nonzero minimal capacity
-            if cap_min < Value(common.EPS_ZEROCHECK):
+            if cap_min.to_float() <= 0:
                 continue
             # Cannot satisfy minimal capacity if tech is not allowed
             if h not in self.get_allowed_hubs(x):

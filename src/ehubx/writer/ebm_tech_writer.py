@@ -18,7 +18,7 @@ from ehubx.model import ebm_tech_model, ec_model
 from ehubx.parser.csv_parser import HeaderId
 from ehubx.parser.ebm_tech_parser import YAMLKEY_AVAILABILITY, YAMLKEY_DEMANDNOMINAL
 from ehubx.writer.common_writer import (
-    add_to_df_st,
+    DfStBuilder,
     add_to_df_ts_cl,
     add_to_df_ts_hor,
     create_dir,
@@ -98,20 +98,20 @@ ENTRY_ENERGY: str = f"EBM tech energy ({ebm_tech_model.VAR_EBMTECHENERGY})"
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
     # Tech-specific properties
     for tech_id in energy_system.ebm_techs.ids_in_order:
-        _format_tech(energy_system, model, tech_id, df_st, df_ts_hor, df_ts_cl)
+        _format_tech(energy_system, model, tech_id, df_st_builder, df_ts_hor, df_ts_cl)
 
 
 def _format_tech(
     energy_system: EnergySystem,
     model: Model,
     x: TechId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -122,7 +122,7 @@ def _format_tech(
         energy_system.mass_unit,
         energy_system.power_unit,
     )
-    add_to_df_st(df_st, ENTRY_EC, ec.key, tech=x.key, source=SOURCE, in_res="input")
+    df_st_builder.add_row(ENTRY_EC, ec.key, tech=x.key, source=SOURCE, in_res="input")
 
     # num_vehicles
     for s in energy_system.stages.ids_in_order:
@@ -132,8 +132,7 @@ def _format_tech(
             if h not in energy_system.techs.get_allowed_hubs(x):
                 continue
             num_vehicles = energy_system.ebm_techs.get_num_vehicles(s, h, x)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_NUMVEHICLES,
                 str(num_vehicles),
                 stage=s.key,
@@ -148,8 +147,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         in_eff = energy_system.ebm_techs.get_in_eff(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_INEFF,
             in_eff,
             unit=DimlessUnit(),
@@ -164,8 +162,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         out_eff = energy_system.ebm_techs.get_out_eff(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_OUTEFF,
             out_eff,
             unit=DimlessUnit(),
@@ -180,8 +177,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         standby_loss = energy_system.ebm_techs.get_standby_loss(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_STANDBYLOSS,
             standby_loss,
             unit=(DimlessUnit() / TimeUnit.H),
@@ -196,8 +192,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         storage_cap = energy_system.ebm_techs.get_storage_cap(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_STORAGECAP,
             storage_cap,
             unit=ec_unit,
@@ -212,8 +207,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         soc_min = energy_system.ebm_techs.get_soc_min(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SOCMIN,
             soc_min,
             unit=DimlessUnit(),
@@ -228,8 +222,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         soc_max = energy_system.ebm_techs.get_soc_max(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SOCMAX,
             soc_max,
             unit=DimlessUnit(),
@@ -244,8 +237,7 @@ def _format_tech(
         if h not in energy_system.techs.get_allowed_hubs(x):
             continue
         soc_init = energy_system.ebm_techs.get_soc_init(h, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SOCMAX,
             soc_init,
             unit=DimlessUnit(),
@@ -261,8 +253,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         charge_max = energy_system.ebm_techs.get_charge_max(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CHARGEMAX,
             charge_max,
             unit=flow_unit,
@@ -277,8 +268,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         discharge_max = energy_system.ebm_techs.get_discharge_max(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_DISCHARGEMAX,
             discharge_max,
             unit=flow_unit,
@@ -293,8 +283,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         discharge_control = energy_system.ebm_techs.get_discharge_control(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_DISCHARGECONTROL,
             discharge_control,
             unit=DimlessUnit(),
@@ -312,8 +301,7 @@ def _format_tech(
             if h not in energy_system.techs.get_allowed_hubs(x):
                 continue
             demand_mod = energy_system.ebm_techs.get_demand_modifier(s, h, x)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_DEMANDMODIFIER,
                 demand_mod,
                 unit=DimlessUnit(),
@@ -349,8 +337,7 @@ def _format_tech(
             if not demand_nom.has_values:
                 demand_nom_def = demand_nom.def_value
                 assert demand_nom_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_DEMANDNOMINAL,
                     demand_nom_def,
                     unit=flow_unit,
@@ -388,8 +375,7 @@ def _format_tech(
             if not consumption.has_values:
                 consumption_def = consumption.def_value
                 assert consumption_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_CONSUMPTION,
                     consumption_def,
                     unit=flow_unit,
@@ -425,8 +411,7 @@ def _format_tech(
             if not availability.has_values:
                 availability_def = availability.def_value
                 assert availability_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_AVAILABILITY,
                     availability_def,
                     unit=DimlessUnit(),

@@ -19,7 +19,7 @@ from ehubx.data.unit import (
 )
 from ehubx.data.value import Value
 from ehubx.model import ates_tech_model
-from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_hor
+from ehubx.writer.common_writer import DfStBuilder, add_to_df_ts_hor
 
 
 # -------- #
@@ -58,8 +58,8 @@ ENTRY_AQUIFERHYDRAULCOND: str = "Aquifer hydraulic conductivity"
 ENTRY_AQUIFERHYDRTRANS: str = "Aquifer hydraulic transmissivity"
 """Entry name for aquifer hydraulic transmissivity in result files"""
 
-ENTRY_AQUIFERSTORATIVITY: str = "Aquifer storativity"
-"""Entry name for aquifer storativity in result files"""
+ENTRY_AQUIFERPOROSITY: str = "Aquifer porosity"
+"""Entry name for aquifer porosity in result files"""
 
 ENTRY_MAXDRAWDOWN: str = "Maximal drawdown"
 """Entry name for maximal drawdown in result files"""
@@ -94,8 +94,8 @@ ENTRY_PHASEC2WDURATION: str = "Phase duration, cold to warm"
 ENTRY_WELLRADIUS: str = "Well radius"
 """Entry name for well radius in result files"""
 
-ENTRY_GROUNDWATERVELOCITY: str = "Groundwater velocity"
-"""Entry name for groundwater velocity in result files"""
+ENTRY_DARCYVELOCITY: str = "Darcy velocity"
+"""Entry name for darcy velocity in result files"""
 
 ENTRY_MAXPUMPRATEWARM: str = "Max pump rate per warm well"
 """Entry name for maximal pump rate per warm well in result files"""
@@ -182,19 +182,19 @@ ENTRY_ATESTECHOUT: str = "ATES tech output"
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
 ) -> None:
     # Tech-specific properties
     for tech_id in energy_system.ates_techs.ids_in_order:
-        _format_tech(energy_system, model, tech_id, df_st, df_ts_hor)
+        _format_tech(energy_system, model, tech_id, df_st_builder, df_ts_hor)
     # Hub-specific properties
     for hub_id in energy_system.hubs.ids_in_order:
-        _format_hub(energy_system, model, hub_id, df_st)
+        _format_hub(energy_system, model, hub_id, df_st_builder)
 
 
 def _format_hub(
-    energy_system: EnergySystem, model: Model, h: HubId, df_st: pd.DataFrame
+    energy_system: EnergySystem, model: Model, h: HubId, df_st_builder: DfStBuilder
 ) -> None:
     # Skip hub formating if no ates tech is allowed in this hub
     hub_has_ates_techs: bool = False
@@ -205,13 +205,12 @@ def _format_hub(
     if not hub_has_ates_techs:
         return
 
-    # Groundwater velocity
+    # Darcy groundwater velocity
     try:
-        gw_velocity = energy_system.ates_data.get_groundwater_velocity(h)
-        add_to_df_st(
-            df_st,
-            ENTRY_GROUNDWATERVELOCITY,
-            gw_velocity,
+        darcy_velo = energy_system.ates_data.get_darcy_velocity(h)
+        df_st_builder.add_row(
+            ENTRY_DARCYVELOCITY,
+            darcy_velo,
             unit=(LengthUnit.M / TimeUnit.D),
             hub=h.key,
             source=SOURCE,
@@ -222,9 +221,8 @@ def _format_hub(
 
     # Aquifer specific heat capacity
     try:
-        aq_spec_heat_cap = energy_system.ates_data.get_specific_heat_capacity_aquifer(h)
-        add_to_df_st(
-            df_st,
+        aq_spec_heat_cap = energy_system.ates_data.get_specific_heat_capacity_rock(h)
+        df_st_builder.add_row(
             ENTRY_AQUIFERSPECHEATCAP,
             aq_spec_heat_cap,
             unit=((PowerUnit.KW * TimeUnit.H) / (MassUnit.KG * TemperatureUnit.K)),
@@ -238,8 +236,7 @@ def _format_hub(
     # Aquifer thickness
     try:
         aq_thickness = energy_system.ates_data.get_thickness_aquifer(h)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_AQUIFERTHICKNESS,
             aq_thickness,
             unit=LengthUnit.M,
@@ -253,8 +250,7 @@ def _format_hub(
     # Aquifer hydraulic conductivity
     try:
         aq_hydr_cond = energy_system.ates_data.get_hydraulic_conductivity_aquifer(h)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_AQUIFERHYDRAULCOND,
             aq_hydr_cond,
             unit=(LengthUnit.M / TimeUnit.D),
@@ -268,8 +264,7 @@ def _format_hub(
     # Aquifer hydraulic transmissivity
     try:
         aq_hydr_trans = energy_system.ates_data.get_hydraulic_transmissivity_aquifer(h)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_AQUIFERHYDRTRANS,
             aq_hydr_trans,
             unit=(LengthUnit.M**2 / TimeUnit.D),
@@ -280,13 +275,12 @@ def _format_hub(
     except exceptions.EhubXException:
         pass
 
-    # Aquifer storativity
+    # Aquifer porosity
     try:
-        aq_storativity = energy_system.ates_data.get_storativity_aquifer(h)
-        add_to_df_st(
-            df_st,
-            ENTRY_AQUIFERSTORATIVITY,
-            aq_storativity,
+        aq_porosity = energy_system.ates_data.get_porosity_aquifer(h)
+        df_st_builder.add_row(
+            ENTRY_AQUIFERPOROSITY,
+            aq_porosity,
             unit=DimlessUnit(),
             hub=h.key,
             source=SOURCE,
@@ -298,8 +292,7 @@ def _format_hub(
     # Maximal drawdown
     try:
         max_drawdown = energy_system.ates_data.get_max_drawdown(h)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXDRAWDOWN,
             max_drawdown,
             unit=LengthUnit.M,
@@ -315,8 +308,7 @@ def _format_hub(
         max_temp_spread_warm = energy_system.ates_data.get_max_temperature_spread_warm(
             h
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXTEMPSPREADWARM,
             max_temp_spread_warm,
             unit=TemperatureUnit.K,
@@ -332,8 +324,7 @@ def _format_hub(
         max_temp_spread_cold = energy_system.ates_data.get_max_temperature_spread_cold(
             h
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXTEMPSPREADCOLD,
             max_temp_spread_cold,
             unit=TemperatureUnit.K,
@@ -347,8 +338,7 @@ def _format_hub(
     # Available area
     for s in energy_system.stages.ids_in_order:
         available_area = energy_system.ates_data.get_available_area(s, h)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_AVAILABLEAREA,
             available_area,
             unit=(energy_system.length_unit**2),
@@ -362,8 +352,7 @@ def _format_hub(
     for i in energy_system.ates_data.get_schedule_ids(h):
         try:
             phase_start_w2c = energy_system.ates_data.get_phase_w2c_start(h, i)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_PHASEW2CSTART,
                 str(phase_start_w2c.key),
                 hub=h.key,
@@ -378,8 +367,7 @@ def _format_hub(
     for i in energy_system.ates_data.get_schedule_ids(h):
         try:
             phase_end_w2c = energy_system.ates_data.get_phase_w2c_end(h, i)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_PHASEW2CEND,
                 str(phase_end_w2c.key),
                 hub=h.key,
@@ -396,8 +384,7 @@ def _format_hub(
             phase_duration_w2c = energy_system.ates_data.get_phase_duration_w2c(
                 h, i, energy_system.times
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_PHASEW2CDURATION,
                 phase_duration_w2c,
                 unit=TimeUnit.D,
@@ -413,8 +400,7 @@ def _format_hub(
     for i in energy_system.ates_data.get_schedule_ids(h):
         try:
             phase_start_c2w = energy_system.ates_data.get_phase_c2w_start(h, i)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_PHASEC2WSTART,
                 str(phase_start_c2w.key),
                 hub=h.key,
@@ -429,8 +415,7 @@ def _format_hub(
     for i in energy_system.ates_data.get_schedule_ids(h):
         try:
             phase_end_c2w = energy_system.ates_data.get_phase_c2w_end(h, i)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_PHASEC2WEND,
                 str(phase_end_c2w.key),
                 hub=h.key,
@@ -447,8 +432,7 @@ def _format_hub(
             phase_duration_c2w = energy_system.ates_data.get_phase_duration_c2w(
                 h, i, energy_system.times
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_PHASEC2WDURATION,
                 phase_duration_c2w,
                 unit=TimeUnit.D,
@@ -465,32 +449,31 @@ def _format_tech(
     energy_system: EnergySystem,
     model: Model,
     x: TechId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
 ) -> None:
     # ec_el
     ec_el = energy_system.ates_techs.get_ec_el(x)
-    add_to_df_st(
-        df_st, ENTRY_ECEL, ec_el.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECEL, ec_el.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # ec_heat
     ec_heat = energy_system.ates_techs.get_ec_ht(x)
-    add_to_df_st(
-        df_st, ENTRY_ECHEAT, ec_heat.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECHEAT, ec_heat.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # ec_cool
     ec_cool = energy_system.ates_techs.get_ec_co(x)
-    add_to_df_st(
-        df_st, ENTRY_ECCOOL, ec_cool.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECCOOL, ec_cool.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # Well radius
     try:
         well_radius = energy_system.ates_techs.get_well_radius(x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_WELLRADIUS,
             well_radius,
             unit=LengthUnit.M,
@@ -503,8 +486,7 @@ def _format_tech(
 
     # Fluid density
     fluid_density = energy_system.ates_techs.get_density_fluid(x)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_FLUIDDENSITY,
         fluid_density,
         unit=(MassUnit.KG / (LengthUnit.M**3)),
@@ -515,8 +497,7 @@ def _format_tech(
 
     # Fluid specific heat capacity
     fluid_spec_heat_cap = energy_system.ates_techs.get_specific_heat_capacity_fluid(x)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_FLUIDSPECHEATCAP,
         fluid_spec_heat_cap,
         unit=((PowerUnit.KW * TimeUnit.H) / (MassUnit.KG * TemperatureUnit.K)),
@@ -534,10 +515,9 @@ def _format_tech(
                 continue
             for i in energy_system.ates_data.get_schedule_ids(h):
                 max_rate = energy_system.ates_techs.get_max_pump_rate_per_warm_well(
-                    s, h, x, i, energy_system.ates_data, energy_system.times
+                    s, h, x, i, energy_system.ates_data
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_MAXPUMPRATEWARM,
                     max_rate,
                     unit=(LengthUnit.M**3 / TimeUnit.H),
@@ -558,10 +538,9 @@ def _format_tech(
                 continue
             for i in energy_system.ates_data.get_schedule_ids(h):
                 max_rate = energy_system.ates_techs.get_max_pump_rate_per_cold_well(
-                    s, h, x, i, energy_system.ates_data, energy_system.times
+                    s, h, x, i, energy_system.ates_data
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_MAXPUMPRATECOLD,
                     max_rate,
                     unit=(LengthUnit.M**3 / TimeUnit.H),
@@ -575,8 +554,7 @@ def _format_tech(
 
     # Well pair area calculation method
     calc_method = energy_system.ates_techs.get_well_pair_area_calc_method(x)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_WELLPAIRAREACALCMETHOD,
         calc_method.value,
         tech=x.key,
@@ -594,8 +572,7 @@ def _format_tech(
             elec_per_en_heat = energy_system.ates_techs.get_elec_per_energy_heat(
                 s, h, x, energy_system.ates_data
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_ELECPERENERGYHEAT,
                 elec_per_en_heat,
                 unit=DimlessUnit(),
@@ -616,8 +593,7 @@ def _format_tech(
             elec_per_en_cool = energy_system.ates_techs.get_elec_per_energy_cool(
                 s, h, x, energy_system.ates_data
             )
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_ELECPERENERGYCOOL,
                 elec_per_en_cool,
                 unit=DimlessUnit(),
@@ -639,8 +615,7 @@ def _format_tech(
                 max_heat_over_cool = energy_system.ates_techs.get_max_heat_over_cool(
                     s, h, x, i
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_MAXHEATOVERCOOL,
                     max_heat_over_cool,
                     unit=DimlessUnit(),
@@ -663,8 +638,7 @@ def _format_tech(
                 max_cool_over_heat = energy_system.ates_techs.get_max_cool_over_heat(
                     s, h, x, i
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_MAXCOOLOVERHEAT,
                     max_cool_over_heat,
                     unit=DimlessUnit(),
@@ -690,8 +664,7 @@ def _format_tech(
                         s, h, x, i, energy_system.ates_data, energy_system.times
                     )
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_THERMRADWARM,
                     therm_rad_warm,
                     unit=energy_system.length_unit,
@@ -708,8 +681,7 @@ def _format_tech(
                         s, h, x, i, energy_system.ates_data, energy_system.times
                     )
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_THERMRADCOLD,
                     therm_rad_cold,
                     unit=energy_system.length_unit,
@@ -724,8 +696,7 @@ def _format_tech(
                 well_pair_area = energy_system.ates_techs.calc_area_per_well_pair(
                     therm_rad_warm, therm_rad_cold, calc_method
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_WELLPAIRAREA,
                     well_pair_area,
                     unit=(energy_system.length_unit**2),
@@ -750,8 +721,7 @@ def _format_tech(
                         s, h, x, i, energy_system.ates_data, energy_system.times
                     )
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_MAXPOWDENSHT,
                     max_pow_dens_ht,
                     unit=(energy_system.power_unit / (energy_system.length_unit**2)),
@@ -762,8 +732,7 @@ def _format_tech(
                     source=SOURCE,
                     in_res="input",
                 )
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_MAXPOWDENSCO,
                     max_pow_dens_co,
                     unit=(energy_system.power_unit / (energy_system.length_unit**2)),
@@ -801,8 +770,7 @@ def _format_tech(
                 if not availability.has_values:
                     availability_def = availability.def_value
                     assert availability_def is not None
-                    add_to_df_st(
-                        df_st,
+                    df_st_builder.add_row(
                         ENTRY_AVAILABILITY,
                         availability_def,
                         unit=DimlessUnit(),
@@ -819,8 +787,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         capex_per_well_pair = energy_system.ates_techs.get_capex_per_well_pair(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CAPEXPERWELLPAIR,
             capex_per_well_pair,
             unit=energy_system.currency_unit,
@@ -835,8 +802,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         opex_per_well_pair = energy_system.ates_techs.get_opex_per_well_pair(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_OPEXPERWELLPAIR,
             opex_per_well_pair,
             unit=energy_system.currency_unit,
@@ -851,8 +817,7 @@ def _format_tech(
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
         co2_per_well_pair = energy_system.ates_techs.get_co2_per_well_pair(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CO2PERWELLPAIR,
             co2_per_well_pair,
             unit=energy_system.mass_unit,
@@ -875,8 +840,7 @@ def _format_tech(
                 if cap_fl is None:
                     continue
                 cap = Value(cap_fl, unit=(energy_system.length_unit**2))
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_ATESTECHCAPSCHEDULE,
                     cap,
                     unit=(energy_system.length_unit**2),
@@ -901,8 +865,7 @@ def _format_tech(
                 if pairs_fl is None:
                     continue
                 pairs = Value(pairs_fl)
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_ATESTECHNUMWELLPAIRS,
                     pairs,
                     unit=DimlessUnit(),

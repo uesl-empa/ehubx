@@ -36,6 +36,7 @@ YAMLKEY_WELLRADIUS = "well_radius"
 YAMLKEY_WELLPAIRAREACALCMETHOD = "well pair area calculation method"
 YAMLKEY_ELECPERENERGYHEAT = "elec_per_energy_heat"
 YAMLKEY_ELECPERENERGYCOOL = "elec_per_energy_cool"
+YAMLKEY_WELLDISTANCE = "well_distance"
 YAMLKEY_ELECPERFLOWHEAT = "elec_per_flow_heat"
 YAMLKEY_ELECPERFLOWCOOL = "elec_per_flow_cool"
 YAMLKEY_MAXHEATOVERCOOL = "max_heat_over_cool"
@@ -46,12 +47,12 @@ YAMLKEY_MAXPUMPWARM = "max_pump_rate_per_warm_well"
 YAMLKEY_MAXPUMPCOLD = "max_pump_rate_per_cold_well"
 YAMLKEY_THERMRADWARM = "thermal_radius_per_warm_well"
 YAMLKEY_THERMRADCOLD = "thermal_radius_per_cold_well"
-YAMLKEY_GROUNDVELO = "groundwater_velocity"
-YAMLKEY_DENSITYAQ = "density_aquifer"
-YAMLKEY_SPECHEATCAPAQ = "specific_heat_capacity_aquifer"
+YAMLKEY_DARCYVELO = "darcy_velocity"
+YAMLKEY_DENSITYROCK = "density_rock"
+YAMLKEY_SPECHEATCAPROCK = "specific_heat_capacity_rock"
 YAMLKEY_THICKNESSAQ = "thickness_aquifer"
 YAMLKEY_HYDCONDAQ = "hydraulic_conductivity_aquifer"
-YAMLKEY_STORATIVITYAQ = "storativity_aquifer"
+YAMLKEY_POROSITYAQ = "porosity_aquifer"
 YAMLKEY_MAXDRAWDOWN = "max_drawdown"
 YAMLKEY_MAXDTWARM = "max_temperature_spread_warm"
 YAMLKEY_MAXDTCOLD = "max_temperature_spread_cold"
@@ -310,6 +311,13 @@ def _parse_tech_secondary(
     if elec_per_energy_cool is not None:
         for stage_id, value in elec_per_energy_cool.items():
             ates_techs.set_elec_per_energy_cool(stage_id, hub_id, tech_id, value)
+    # well_distance
+    well_distance = yaml_parser.parse_optional_yeardep_value_from_dict_node(
+        ates_params_node, YAMLKEY_WELLDISTANCE, stages, expected_unit=LengthUnit.M
+    )
+    if well_distance is not None:
+        for stage_id, value in well_distance.items():
+            ates_techs.set_well_distance(stage_id, hub_id, tech_id, value)
     # schedule_params
     schedule_params_node = ates_params_node[YAMLKEY_SCHEDULEPARAMS]
     if schedule_params_node is None:
@@ -501,28 +509,28 @@ def _parse_hub_data_secondary(
     ates_params_node = hub_node[YAMLKEY_ATESPARAMS]
     if ates_params_node is None:
         return
-    # groundwater_velocity
-    ground_velo = yaml_parser.parse_optional_value_from_dict_node(
-        ates_params_node, YAMLKEY_GROUNDVELO, expected_unit=(LengthUnit.M / TimeUnit.D)
+    # darcy_velocity
+    darcy_velo = yaml_parser.parse_optional_value_from_dict_node(
+        ates_params_node, YAMLKEY_DARCYVELO, expected_unit=(LengthUnit.M / TimeUnit.D)
     )
-    if ground_velo is not None:
-        ates_data.set_groundwater_velocity(hub_id, ground_velo)
-    # density_aquifer
-    density_aq = yaml_parser.parse_optional_value_from_dict_node(
+    if darcy_velo is not None:
+        ates_data.set_darcy_velocity(hub_id, darcy_velo)
+    # density_rock
+    density_rock = yaml_parser.parse_optional_value_from_dict_node(
         ates_params_node,
-        YAMLKEY_DENSITYAQ,
+        YAMLKEY_DENSITYROCK,
         expected_unit=(MassUnit.KG / (LengthUnit.M**3)),
     )
-    if density_aq is not None:
-        ates_data.set_density_aquifer(hub_id, density_aq)
-    # specific_heat_capacity_aquifer
-    spec_heat_cap_aq = yaml_parser.parse_optional_value_from_dict_node(
+    if density_rock is not None:
+        ates_data.set_density_rock(hub_id, density_rock)
+    # specific_heat_capacity_rock
+    spec_heat_cap_rock = yaml_parser.parse_optional_value_from_dict_node(
         ates_params_node,
-        YAMLKEY_SPECHEATCAPAQ,
+        YAMLKEY_SPECHEATCAPROCK,
         expected_unit=((PowerUnit.KW * TimeUnit.H) / (MassUnit.KG * TemperatureUnit.K)),
     )
-    if spec_heat_cap_aq is not None:
-        ates_data.set_specific_heat_capacity_aquifer(hub_id, spec_heat_cap_aq)
+    if spec_heat_cap_rock is not None:
+        ates_data.set_specific_heat_capacity_rock(hub_id, spec_heat_cap_rock)
     # thickness_aquifer
     thickness_aq = yaml_parser.parse_optional_value_from_dict_node(
         ates_params_node, YAMLKEY_THICKNESSAQ, expected_unit=LengthUnit.M
@@ -535,12 +543,12 @@ def _parse_hub_data_secondary(
     )
     if hyd_cond_aq is not None:
         ates_data.set_hydraulic_conductivity_aquifer(hub_id, hyd_cond_aq)
-    # storativity_aquifer
-    storativity_aq = yaml_parser.parse_optional_value_from_dict_node(
-        ates_params_node, YAMLKEY_STORATIVITYAQ, expected_unit=DimlessUnit()
+    # porosity_aquifer
+    porosity_aq = yaml_parser.parse_optional_value_from_dict_node(
+        ates_params_node, YAMLKEY_POROSITYAQ, expected_unit=DimlessUnit()
     )
-    if storativity_aq is not None:
-        ates_data.set_storativity_aquifer(hub_id, storativity_aq)
+    if porosity_aq is not None:
+        ates_data.set_porosity_aquifer(hub_id, porosity_aq)
     # max_drawdown
     max_drawdown = yaml_parser.parse_optional_value_from_dict_node(
         ates_params_node, YAMLKEY_MAXDRAWDOWN, expected_unit=LengthUnit.M

@@ -22,7 +22,7 @@ from ehubx.parser.hp_tech_parser import (
     YAMLKEY_TEMPHEATIN,
     YAMLKEY_TEMPHEATOUT,
 )
-from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_cl, create_dir
+from ehubx.writer.common_writer import DfStBuilder, add_to_df_ts_cl, create_dir
 
 
 # -------- #
@@ -95,51 +95,51 @@ mode in result files"""
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
     # Tech-specific properties
     for tech_id in energy_system.hp_techs.ids_in_order:
-        _format_tech(energy_system, model, tech_id, df_st, df_ts_hor, df_ts_cl)
+        _format_tech(energy_system, model, tech_id, df_st_builder, df_ts_hor, df_ts_cl)
 
 
 def _format_tech(
     energy_system: EnergySystem,
     model: Model,
     x: TechId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
     # ec_el
     ec_el = energy_system.hp_techs.get_ec_el(x)
-    add_to_df_st(
-        df_st, ENTRY_ECEL, ec_el.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECEL, ec_el.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # ec_ht_in
     ec_ht_in = energy_system.hp_techs.get_ec_ht_in(x)
-    add_to_df_st(
-        df_st, ENTRY_ECHTIN, ec_ht_in.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECHTIN, ec_ht_in.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # ec_ht_out
     ec_ht_out = energy_system.hp_techs.get_ec_ht_out(x)
-    add_to_df_st(
-        df_st, ENTRY_ECHTOUT, ec_ht_out.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECHTOUT, ec_ht_out.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # ec_co_in
     ec_co_in = energy_system.hp_techs.get_ec_co_in(x)
-    add_to_df_st(
-        df_st, ENTRY_ECCOIN, ec_co_in.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECCOIN, ec_co_in.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # ec_co_out
     ec_co_out = energy_system.hp_techs.get_ec_co_out(x)
-    add_to_df_st(
-        df_st, ENTRY_ECCOOUT, ec_co_out.key, tech=x.key, source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_ECCOOUT, ec_co_out.key, tech=x.key, source=SOURCE, in_res="input"
     )
 
     # temp_ht_in
@@ -169,8 +169,7 @@ def _format_tech(
             if not temp_ht_in.has_values:
                 temp_ht_in_def = temp_ht_in.def_value
                 assert temp_ht_in_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_TEMPHTIN,
                     temp_ht_in_def,
                     unit=TemperatureUnit.K,
@@ -208,8 +207,7 @@ def _format_tech(
             if not temp_ht_out.has_values:
                 temp_ht_out_def = temp_ht_out.def_value
                 assert temp_ht_out_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_TEMPHTOUT,
                     temp_ht_out_def,
                     unit=TemperatureUnit.K,
@@ -227,8 +225,7 @@ def _format_tech(
         if not energy_system.hp_techs.has_cop_factor(s, x):
             continue
         cop_factor = energy_system.hp_techs.get_cop_factor(s, x)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_COPFACTOR,
             cop_factor,
             unit=DimlessUnit(),
@@ -264,8 +261,7 @@ def _format_tech(
             if not cop.has_values:
                 cop_def = cop.def_value
                 assert cop_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_COP,
                     cop_def,
                     unit=DimlessUnit(),
@@ -301,8 +297,7 @@ def _format_tech(
             if not availability.has_values:
                 availability_def = availability.def_value
                 assert availability_def is not None
-                add_to_df_st(
-                    df_st,
+                df_st_builder.add_row(
                     ENTRY_AVAIL,
                     availability_def,
                     unit=DimlessUnit(),

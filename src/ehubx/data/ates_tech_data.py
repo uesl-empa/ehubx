@@ -7,8 +7,6 @@ import math
 from enum import Enum
 from typing import Dict, List, Set, Tuple
 
-from scipy.special import expi
-
 from ehubx.core import common, logging
 from ehubx.data import exceptions
 from ehubx.data.ates_data import AtesData, AtesScheduleId
@@ -102,6 +100,9 @@ class ExceptionKey(Enum):
     ELECPERENERGYCOOL_SET = "setting 'elec_per_energy_cool' of AtesTechs"
     ELECPERENERGYCOOL_GET = "getting 'elec_per_energy_cool' from AtesTechs"
     ELECPERENERGYCOOL_VAL = "validating 'elec_per_energy_cool' of AtesTechs"
+    WELLDISTANCE_SET = "setting 'well_distance' of AtesTechs"
+    WELLDISTANCE_GET = "getting 'well_distance' from AtesTechs"
+    WELLDISTANCE_VAL = "validating 'well_distance' of AtesTechs"
     ELECPERFLOWHEAT_SET = "setting 'elec_per_flow_heat' of AtesTechs"
     ELECPERFLOWHEAT_GET = "getting 'elec_per_flow_heat' from AtesTechs"
     ELECPERFLOWHEAT_VAL = "validating 'elec_per_flow_heat' of AtesTechs"
@@ -465,6 +466,52 @@ class AtesTechs:
             )
         self._specific_heat_capacity_fluid[x] = spec_heat_cap_fluid
 
+    # ---------------------------------------- #
+    # Property: volumetric_heat_capacity_fluid #
+    # ---------------------------------------- #
+    def get_volumetric_heat_capacity_fluid(self, x: TechId) -> Value:
+        """
+        Get the volumetric heat capacity of the fluid stored in the ATES wells.
+        This is a derived parameter calculated as the product of the fluid
+        density and specific heat capacity.
+
+        :param x: ATES technology
+        :type x: TechId
+        :return: Fluid volumetric heat capacity
+        :rtype: Value
+        """
+        density = self.get_density_fluid(x)
+        spec_heat_cap = self.get_specific_heat_capacity_fluid(x)
+        return density * spec_heat_cap
+
+    # ------------------------------------------ #
+    # Property: volumetric_heat_capacity_aquifer #
+    # ------------------------------------------ #
+    def get_volumetric_heat_capacity_aquifer(
+        self, h: HubId, x: TechId, ates_data: AtesData
+    ) -> Value:
+        """
+        Get the volumetric heat capacity of the aquifer. This is a derived
+        parameter calculated as the porosity-weighted average of the fluid and
+        rock volumetric heat capacities.
+
+        :param h: Hub
+        :type h: HubId
+        :param x: ATES technology
+        :type x: TechId
+        :param ates_data: ATES data module
+        :type ates_data: AtesData
+        :return: Aquifer volumetric heat capacity
+        :rtype: Value
+        """
+        vol_heat_cap_fl = self.get_volumetric_heat_capacity_fluid(x)
+        vol_heat_cap_rock = ates_data.get_volumetric_heat_capacity_rock(h)
+        porosity = ates_data.get_porosity_aquifer(h)
+        vol_heat_cap_aq = (
+            porosity * vol_heat_cap_fl + (Value(1) - porosity) * vol_heat_cap_rock
+        )
+        return vol_heat_cap_aq
+
     # --------------------- #
     # Property: well_radius #
     # --------------------- #
@@ -502,13 +549,70 @@ class AtesTechs:
         expected_unit = LengthUnit.M
         if not well_radius.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.DENSITYFLUID_SET.value,
+                ExceptionKey.WELLRADIUS_SET.value,
                 [x],
                 f"Unit of well_radius[{x}] = {well_radius} "
                 f"does not match expected unit {expected_unit}",
                 module=LOG_MODULE_STR,
             )
         self._well_radius[x] = well_radius
+
+    # ----------------------- #
+    # Property: well_distance #
+    # ----------------------- #
+    def get_well_distance(self, s: StageId, h: HubId, x: TechId) -> Value:
+        """
+        Get the distance between warm and cold wells in a well pair. This is a
+        mandatory parameter if the parameters 'max_pump_rate_per_warm_well' or
+        'max_pump_rate_per_cold_well' are not specified, since the well distance
+        is then used to calculate these rates based on the Cooper-Jacobs approximation.
+
+        :param s: Stage
+        :type s: StageId
+        :param h: Hub
+        :type h: HubId
+        :param x: ATES technology
+        :type x: TechId
+        :return: Well distance
+        :rtype: Value
+        """
+        exc_key = ExceptionKey.WELLDISTANCE_GET
+        self._check_id(x, exc_key)
+        if (s, h, x) not in self._well_distance:
+            raise exceptions.MissingIdsException(
+                exc_key.value, [s, h, x], module=LOG_MODULE_STR
+            )
+        return self._well_distance[s, h, x]
+
+    def set_well_distance(
+        self, s: StageId, h: HubId, x: TechId, well_distance: Value
+    ) -> None:
+        """
+        Set the distance between warm and cold wells in a well pair. This is a
+        mandatory parameter if the parameters 'max_pump_rate_per_warm_well' or
+        'max_pump_rate_per_cold_well' are not specified, since the well distance
+        is then used to calculate these rates based on the Cooper-Jacobs approximation.
+
+        :param s: Stage
+        :type s: StageId
+        :param h: Hub
+        :type h: HubId
+        :param x: ATES technology
+        :type x: TechId
+        :param well_distance: Well distance
+        :type well_distance: Value
+        """
+        self._check_id(x, ExceptionKey.WELLDISTANCE_SET)
+        expected_unit = LengthUnit.M
+        if not well_distance.unit.same_type_as(expected_unit):
+            raise exceptions.DataException(
+                ExceptionKey.WELLDISTANCE_SET.value,
+                [s, h, x],
+                f"Unit of well_distance[{s}, {h}, {x}] = {well_distance} "
+                f"does not match expected unit {expected_unit}",
+                module=LOG_MODULE_STR,
+            )
+        self._well_distance[s, h, x] = well_distance
 
     # ------------------------ #
     # Property: well_pairs_min #
@@ -610,13 +714,66 @@ class AtesTechs:
         expected_unit = DimlessUnit()
         if not well_pairs_max.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.WELLPAIRSMIN_SET.value,
+                ExceptionKey.WELLPAIRSMAX_SET.value,
                 [s, h, x, i],
                 f"Unit of well_pairs_max[{s}, {h}, {x}, {i}] = "
                 f"{well_pairs_max} does not match expected unit {expected_unit}",
                 module=LOG_MODULE_STR,
             )
         self._well_pairs_max[s, h, x, i] = well_pairs_max
+
+    # ------------------------------------ #
+    # Property: Thermal retardation factor #
+    # ------------------------------------ #
+    def get_thermal_retardation_factor(
+        self, h: HubId, x: TechId, ates_data: AtesData
+    ) -> Value:
+        """
+        Get the thermal retardation factor of the aquifer. This is a derived
+        parameter calculated as the ratio of the fluid volumetric heat capacity
+        and the aquifer volumetric heat capacity, weighted by the porosity. It is used
+        to calculate the thermal-front velocity of a thermal plume around an injection
+        well.
+
+        :param h: Hub
+        :type h: HubId
+        :param x: ATES technology
+        :type x: TechId
+        :param ates_data: ATES data module
+        :type ates_data: AtesData
+        :return: Thermal retardation factor
+        :rtype: Value
+        """
+        porosity = ates_data.get_porosity_aquifer(h)
+        vol_heat_cap_fl = self.get_volumetric_heat_capacity_fluid(x)
+        vol_heat_cap_aq = self.get_volumetric_heat_capacity_aquifer(h, x, ates_data)
+        retardation_factor = porosity * vol_heat_cap_fl / vol_heat_cap_aq
+        return retardation_factor
+
+    # ----------------------------- #
+    # Property: Heat front velocity #
+    # ----------------------------- #
+    def get_heat_front_velocity(
+        self, h: HubId, x: TechId, ates_data: AtesData
+    ) -> Value:
+        """
+        Get the heat front velocity of a thermal plume around an injection well.
+        This is a derived parameter calculated as the product of the thermal
+        retardation factor and the pore velocity.
+
+        :param h: Hub
+        :type h: HubId
+        :param x: ATES technology
+        :type x: TechId
+        :param ates_data: ATES data module
+        :type ates_data: AtesData
+        :return: Heat front velocity
+        :rtype: Value
+        """
+        pore_velo = ates_data.get_pore_velocity(h)
+        retardation_factor = self.get_thermal_retardation_factor(h, x, ates_data)
+        heat_front_velo = retardation_factor * pore_velo
+        return heat_front_velo
 
     # ------------------------------------- #
     # Property: max_pump_rate_per_warm_well #
@@ -628,15 +785,13 @@ class AtesTechs:
         x: TechId,
         i: AtesScheduleId,
         ates_data: AtesData,
-        times: Times,
     ) -> Value:
         """
         Get the maximal rate at which fluid can be pumped from a warm well.
         This parameter is optional but if is not set, the following
         parameters need to be available instead to compute the rate:
-        well_radius, storativity_aquifer (AtesData),
-        hydraulic_transmissivity_aquifer (AtesData), and max_drawdown
-        (AtesData).
+        well_radius, well_distance, hydraulic_transmissivity_aquifer (AtesData), and
+        max_drawdown (AtesData).
 
         :param s: Stage
         :type s: StageId
@@ -648,8 +803,6 @@ class AtesTechs:
         :type i: AtesScheduleId
         :param ates_data: AtesData
         :type ates_data: AtesData
-        :param times: Times
-        :type times: Times
         :return: Maximal pump rate from a single warm well
         :rtype: Value
         """
@@ -658,18 +811,16 @@ class AtesTechs:
         # Prefer returning a set value
         if (s, h, x, i) in self._max_pump_rate_per_warm_well:
             return self._max_pump_rate_per_warm_well[s, h, x, i]
-        # Use Theis equation if value is not set
-        storativity_aq = ates_data.get_storativity_aquifer(h)
+        # Use Cooper-Jacobs approximation of Theis equation if value is not set
+        well_distance = self.get_well_distance(s, h, x)
         hydr_transmiss_aq = ates_data.get_hydraulic_transmissivity_aquifer(h)
-        pumping_duration = ates_data.get_phase_duration_w2c(h, i, times)
         max_drawdown = ates_data.get_max_drawdown(h)
         well_radius = self.get_well_radius(x)
-        max_pump_rate = _calc_max_pump_rate_from_theis_equation(
+        max_pump_rate = _calc_max_pump_rate_from_cooper_jacobs(
+            well_distance,
             max_drawdown,
             well_radius,
-            pumping_duration,
             hydr_transmiss_aq,
-            storativity_aq,
         )
         return max_pump_rate
 
@@ -684,9 +835,8 @@ class AtesTechs:
         """
         Set the maximal rate at which fluid can be pumped from a warm well.
         This parameter is optional but if is not set, the following parameters
-        need to be available instead to compute the rate: well_radius,
-        storativity_aquifer (AtesData), hydraulic_transmissivity_aquifer
-        (AtesData), and max_drawdown (AtesData).
+        need to be available instead to compute the rate: well_radius, well_distance,
+        hydraulic_transmissivity_aquifer (AtesData), and max_drawdown (AtesData).
 
         :param s: Stage
         :type s: StageId
@@ -725,14 +875,12 @@ class AtesTechs:
         x: TechId,
         i: AtesScheduleId,
         ates_data: AtesData,
-        times: Times,
     ) -> Value:
         """
         Set the maximal rate at which fluid can be pumped from a cold well.
         This parameter is optional but if is not set, the following parameters
-        need to be available instead to compute the rate: well_radius,
-        storativity_aquifer (AtesData), hydraulic_transmissivity_aquifer
-        (AtesData), and max_drawdown (AtesData).
+        need to be available instead to compute the rate: well_radius, well_distance,
+        hydraulic_transmissivity_aquifer (AtesData), and max_drawdown (AtesData).
 
         :param s: Stage
         :type s: StageId
@@ -744,8 +892,6 @@ class AtesTechs:
         :type i: AtesScheduleId
         :param ates_data: AtesData
         :type ates_data: AtesData
-        :param times: Times
-        :type times: Times
         :return: Maximal pump rate from a single cold well
         :rtype: Value
         """
@@ -755,17 +901,15 @@ class AtesTechs:
         if (s, h, x, i) in self._max_pump_rate_per_cold_well:
             return self._max_pump_rate_per_cold_well[s, h, x, i]
         # Use Theis equation if value is not set
-        storativity_aq = ates_data.get_storativity_aquifer(h)
         hydr_transmiss_aq = ates_data.get_hydraulic_transmissivity_aquifer(h)
-        pumping_duration = ates_data.get_phase_duration_c2w(h, i, times)
         max_drawdown = ates_data.get_max_drawdown(h)
         well_radius = self.get_well_radius(x)
-        max_pump_rate = _calc_max_pump_rate_from_theis_equation(
+        well_distance = self.get_well_distance(s, h, x)
+        max_pump_rate = _calc_max_pump_rate_from_cooper_jacobs(
+            well_distance,
             max_drawdown,
             well_radius,
-            pumping_duration,
             hydr_transmiss_aq,
-            storativity_aq,
         )
         return max_pump_rate
 
@@ -780,9 +924,8 @@ class AtesTechs:
         """
         Set the maximal rate at which fluid can be pumped from a cold well.
         This parameter is optional but if is not set, the following parameters
-        need to be available instead to compute the rate: well_radius,
-        storativity_aquifer (AtesData), hydraulic_transmissivity_aquifer
-        (AtesData), and max_drawdown (AtesData).
+        need to be available instead to compute the rate: well_radius, well_distance,
+        hydraulic_transmissivity_aquifer (AtesData), and max_drawdown (AtesData).
 
         :param s: Stage
         :type s: StageId
@@ -832,7 +975,7 @@ class AtesTechs:
         set, the following parameters need to be available instead to
         compute the thermal radius: specific_heat_capacity_fluid,
         max_pump_rate_per_cold_well, specific_heat_capacity_aquifer
-        (AtesData), thickness_aquifer (AtesData), groundwater_velocity
+        (AtesData), thickness_aquifer (AtesData), darcy_velocity
         (AtesData).
 
         :param s: Stage
@@ -855,23 +998,17 @@ class AtesTechs:
         if (s, h, x, i) in self._thermal_radius_warm:
             return self._thermal_radius_warm[s, h, x, i]
         # Calculate value otherwise
-        density_aq = ates_data.get_density_aquifer(h)
-        sp_heat_cap_aq = ates_data.get_specific_heat_capacity_aquifer(h)
-        density_fl = self.get_density_fluid(x)
-        sp_heat_cap_fl = self.get_specific_heat_capacity_fluid(x)
+        vol_heat_cap_aq = self.get_volumetric_heat_capacity_aquifer(h, x, ates_data)
+        vol_heat_cap_fl = self.get_volumetric_heat_capacity_fluid(x)
         thickness_aq = ates_data.get_thickness_aquifer(h)
         injection_duration = ates_data.get_phase_duration_c2w(h, i, times)
-        max_pump_rate = self.get_max_pump_rate_per_cold_well(
-            s, h, x, i, ates_data, times
-        )
-        ground_velo = ates_data.get_groundwater_velocity(h)
+        max_pump_rate = self.get_max_pump_rate_per_cold_well(s, h, x, i, ates_data)
+        heat_front_velo = self.get_heat_front_velocity(h, x, ates_data)
         therm_rad = _calc_thermal_radius(
-            density_aq,
-            sp_heat_cap_aq,
+            vol_heat_cap_aq,
             thickness_aq,
-            ground_velo,
-            density_fl,
-            sp_heat_cap_fl,
+            heat_front_velo,
+            vol_heat_cap_fl,
             injection_duration,
             max_pump_rate,
         )
@@ -893,7 +1030,7 @@ class AtesTechs:
         parameters need to be available instead to compute the thermal radius:
         specific_heat_capacity_fluid, max_pump_rate_per_cold_well,
         specific_heat_capacity_aquifer (AtesData), thickness_aquifer (AtesData)
-        , groundwater_velocity (AtesData).
+        , darcy_velocity (AtesData).
 
         :param s: Stage
         :type s: StageId
@@ -942,7 +1079,7 @@ class AtesTechs:
         parameters need to be available instead to compute the thermal radius:
         specific_heat_capacity_fluid, max_pump_rate_per_warm_well,
         specific_heat_capacity_aquifer (AtesData), thickness_aquifer (AtesData)
-        , groundwater_velocity (AtesData).
+        , darcy_velocity (AtesData).
 
         :param s: Stage
         :type s: StageId
@@ -964,23 +1101,17 @@ class AtesTechs:
         if (s, h, x, i) in self._thermal_radius_cold:
             return self._thermal_radius_cold[s, h, x, i]
         # Calculate value otherwise
-        density_aq = ates_data.get_density_aquifer(h)
-        sp_heat_cap_aq = ates_data.get_specific_heat_capacity_aquifer(h)
+        vol_heat_cap_aq = self.get_volumetric_heat_capacity_aquifer(h, x, ates_data)
+        vol_heat_cap_fl = self.get_volumetric_heat_capacity_fluid(x)
         thickness_aq = ates_data.get_thickness_aquifer(h)
-        ground_velo = ates_data.get_groundwater_velocity(h)
-        density_fl = self.get_density_fluid(x)
-        sp_heat_cap_fl = self.get_specific_heat_capacity_fluid(x)
+        heat_front_velo = self.get_heat_front_velocity(h, x, ates_data)
         injection_duration = ates_data.get_phase_duration_w2c(h, i, times)
-        max_pump_rate = self.get_max_pump_rate_per_warm_well(
-            s, h, x, i, ates_data, times
-        )
+        max_pump_rate = self.get_max_pump_rate_per_warm_well(s, h, x, i, ates_data)
         therm_rad = _calc_thermal_radius(
-            density_aq,
-            sp_heat_cap_aq,
+            vol_heat_cap_aq,
             thickness_aq,
-            ground_velo,
-            density_fl,
-            sp_heat_cap_fl,
+            heat_front_velo,
+            vol_heat_cap_fl,
             injection_duration,
             max_pump_rate,
         )
@@ -1002,7 +1133,7 @@ class AtesTechs:
         parameters need to be available instead to compute the thermal radius:
         specific_heat_capacity_fluid, max_pump_rate_per_warm_well,
         specific_heat_capacity_aquifer (AtesData), thickness_aquifer (AtesData)
-        , groundwater_velocity (AtesData).
+        , darcy_velocity (AtesData).
 
         :param s: Stage
         :type s: StageId
@@ -1515,12 +1646,8 @@ class AtesTechs:
         # Calculate the maximal heating and cooling powers per well pair
         density_fl = self.get_density_fluid(x)
         spec_heat_cap_fl = self.get_specific_heat_capacity_fluid(x)
-        max_pump_rate_warm = self.get_max_pump_rate_per_warm_well(
-            s, h, x, i, ates_data, times
-        )
-        max_pump_rate_cold = self.get_max_pump_rate_per_cold_well(
-            s, h, x, i, ates_data, times
-        )
+        max_pump_rate_warm = self.get_max_pump_rate_per_warm_well(s, h, x, i, ates_data)
+        max_pump_rate_cold = self.get_max_pump_rate_per_cold_well(s, h, x, i, ates_data)
         max_temp_spread_warm = ates_data.get_max_temperature_spread_warm(h)
         max_temp_spread_cold = ates_data.get_max_temperature_spread_cold(h)
         max_heat_power_per_well_pair = (
@@ -1801,6 +1928,7 @@ class AtesTechs:
         self._well_pair_area_calc_method: Dict[TechId, WellPairAreaCalcMethod] = {}
         self._elec_per_energy_heat: Dict[Tuple[StageId, HubId, TechId], Value] = {}
         self._elec_per_energy_cool: Dict[Tuple[StageId, HubId, TechId], Value] = {}
+        self._well_distance: Dict[Tuple[StageId, HubId, TechId], Value] = {}
         self._elec_per_flow_heat: Dict[Tuple[StageId, TechId], Value] = {}
         self._elec_per_flow_cool: Dict[Tuple[StageId, TechId], Value] = {}
         self._max_heat_over_cool: Dict[
@@ -1879,6 +2007,7 @@ class AtesTechs:
         self._validate_thermal_radius_cold(stages, hubs, ates_data)
         self._validate_elec_per_energy_heat(stages, hubs)
         self._validate_elec_per_energy_cool(stages, hubs)
+        self._validate_well_distance(stages, hubs)
         self._validate_elec_per_flow_heat(stages)
         self._validate_elec_per_flow_cool(stages)
         self._validate_max_heat_over_cool(stages, hubs, ates_data)
@@ -2223,6 +2352,38 @@ class AtesTechs:
                     exc_key, [s, h, x], msg, module=LOG_MODULE_STR
                 )
 
+    def _validate_well_distance(
+        self,
+        stages: Stages,
+        hubs: Hubs,
+    ) -> None:
+        exc_key = ExceptionKey.WELLDISTANCE_VAL.value
+        for (s, h, x), well_dist in self._well_distance.items():
+            if s not in stages.ids:
+                msg = f"Unknown stage {s} in well_distance[{s}, {h}, {x}]"
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
+            if h not in hubs.ids:
+                msg = f"Unknown hub {h} in well_distance[{s}, {h}, {x}]"
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
+            if well_dist.is_negative:
+                msg = f"{well_dist} = well_distance[{s}, {h}, {x}] < 0"
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
+            well_rad = self.get_well_radius(x)
+            if well_dist < well_rad:
+                msg = (
+                    f"{well_dist} = well_distance[{s}, {h}, {x}] < "
+                    f"well_radius[{x}] = {well_rad}"
+                )
+                raise exceptions.DataException(
+                    exc_key, [s, h, x], msg, module=LOG_MODULE_STR
+                )
+
     def _validate_elec_per_flow_heat(self, stages: Stages) -> None:
         exc_key = ExceptionKey.ELECPERFLOWHEAT_VAL.value
         for (s, x), elec_per_flow in self._elec_per_flow_heat.items():
@@ -2475,30 +2636,28 @@ class AtesTechs:
 # Calculate thermal radius for a single well #
 # ------------------------------------------ #
 def _calc_thermal_radius(
-    density_aquifer: Value,
-    specific_heat_capacity_aquifer: Value,
+    volumetric_heat_capacity_aq: Value,
     thickness_aquifer: Value,
-    groundwater_celocity: Value,
-    density_fluid: Value,
-    specific_heat_capacity_fluid: Value,
+    heat_front_velocity: Value,
+    volumetric_heat_capacity_fluid: Value,
     injection_duration: Value,
     max_injection_rate: Value,
 ) -> Value:
     """
     Calculates the thermal radius of a well based on
-        a) The conductive radius
+        a) The volumetric-equivalent radius
         b) The convective radius
 
-    :param specific_heat_capacity_aquifer: Specific heat capacity of the
-        aquifer
-    :type specific_heat_capacity_aquifer: Value
+    :param volumetric_heat_capacity_aq: Volumetric heat capacity of the aquifer
+        (porosity-weighted sum of rock and fluid)
+    :type volumetric_heat_capacity_aq: Value
     :param thickness_aquifer: Thickness of the aquifer
     :type thickness_aquifer: Value
-    :param groundwater_celocity: Groundwater Darcy velocity
-    :type groundwater_celocity: Value
-    :param specific_heat_capacity_fluid: Specific heat capacity of the
+    :param heat_front_velocity: Thermal velocity of the plume's heat front
+    :type heat_front_velocity: Value
+    :param volumetric_heat_capacity_fluid: Volumetric heat capacity of the
         ATES fluid
-    :type specific_heat_capacity_fluid: Value
+    :type volumetric_heat_capacity_fluid: Value
     :param injection_duration: Well injection duration
     :type injection_duration: Value
     :param max_pump_rate: Maximal injection rate
@@ -2506,41 +2665,35 @@ def _calc_thermal_radius(
     :return: Thermal radius of the well
     :rtype: Value
     """
-    # Conductive part of thermal radius
-    therm_rad_cond_sq: Value = (
-        density_fluid
-        * specific_heat_capacity_fluid
+    # Volumetric-equivalent part of thermal radius
+    therm_rad_vol_sq: Value = (
+        volumetric_heat_capacity_fluid
         * max_injection_rate
         * injection_duration
-        / (
-            density_aquifer
-            * specific_heat_capacity_aquifer
-            * math.pi
-            * thickness_aquifer
-        )
+        / (volumetric_heat_capacity_aq * math.pi * thickness_aquifer)
     )
-    therm_rad_cond = therm_rad_cond_sq.root(deg=2)
-    # Convective part of thermal radius
-    therm_rad_conv = groundwater_celocity * injection_duration
+    therm_rad_vol = therm_rad_vol_sq.root(deg=2)
+    # Advective part of thermal radius
+    therm_rad_adv = heat_front_velocity * injection_duration
     # Return
-    therm_rad = therm_rad_cond + therm_rad_conv
+    therm_rad = therm_rad_vol + therm_rad_adv
     return therm_rad
 
 
-# ---------------------------------------------------------- #
-# Calculate maximal pump rate for a well from Theis equation #
-# ---------------------------------------------------------- #
-def _calc_max_pump_rate_from_theis_equation(
+# ----------------------------------------------------------------------- #
+# Calculate maximal pump rate for a well from Cooper-Jacobs approximation #
+# ----------------------------------------------------------------------- #
+def _calc_max_pump_rate_from_cooper_jacobs(
+    well_distance: Value,
     max_drawdown: Value,
     well_radius: Value,
-    pumping_duration: Value,
     hydraulic_transmissivity_aquifer: Value,
-    storativity_aquifer: Value,
 ) -> Value:
     """
-    This method calculates the maximal pump rate for a well from the Theis
-    equation. The Theis equation is a solution to the flow of water into a
-    well in an aquifer. The equation is based on the following assumptions:
+    This method calculates the maximal pump rate for a well from the Cooper-Jacobs
+    approximation of the Theis equation which is more than sufficient than the origianl
+    equation in most ATES settings. The equation itslef is based on the following
+    assumptions:
     - The aquifer is homogeneous and isotropic
     - The well is fully penetrating
     - The well is pumping at a constant rate
@@ -2548,31 +2701,20 @@ def _calc_max_pump_rate_from_theis_equation(
     - The aquifer is infinite in extent
     - The aquifer is at steady state
 
+    :param well_distance: Distance between the wells
+    :type well_distance: Value
     :param max_drawdown: Maximal allowable drawdown at the well boundary
     :type max_drawdown: Value
     :param well_radius: Well radius
     :type well_radius: Value
-    :param pumping_duration: Pumping duration
-    :type pumping_duration: Value
     :param hydraulic_transmissivity_aquifer: Hydraulic transmissivity of the aquifer
     :type hydraulic_transmissivity_aquifer: Value
-    :param storativity_aquifer: Storage coefficient of the aquifer
-    :type storativity_aquifer: Value
     :return: Maximal pumping rate
     :rtype: Value
     """
-    well_function_arg = (
-        well_radius**2
-        * storativity_aquifer
-        / (4 * hydraulic_transmissivity_aquifer * pumping_duration)
-    )
-    well_function_val_fl = -expi(-well_function_arg.to_float())
-    well_function_val = Value(well_function_val_fl)
+    log_arg = well_radius / (well_distance - well_radius)
+    log_val = Value(math.log(log_arg.to_float()), unit=DimlessUnit())
     max_pump_rate = (
-        4
-        * math.pi
-        * hydraulic_transmissivity_aquifer
-        * max_drawdown
-        / well_function_val
+        -2 * math.pi * hydraulic_transmissivity_aquifer * max_drawdown / log_val
     )
     return max_pump_rate

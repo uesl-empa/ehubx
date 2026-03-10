@@ -405,7 +405,7 @@ class LoadShifting:
         expected_unit = DimlessUnit()
         if not max_above_rel.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.MAXBELOWREL_SET.value,
+                ExceptionKey.MAXABOVEREL_SET.value,
                 [ls, t],
                 f"Unit {max_above_rel.unit} of max_above_rel[{ls}][{t}] "
                 f"does not match expected unit '{expected_unit}'",
@@ -429,7 +429,7 @@ class LoadShifting:
         expected_unit = DimlessUnit()
         if not max_above_rel_def.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.MAXBELOWREL_SET.value,
+                ExceptionKey.MAXABOVEREL_DEFSET.value,
                 [ls],
                 f"Unit {max_above_rel_def.unit} of max_above_rel[{ls}] "
                 f"does not match expected unit '{expected_unit}'",

@@ -149,72 +149,87 @@ def create_dir(
 # ----------------------------------- #
 # Static (time-independent) dataframe #
 # ----------------------------------- #
-def init_df_st() -> pd.DataFrame:
-    df = pd.DataFrame(
-        columns=[
-            COL_ENTRY,
-            COL_VALUE,
-            COL_UNIT,
-            COL_STAGE,
-            COL_HUB,
-            COL_EC,
-            COL_TECH,
-            COL_NETLINK,
-            COL_NETLINKDIR,
-            COL_NETTECH,
-            COL_LOADSHIFT,
-            COL_ATESSCHEDULE,
-            COL_SOURCE,
-            COL_INPUTORRESULT,
-        ]
-    )
-    return df
+class DfStColumn(Enum):
+    ENTRY = COL_ENTRY
+    VALUE = COL_VALUE
+    UNIT = COL_UNIT
+    STAGE = COL_STAGE
+    HUB = COL_HUB
+    EC = COL_EC
+    TECH = COL_TECH
+    NET_LINK = COL_NETLINK
+    NET_LINK_DIR = COL_NETLINKDIR
+    NET_TECH = COL_NETTECH
+    LOAD_SHIFT = COL_LOADSHIFT
+    ATES_SCHEDULE = COL_ATESSCHEDULE
+    SOURCE = COL_SOURCE
+    INPUT_OR_RESULT = COL_INPUTORRESULT
 
 
-def add_to_df_st(
-    df: pd.DataFrame,
-    entry: str,
-    value: Union[str, Value, bool],
-    unit: Optional[Unit] = None,
-    stage: str = "",
-    hub: str = "",
-    ec: str = "",
-    tech: str = "",
-    net_link: str = "",
-    net_link_dir: str = "",
-    net_tech: str = "",
-    load_shift: str = "",
-    ates_schedule: str = "",
-    source: str = "",
-    in_res: str = "",
-) -> None:
-    unit_str = ""
-    value_str = ""
-    if isinstance(value, Value):
-        if unit is None:
-            unit = value.unit
-        unit_str = f"{unit}"
-        value_str = f"{value.to_float(unit=unit)}"
-    else:
-        if unit is not None:
+class DfStBuilder:
+    def __init__(self) -> None:
+        self._rows: list[dict[DfStColumn, Optional[str]]] = []
+
+    def add_row(
+        self,
+        entry: str,
+        value: Union[str, Value, bool],
+        unit: Optional[Unit] = None,
+        stage: Optional[str] = None,
+        hub: Optional[str] = None,
+        ec: Optional[str] = None,
+        tech: Optional[str] = None,
+        net_link: Optional[str] = None,
+        net_link_dir: Optional[str] = None,
+        net_tech: Optional[str] = None,
+        load_shift: Optional[str] = None,
+        ates_schedule: Optional[str] = None,
+        source: Optional[str] = None,
+        in_res: Optional[str] = None,
+    ) -> None:
+        unit_str: Optional[str] = None
+        value_str: Optional[str] = None
+        if isinstance(value, Value):
+            if unit is None:
+                unit = value.unit
             unit_str = f"{unit}"
-        value_str = f"{value}"
-    df.loc[df.shape[0]] = [
-        entry,
-        value_str,
-        unit_str,
-        stage,
-        hub,
-        ec,
-        tech,
-        net_link,
-        net_link_dir,
-        net_tech,
-        load_shift,
-        ates_schedule,
-        source,
-        in_res,
-    ]
+            value_str = f"{value.to_float(unit=unit)}"
+        else:
+            if unit is not None:
+                unit_str = f"{unit}"
+            value_str = f"{value}"
+        row = {
+            DfStColumn.ENTRY: entry,
+            DfStColumn.VALUE: value_str,
+            DfStColumn.UNIT: unit_str,
+            DfStColumn.STAGE: stage,
+            DfStColumn.HUB: hub,
+            DfStColumn.EC: ec,
+            DfStColumn.TECH: tech,
+            DfStColumn.NET_LINK: net_link,
+            DfStColumn.NET_LINK_DIR: net_link_dir,
+            DfStColumn.NET_TECH: net_tech,
+            DfStColumn.LOAD_SHIFT: load_shift,
+            DfStColumn.ATES_SCHEDULE: ates_schedule,
+            DfStColumn.SOURCE: source,
+            DfStColumn.INPUT_OR_RESULT: in_res,
+        }
+        self._rows.append(row)
+
+    def build(self, drop_columns: Optional[set[DfStColumn]] = None) -> pd.DataFrame:
+        if drop_columns is None:
+            drop_columns = set()
+
+        # Build dataframe with all possible columns first
+        data = [{c.value: row.get(c) for c in DfStColumn} for row in self._rows]
+        df = pd.DataFrame(data, columns=[c.value for c in DfStColumn])
+
+        # Drop the specified columns
+        explicit_drop = {c.value for c in drop_columns}
+        if explicit_drop:
+            df = df.drop(columns=explicit_drop, errors="ignore")
+
+        return df
 
 
 # ------------------------- #

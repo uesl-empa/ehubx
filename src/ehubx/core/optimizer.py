@@ -14,8 +14,15 @@ from ehubx.core.common import (
 )
 from ehubx.core.solver import Solver
 from ehubx.data.pareto_front_data import ParetoFront, ParetoId
+from ehubx.model.autonomy_model import (
+    CON_AUTZERO,
+    VAR_AUTONOMY,
+    set_autonomy_enabled,
+)
+from ehubx.model.demand_model import PAR_DEMANDUNMETALLOWED
 from ehubx.model.energy_system_model import (
     OBJ_SYSTEMCOST,
+    VAR_SYSTEMAUTONOMY,
     VAR_SYSTEMCO2TOTAL,
     VAR_SYSTEMCOST,
     VAR_SYSTEMSELFSUFFICIENCY,
@@ -29,6 +36,16 @@ from ehubx.writer.opt_vars_writer import save_opt_vars_to_csv
 # -------- #
 LOG_MODULE_STR: str = "opt"
 """String identifying the optimizer module for logging purposes"""
+
+
+def _prepare_autonomy(model: Model, allow_autonomy: bool) -> None:
+    # Gate unmet demand
+    if model.find_component(PAR_DEMANDUNMETALLOWED) is not None:
+        getattr(model, PAR_DEMANDUNMETALLOWED).set_value(1 if allow_autonomy else 0)
+
+    # Toggle autonomy constraint states
+    if model.find_component(CON_AUTZERO) is not None:
+        set_autonomy_enabled(model, enabled=allow_autonomy)
 
 
 # ------------------------------ #
@@ -171,6 +188,8 @@ def _set_weighted_objective(
     weight_1: float,
     weight_2: float,
 ) -> Objective:
+    allow_autonomy = ObjectiveType.AUTONOMY in (obj_type_1, obj_type_2)
+    _prepare_autonomy(model, allow_autonomy=allow_autonomy)
     if model is None:
         raise exceptions.EhubXException(
             "Tried to set weighted objective without having built a model",
@@ -227,6 +246,27 @@ def _set_weighted_objective(
         var_2 = getattr(model, VAR_SYSTEMSELFSUFFICIENCY)
         sub_str[1] = f"Self-sufficiency maximization (weight = {weight_2})"
         weight_2 *= -1
+    # Autonomy maximization
+    if obj_type_1 == ObjectiveType.AUTONOMY:
+        if VAR_AUTONOMY not in model.component_map(Var):
+            msg_err = (
+                "Cannot use the autonomy objective function while "
+                "the autonomy submodule is deactivated."
+            )
+            raise exceptions.EhubXException(msg_err, module=LOG_MODULE_STR)
+        var_1 = getattr(model, VAR_SYSTEMAUTONOMY)
+        sub_str[0] = f"Autonomy maximization (weight = {weight_1})"
+        weight_1 *= -1
+    if obj_type_2 == ObjectiveType.AUTONOMY:
+        if VAR_AUTONOMY not in model.component_map(Var):
+            msg_err = (
+                "Cannot use the autonomy objective function while "
+                "the autonomy submodule is deactivated."
+            )
+            raise exceptions.EhubXException(msg_err, module=LOG_MODULE_STR)
+        var_2 = getattr(model, VAR_SYSTEMAUTONOMY)
+        sub_str[1] = f"Autonomy maximization (weight = {weight_2})"
+        weight_2 *= -1
     assert var_1 is not None
     assert var_2 is not None
     # Logging
@@ -253,6 +293,8 @@ def _get_objective_value(model: Model, obj_type: ObjectiveType) -> float:
         obj_value = getattr(model, VAR_SYSTEMCO2TOTAL).value
     if obj_type == ObjectiveType.SELFSUFFICIENCY:
         obj_value = getattr(model, VAR_SYSTEMSELFSUFFICIENCY).value
+    if obj_type == ObjectiveType.AUTONOMY:
+        obj_value = getattr(model, VAR_AUTONOMY).value
     assert obj_value is not None
     return obj_value
 
@@ -262,6 +304,8 @@ def _get_objective_value(model: Model, obj_type: ObjectiveType) -> float:
 # ---------------- #
 def set_objective(model: Model, objective_type: ObjectiveType) -> None:
     msg = "Setting objective function: "
+    # if objective is Autonomy -> allow_autonomy unmet, else forbid
+    _prepare_autonomy(model, allow_autonomy=(objective_type == ObjectiveType.AUTONOMY))
     # Deactivate all objectives
     for o in model.component_map(Objective):
         model.find_component(o).deactivate()
@@ -304,6 +348,27 @@ def set_objective(model: Model, objective_type: ObjectiveType) -> None:
         model.add_component(obj_name, obj)
         obj.activate()
         msg += "Self-sufficiency maximization"
+    # Autonomy maximization (include small amount of cost minimization as
+    # well since it often improves the chance of finding unique solutions,
+    # e.g.; for V_LoadShiftingAbove and V_LoadShiftingBelow)
+    if objective_type == ObjectiveType.AUTONOMY:
+        # Autonomy module is not included
+        if VAR_SYSTEMAUTONOMY not in model.component_map(Var):
+            msg_err = (
+                "Cannot set the autonomy objective function while "
+                "the autonomy submodule is deactivated."
+            )
+            raise exceptions.EhubXException(msg_err, module=LOG_MODULE_STR)
+
+        var_cost = getattr(model, VAR_SYSTEMCOST)
+        var_autonomy = getattr(model, VAR_SYSTEMAUTONOMY)
+        obj = Objective(expr=(-var_autonomy + EPS_WEIGHTEDSUM * var_cost))
+        obj_name = "O_SystemAutonomyWeak"
+        if model.find_component(obj_name) is not None:
+            model.del_component(obj_name)
+        model.add_component(obj_name, obj)
+        obj.activate()
+        msg += "Autonomy maximization"
     logging.log(msg, module=LOG_MODULE_STR)
 
 
@@ -340,6 +405,8 @@ def eps_constraint_method(
         f"front with {num_pareto_points} points ...",
         module=LOG_MODULE_STR,
     )
+    allow_autonomy = ObjectiveType.AUTONOMY in (obj_type_1, obj_type_2)
+    _prepare_autonomy(model, allow_autonomy=allow_autonomy)
     # Initialize Pareto points
     pareto_front = ParetoFront()
     pareto_front.obj_key_1 = obj_type_1.value
@@ -361,6 +428,7 @@ def eps_constraint_method(
         )
         logging.pause_console_log(write_console_entry=False)
         start = datetime.now()
+        _prepare_autonomy(model, allow_autonomy=allow_autonomy)
         results = solver.solve(model)
         elapsed_seconds = int((datetime.now() - start).total_seconds())
         logging.resume_console_log()
@@ -417,6 +485,7 @@ def eps_constraint_method(
     logging.log("Starting eps-constraint main phase ...", module=LOG_MODULE_STR)
     weighted_obj.deactivate()
     set_objective(model, obj_type_1)
+    _prepare_autonomy(model, allow_autonomy=allow_autonomy)
     # Check that initial Pareto points are actually distinct:
     obj2_init = []
     for pareto_id in pareto_front.ids:
@@ -456,6 +525,7 @@ def eps_constraint_method(
         )
         logging.pause_console_log(write_console_entry=False)
         start = datetime.now()
+        _prepare_autonomy(model, allow_autonomy=allow_autonomy)
         results = solver.solve(model)
         elapsed_seconds = int((datetime.now() - start).total_seconds())
         logging.resume_console_log()
@@ -514,6 +584,7 @@ def _set_threshold_constraint(
     sub_str: Optional[str] = None
     obj_var: Optional[Var] = None
     is_upper_threshold: bool = True
+    _prepare_autonomy(model, allow_autonomy=(obj_type == ObjectiveType.AUTONOMY))
     # Cost minimization
     if obj_type == ObjectiveType.COST:
         obj_var = getattr(model, VAR_SYSTEMCOST)
@@ -533,6 +604,17 @@ def _set_threshold_constraint(
         obj_var = getattr(model, VAR_SYSTEMSELFSUFFICIENCY)
         is_upper_threshold = False
         sub_str = f"Self-sufficiency minimum (threshold = {threshold})"
+    # Autonomy maximization
+    if obj_type == ObjectiveType.AUTONOMY:
+        if VAR_SYSTEMAUTONOMY not in model.component_map(Var):
+            msg_err = (
+                "Cannot use the autonomy objective function while "
+                "the autonomy submodule is deactivated."
+            )
+            raise exceptions.EhubXException(msg_err, module=LOG_MODULE_STR)
+        obj_var = getattr(model, VAR_SYSTEMAUTONOMY)
+        is_upper_threshold = False
+        sub_str = f"Autonomy minimum (threshold = {threshold})"
     assert obj_var is not None
     # Logging
     msg = f"Setting threshold constraint: {sub_str}"

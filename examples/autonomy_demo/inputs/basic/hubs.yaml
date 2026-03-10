@@ -1,0 +1,26 @@
+tech_lists:
+- tech_list_id: TL1
+  techs: [PV, DieselGen, VAWT, LionBattery]
+
+hubs:
+- hub_id: H1
+  allowed_tech_lists: TL1
+  techs:
+  - tech_id: PV
+    tech_params:
+      cap_max: 500 m^2
+  - tech_id: DieselGen
+    tech_params:
+      cap_max: 22 kW
+      out_sum_max: 5000 kWh
+  - tech_id: VAWT
+    tech_params:
+      cap_max: 20 kW
+  - tech_id: LionBattery
+    tech_params:
+      cap_init: 200 kWh
+      age_init: 0 a
+
+
+
+

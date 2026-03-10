@@ -28,7 +28,7 @@ from ehubx.parser.load_shifting_parser import (
     YAMLKEY_MAXBELOWABS,
     YAMLKEY_MAXBELOWREL,
 )
-from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_cl, create_dir
+from ehubx.writer.common_writer import DfStBuilder, add_to_df_ts_cl, create_dir
 
 
 # -------- #
@@ -145,7 +145,7 @@ ENTRY_YLOADSHIFTING: str = (
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -154,8 +154,7 @@ def format_all(
     total_cost_fl = value(var, exception=False)
     if total_cost_fl is not None:
         total_cost = Value(total_cost_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGCOSTTOTAL,
             total_cost,
             unit=energy_system.currency_unit,
@@ -168,7 +167,7 @@ def format_all(
         e = energy_system.load_shifting.get_ec(ls)
         for s, h in energy_system.load_shifting.get_stage_hub_tuples(ls):
             _format_ls_and_tuple(
-                energy_system, model, ls, s, h, e, df_st, df_ts_hor, df_ts_cl
+                energy_system, model, ls, s, h, e, df_st_builder, df_ts_hor, df_ts_cl
             )
 
     # Tuple-specific values
@@ -179,7 +178,6 @@ def format_all(
             StageId(s_),
             HubId(h_),
             EcId(e_),
-            df_st,
             df_ts_hor,
             df_ts_cl,
         )
@@ -192,7 +190,7 @@ def _format_ls_and_tuple(
     s: StageId,
     h: HubId,
     e: EcId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -205,8 +203,7 @@ def _format_ls_and_tuple(
     # interval_length
     interval_length = energy_system.load_shifting.get_interval_length(ls)
     interval_length_unit = TimeUnit.H
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_INTERVALLENGTH,
         interval_length,
         unit=interval_length_unit,
@@ -220,8 +217,7 @@ def _format_ls_and_tuple(
 
     # cap_min
     cap_min = energy_system.load_shifting.get_cap_min(ls)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_CAPMIN,
         cap_min,
         unit=ec_unit,
@@ -235,8 +231,7 @@ def _format_ls_and_tuple(
 
     # cap_max
     cap_max = energy_system.load_shifting.get_cap_max(ls)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_CAPMAX,
         cap_max,
         unit=ec_unit,
@@ -250,8 +245,7 @@ def _format_ls_and_tuple(
 
     # cap_init
     cap_init = energy_system.load_shifting.get_cap_init(ls)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_CAPINIT,
         cap_init,
         unit=ec_unit,
@@ -284,8 +278,7 @@ def _format_ls_and_tuple(
     if not max_above_abs.has_values:
         max_above_abs_def = max_above_abs.def_value
         assert max_above_abs_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXABOVEABS,
             max_above_abs_def,
             unit=max_abs_unit,
@@ -318,8 +311,7 @@ def _format_ls_and_tuple(
     if not max_above_rel.has_values:
         max_above_rel_def = max_above_rel.def_value
         assert max_above_rel_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXABOVEREL,
             max_above_rel_def,
             unit=max_abovebelow_rel_unit,
@@ -351,8 +343,7 @@ def _format_ls_and_tuple(
     if not max_below_abs.has_values:
         max_below_abs_def = max_below_abs.def_value
         assert max_below_abs_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXBELOWABS,
             max_below_abs_def,
             unit=max_abs_unit,
@@ -384,8 +375,7 @@ def _format_ls_and_tuple(
     if not max_below_rel.has_values:
         max_below_rel_def = max_below_rel.def_value
         assert max_below_rel_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXBELOWREL,
             max_below_rel_def,
             unit=max_abovebelow_rel_unit,
@@ -400,8 +390,7 @@ def _format_ls_and_tuple(
     # capex_per_cap
     capex_per_cap = energy_system.load_shifting.get_capex_per_cap(ls)
     capex_per_cap_unit = CurrencyUnit.CHF / ec_unit
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_CAPEXPERCAP,
         capex_per_cap,
         unit=capex_per_cap_unit,
@@ -416,8 +405,7 @@ def _format_ls_and_tuple(
     # peak_cost_above
     peak_cost_above = energy_system.load_shifting.get_peak_cost_above(ls)
     peak_cost_unit = energy_system.currency_unit / (ec_unit / TimeUnit.H)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_PEAKCOSTABOVE,
         peak_cost_above,
         unit=peak_cost_unit,
@@ -431,8 +419,7 @@ def _format_ls_and_tuple(
 
     # peak_cost_below
     peak_cost_below = energy_system.load_shifting.get_peak_cost_below(ls)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_PEAKCOSTBELOW,
         peak_cost_below,
         unit=peak_cost_unit,
@@ -465,8 +452,7 @@ def _format_ls_and_tuple(
     if not energy_cost_above.has_values:
         energy_cost_above_def = energy_cost_above.def_value
         assert energy_cost_above_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_ENERGYCOSTABOVE,
             energy_cost_above_def,
             unit=energy_cost_unit,
@@ -498,8 +484,7 @@ def _format_ls_and_tuple(
     if not energy_cost_below.has_values:
         energy_cost_below_def = energy_cost_below.def_value
         assert energy_cost_below_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_ENERGYCOSTBELOW,
             energy_cost_below_def,
             unit=energy_cost_unit,
@@ -532,8 +517,7 @@ def _format_ls_and_tuple(
     if not fix_cost.has_values:
         fix_cost_def = fix_cost.def_value
         assert fix_cost_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_FIXCOST,
             fix_cost_def,
             unit=fix_cost_unit,
@@ -550,8 +534,7 @@ def _format_ls_and_tuple(
     cap_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
     if cap_fl is not None:
         cap = Value(cap_fl, unit=ec_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGCAP,
             cap,
             unit=ec_unit,
@@ -568,8 +551,7 @@ def _format_ls_and_tuple(
     cap_instl_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
     if cap_instl_fl is not None:
         cap_instl = Value(cap_instl_fl, unit=ec_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGCAPINSTL,
             cap_instl,
             unit=ec_unit,
@@ -612,8 +594,7 @@ def _format_ls_and_tuple(
     above_peak_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
     if above_peak_fl is not None:
         above_peak = Value(above_peak_fl, unit=peak_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGABOVEPEAK,
             above_peak,
             unit=peak_unit,
@@ -630,8 +611,7 @@ def _format_ls_and_tuple(
     below_peak_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
     if below_peak_fl is not None:
         below_peak = Value(below_peak_fl, unit=peak_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGBELOWPEAK,
             below_peak,
             unit=peak_unit,
@@ -675,8 +655,7 @@ def _format_ls_and_tuple(
     capex_cost_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
     if capex_cost_fl is not None:
         capex = Value(capex_cost_fl, energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGCOSTCAPEX,
             capex,
             unit=energy_system.currency_unit,
@@ -693,8 +672,7 @@ def _format_ls_and_tuple(
     energy_cost_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
     if energy_cost_fl is not None:
         energy_cost = Value(energy_cost_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGCOSTENERGY,
             energy_cost,
             unit=energy_system.currency_unit,
@@ -711,8 +689,7 @@ def _format_ls_and_tuple(
     peak_cost_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
     if peak_cost_fl is not None:
         peak_cost = Value(peak_cost_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHIFTINGCOSTPEAK,
             peak_cost,
             unit=energy_system.currency_unit,
@@ -732,8 +709,7 @@ def _format_ls_and_tuple(
         fix_cost_fl = value(var[ls.key, s.key, h.key, e.key], exception=False)
         if fix_cost_fl is not None:
             fix_cost_pr = Value(fix_cost_fl, unit=energy_system.currency_unit)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_LOADSHIFTINGCOSTFIX,
                 fix_cost_pr,
                 unit=energy_system.currency_unit,
@@ -752,7 +728,6 @@ def _format_tuple(
     s: StageId,
     h: HubId,
     e: EcId,
-    df_st: pd.DataFrame,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:

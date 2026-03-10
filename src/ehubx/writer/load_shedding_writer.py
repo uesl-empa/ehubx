@@ -23,7 +23,7 @@ from ehubx.parser.load_shedding_parser import (
     YAMLKEY_MAXABS,
     YAMLKEY_MAXREL,
 )
-from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_cl, create_dir
+from ehubx.writer.common_writer import DfStBuilder, add_to_df_ts_cl, create_dir
 
 
 # -------- #
@@ -64,7 +64,7 @@ ENTRY_LOADSHEDDINGCOSTTOTAL: str = (
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -75,8 +75,7 @@ def format_all(
         total_load_shedding_cost = Value(
             total_load_shedding_cost_fl, unit=energy_system.currency_unit
         )
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHEDDINGCOSTTOTAL,
             total_load_shedding_cost,
             unit=energy_system.currency_unit,
@@ -86,7 +85,7 @@ def format_all(
 
     # Tuple-specific values
     for s, h, e in energy_system.load_shedding.get_enabled_tuples():
-        _format_tuple(energy_system, model, s, h, e, df_st, df_ts_hor, df_ts_cl)
+        _format_tuple(energy_system, model, s, h, e, df_st_builder, df_ts_hor, df_ts_cl)
 
 
 def _format_tuple(
@@ -95,7 +94,7 @@ def _format_tuple(
     s: StageId,
     h: HubId,
     e: EcId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -125,8 +124,7 @@ def _format_tuple(
     if not max_abs.has_values:
         max_abs_def = max_abs.def_value
         assert max_abs_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXABS,
             max_abs_def,
             unit=max_abs_unit,
@@ -157,8 +155,7 @@ def _format_tuple(
     if not max_rel.has_values:
         max_rel_def = max_rel.def_value
         assert max_rel_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAXREL,
             max_rel_def,
             unit=max_rel_unit,
@@ -189,8 +186,7 @@ def _format_tuple(
     if not energy_cost.has_values:
         energy_cost_def = energy_cost.def_value
         assert energy_cost_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_ENERGYCOST,
             energy_cost_def,
             unit=energy_cost_unit,
@@ -228,8 +224,7 @@ def _format_tuple(
     shed_cost_fl = value(var[s.key, h.key, e.key], exception=False)
     if shed_cost_fl is not None:
         shed_cost = Value(shed_cost_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_LOADSHEDDINGCOST,
             shed_cost,
             unit=energy_system.currency_unit,

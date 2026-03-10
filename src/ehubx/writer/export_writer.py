@@ -24,7 +24,7 @@ from ehubx.parser.import_export_parser import (
     YAMLKEY_MIN,
     YAMLKEY_PRICE,
 )
-from ehubx.writer.common_writer import add_to_df_st, add_to_df_ts_cl, create_dir
+from ehubx.writer.common_writer import DfStBuilder, add_to_df_ts_cl, create_dir
 
 
 # -------- #
@@ -78,7 +78,7 @@ ENTRY_EXPCO2TOTAL: str = (
 def format_all(
     energy_system: EnergySystem,
     model: Model,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -87,8 +87,7 @@ def format_all(
     exp_profit_total_fl = value(var, exception=False)
     if exp_profit_total_fl is not None:
         exp_profit_total = Value(exp_profit_total_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_EXPPROFITTOTAL,
             exp_profit_total,
             unit=energy_system.currency_unit,
@@ -102,8 +101,7 @@ def format_all(
         exp_co2_total_fl = value(var[s.key], exception=False)
         if exp_co2_total_fl is not None:
             exp_co2_total = Value(exp_co2_total_fl, unit=energy_system.mass_unit)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_EXPCO2TOTAL,
                 exp_co2_total,
                 unit=energy_system.mass_unit,
@@ -114,7 +112,7 @@ def format_all(
 
     # Tuple-specific values
     for s, h, e in energy_system.exports.tuples:
-        _format_tuple(energy_system, model, s, h, e, df_st, df_ts_hor, df_ts_cl)
+        _format_tuple(energy_system, model, s, h, e, df_st_builder, df_ts_hor, df_ts_cl)
 
 
 def _format_tuple(
@@ -123,7 +121,7 @@ def _format_tuple(
     s: StageId,
     h: HubId,
     e: EcId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -153,8 +151,7 @@ def _format_tuple(
     if not price.has_values:
         price_def = price.def_value
         assert price_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_PRICE,
             price_def,
             unit=price_unit,
@@ -185,8 +182,7 @@ def _format_tuple(
     if not co2.has_values:
         co2_def = co2.def_value
         assert co2_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_CO2,
             co2_def,
             unit=co2_unit,
@@ -217,8 +213,7 @@ def _format_tuple(
     if not exp_min.has_values:
         exp_min_def = exp_min.def_value
         assert exp_min_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MIN,
             exp_min_def,
             unit=exp_min_unit,
@@ -249,8 +244,7 @@ def _format_tuple(
     if not exp_max.has_values:
         exp_max_def = exp_max.def_value
         assert exp_max_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_MAX,
             exp_max_def,
             unit=exp_max_unit,
@@ -263,8 +257,7 @@ def _format_tuple(
 
     # sum_min
     sum_min = energy_system.exports.get_sum_min(s, h, e, energy_system.ecs)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_SUMMIN,
         sum_min,
         unit=ec_unit,
@@ -277,8 +270,7 @@ def _format_tuple(
 
     # sum_max
     sum_max = energy_system.exports.get_sum_max(s, h, e, energy_system.ecs)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_SUMMAX,
         sum_max,
         unit=ec_unit,
@@ -316,8 +308,7 @@ def _format_tuple(
     exp_profit_fl = value(var[s.key, h.key, e.key], exception=False)
     if exp_profit_fl is not None:
         exp_profit = Value(exp_profit_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_EXPPROFIT,
             exp_profit,
             unit=energy_system.currency_unit,
@@ -333,8 +324,7 @@ def _format_tuple(
     exp_co2_fl = value(var[s.key, h.key, e.key], exception=False)
     if exp_co2_fl is not None:
         exp_co2 = Value(exp_co2_fl, unit=energy_system.mass_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_EXPCO2,
             exp_co2,
             unit=energy_system.mass_unit,

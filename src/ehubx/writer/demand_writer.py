@@ -21,19 +21,11 @@ from ehubx.parser.csv_parser import HeaderId
 from ehubx.parser.demand_parser import YAMLKEY_DEMANDPROFILES
 from ehubx.writer import load_shedding_writer, load_shifting_writer
 from ehubx.writer.common_writer import (
-    COL_EC,
-    COL_HUB,
-    COL_NETLINK,
-    COL_NETLINKDIR,
-    COL_NETTECH,
-    COL_SOURCE,
-    COL_STAGE,
-    COL_TECH,
+    DfStBuilder,
+    DfStColumn,
     FileGranularity,
-    add_to_df_st,
     add_to_df_ts_cl,
     create_dir,
-    init_df_st,
     init_df_ts_cl,
     init_df_ts_hor,
 )
@@ -72,7 +64,7 @@ def format_all(
     file_granularity: FileGranularity = FileGranularity.DEFAULT,
 ) -> List[Tuple[pd.DataFrame, str]]:
     # Initialize dataframes
-    df_st = init_df_st()
+    df_st_builder = DfStBuilder()
     df_ts_hor = init_df_ts_hor(energy_system.times)
     df_ts_cl: Optional[pd.DataFrame] = None
     if energy_system.times.is_clustered:
@@ -82,21 +74,38 @@ def format_all(
     for s, h, e in energy_system.demands.tuples:
         _format_tuple(energy_system, model, s, h, e, df_ts_hor, df_ts_cl)
     for s, h, e in energy_system.demands.profile_tuples:
-        _format_profile_tuple(energy_system, s, h, e, df_st, df_ts_hor, df_ts_cl)
+        _format_profile_tuple(
+            energy_system, s, h, e, df_st_builder, df_ts_hor, df_ts_cl
+        )
     for s, h, e in energy_system.demands.sum_tuples:
-        _format_sum_tuple(energy_system, s, h, e, df_st)
+        _format_sum_tuple(energy_system, s, h, e, df_st_builder)
 
     # Child modules
-    load_shedding_writer.format_all(energy_system, model, df_st, df_ts_hor, df_ts_cl)
-    load_shifting_writer.format_all(energy_system, model, df_st, df_ts_hor, df_ts_cl)
+    load_shedding_writer.format_all(
+        energy_system, model, df_st_builder, df_ts_hor, df_ts_cl
+    )
+    load_shifting_writer.format_all(
+        energy_system, model, df_st_builder, df_ts_hor, df_ts_cl
+    )
 
     # Remove unused columns
-    cols_to_drop_st = [COL_TECH, COL_NETLINK, COL_NETLINKDIR, COL_NETTECH]
-    cols_to_drop_ts = [COL_TECH, COL_NETLINK, COL_NETTECH]
-    df_st.drop(columns=(cols_to_drop_st), inplace=True)
+    cols_to_drop_st = {
+        DfStColumn.TECH,
+        DfStColumn.NET_LINK,
+        DfStColumn.NET_LINK_DIR,
+        DfStColumn.NET_TECH,
+    }
+    cols_to_drop_ts = [
+        DfStColumn.TECH.value,
+        DfStColumn.NET_LINK.value,
+        DfStColumn.NET_TECH.value,
+    ]
     df_ts_hor.columns = df_ts_hor.columns.droplevel(cols_to_drop_ts)
     if df_ts_cl is not None:
         df_ts_cl.columns = df_ts_cl.columns.droplevel(cols_to_drop_ts)
+
+    # Create all-in-one dataframes
+    df_st = df_st_builder.build(drop_columns=cols_to_drop_st)
 
     # Format for file granularity
     dfs = _format_file_granularity(
@@ -151,7 +160,7 @@ def _format_profile_tuple(
     s: StageId,
     h: HubId,
     e: EcId,
-    df_st: pd.DataFrame,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -182,8 +191,7 @@ def _format_profile_tuple(
     if not demand_profile.has_values:
         demand_def = demand_profile.def_value
         assert demand_def is not None
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_DEMANDPROFILE,
             demand_def,
             unit=demand_unit,
@@ -196,15 +204,18 @@ def _format_profile_tuple(
 
 
 def _format_sum_tuple(
-    energy_system: EnergySystem, s: StageId, h: HubId, e: EcId, df_st: pd.DataFrame
+    energy_system: EnergySystem,
+    s: StageId,
+    h: HubId,
+    e: EcId,
+    df_st_builder: DfStBuilder,
 ) -> None:
     # demand
     demand_sum = energy_system.demands.get_demand_sum(s, h, e)
     demand_sum_unit = ec_model.get_ec_model_unit(
         energy_system.ecs.get_unit(e), energy_system.mass_unit, energy_system.power_unit
     )
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_DEMANDSUM,
         demand_sum,
         unit=demand_sum_unit,
@@ -243,25 +254,29 @@ def _format_file_granularity(
     # load shedding and load shifting together)
     if file_granularity == FileGranularity.DEFAULT:
         # Static files (tuples)
-        ids_st = df_st[[COL_STAGE, COL_HUB, COL_EC]].drop_duplicates()
+        ids_st = df_st[
+            [DfStColumn.STAGE.value, DfStColumn.HUB.value, DfStColumn.EC.value]
+        ].drop_duplicates()
         for s, h, e in ids_st.itertuples(index=False, name=None):
             if not h:
                 continue
             filename_st = f"{FILENAME_LOADS}_{s}_{h}_{e}"
             filename_st = os.path.join(dir_path, f"{filename_st}.csv")
             df_st_cur = df_st[
-                (df_st[COL_STAGE] == s) & (df_st[COL_HUB] == h) & (df_st[COL_EC] == e)
+                (df_st[DfStColumn.STAGE.value] == s)
+                & (df_st[DfStColumn.HUB.value] == h)
+                & (df_st[DfStColumn.EC.value] == e)
             ]
             if len(df_st_cur) > 0:
                 dfs.append((df_st_cur, filename_st))
         # Static files (nontuple)
-        df_st_0 = df_st[df_st[COL_HUB] == ""]
+        df_st_0 = df_st[df_st[DfStColumn.HUB.value] == ""]
         filename_st = os.path.join(dir_path, f"{FILENAME_LOADS}.csv")
         dfs.append((df_st_0, filename_st))
 
         # Horizon time files
         ids_ts_hor = df_ts_hor.columns.to_frame(index=False)[
-            [COL_STAGE, COL_HUB, COL_EC]
+            [DfStColumn.STAGE.value, DfStColumn.HUB.value, DfStColumn.EC.value]
         ]
         for s, h, e in ids_ts_hor.itertuples(index=False, name=None):
             filename_ts_hor = f"{FILENAME_LOADS}-TS"
@@ -269,7 +284,14 @@ def _format_file_granularity(
                 filename_ts_hor = f"{FILENAME_LOADS}_{s}_{h}_{e}-TS"
             filename_ts_hor = os.path.join(dir_path, f"{filename_ts_hor}.csv")
             df_ts_hor_cur = df_ts_hor.xs(
-                (s, h, e), axis=1, level=(COL_STAGE, COL_HUB, COL_EC), drop_level=False
+                (s, h, e),
+                axis=1,
+                level=(
+                    DfStColumn.STAGE.value,
+                    DfStColumn.HUB.value,
+                    DfStColumn.EC.value,
+                ),
+                drop_level=False,
             )
             if len(df_ts_hor_cur) > 0:
                 dfs.append((df_ts_hor_cur, filename_ts_hor))
@@ -277,7 +299,7 @@ def _format_file_granularity(
         # Clustered time files
         if df_ts_cl is not None:
             ids_ts_cl = df_ts_cl.columns.to_frame(index=False)[
-                [COL_STAGE, COL_HUB, COL_EC]
+                [DfStColumn.STAGE.value, DfStColumn.HUB.value, DfStColumn.EC.value]
             ]
             for s, h, e in ids_ts_cl.itertuples(index=False, name=None):
                 filename_ts_cl = f"{FILENAME_LOADS}-TSCL"
@@ -287,7 +309,11 @@ def _format_file_granularity(
                 df_ts_cl_cur = df_ts_cl.xs(
                     (s, h, e),
                     axis=1,
-                    level=(COL_STAGE, COL_HUB, COL_EC),
+                    level=(
+                        DfStColumn.STAGE.value,
+                        DfStColumn.HUB.value,
+                        DfStColumn.EC.value,
+                    ),
                     drop_level=False,
                 )
                 if len(df_ts_cl_cur) > 0:
@@ -297,32 +323,39 @@ def _format_file_granularity(
     # csvs for demands, load shedding and load shifting)
     if file_granularity == FileGranularity.MAX:
         # Static files (tuples)
-        ids_st = df_st[[COL_STAGE, COL_HUB, COL_EC, COL_SOURCE]].drop_duplicates()
+        ids_st = df_st[
+            [DfStColumn.STAGE, DfStColumn.HUB, DfStColumn.EC, DfStColumn.SOURCE]
+        ].drop_duplicates()
         for s, h, e, source in ids_st.itertuples(index=False, name=None):
             if not h:
                 continue
             filename_st = f"{source}_{s}_{h}_{e}"
             filename_st = os.path.join(dir_path, f"{filename_st}.csv")
             df_st_cur = df_st[
-                (df_st[COL_STAGE] == s)
-                & (df_st[COL_HUB] == h)
-                & (df_st[COL_EC] == e)
-                & (df_st[COL_SOURCE] == source)
+                (df_st[DfStColumn.STAGE.value] == s)
+                & (df_st[DfStColumn.HUB.value] == h)
+                & (df_st[DfStColumn.EC.value] == e)
+                & (df_st[DfStColumn.SOURCE.value] == source)
             ]
             if len(df_st_cur) > 0:
                 dfs.append((df_st_cur, filename_st))
         # Static files (nontuple)
-        df_st_0 = df_st[df_st[COL_HUB] == ""]
-        for source in df_st_0[COL_SOURCE].unique():
+        df_st_0 = df_st[df_st[DfStColumn.HUB.value] == ""]
+        for source in df_st_0[DfStColumn.SOURCE.value].unique():
             filename_st = source
             filename_st = os.path.join(dir_path, f"{filename_st}.csv")
-            df_st_cur = df_st_0[df_st_0[COL_SOURCE] == source]
+            df_st_cur = df_st_0[df_st_0[DfStColumn.SOURCE.value] == source]
             if len(df_st_cur) > 0:
                 dfs.append((df_st_cur, filename_st))
 
         # Horizon time files
         ids_ts_hor = df_ts_hor.columns.to_frame(index=False)[
-            [COL_STAGE, COL_HUB, COL_EC, COL_SOURCE]
+            [
+                DfStColumn.STAGE.value,
+                DfStColumn.HUB.value,
+                DfStColumn.EC.value,
+                DfStColumn.SOURCE.value,
+            ]
         ]
         for s, h, e, source in ids_ts_hor.itertuples(index=False, name=None):
             filename_ts_hor = f"{source}TS"
@@ -332,7 +365,12 @@ def _format_file_granularity(
             df_ts_hor_cur = df_ts_hor.xs(
                 (s, h, e, source),
                 axis=1,
-                level=(COL_STAGE, COL_HUB, COL_EC, COL_SOURCE),
+                level=(
+                    DfStColumn.STAGE.value,
+                    DfStColumn.HUB.value,
+                    DfStColumn.EC.value,
+                    DfStColumn.SOURCE.value,
+                ),
                 drop_level=False,
             )
             if len(df_ts_hor_cur) > 0:
@@ -341,7 +379,12 @@ def _format_file_granularity(
         # Clustered time files
         if df_ts_cl is not None:
             ids_ts_cl = df_ts_cl.columns.to_frame(index=False)[
-                [COL_STAGE, COL_HUB, COL_EC, COL_SOURCE]
+                [
+                    DfStColumn.STAGE.value,
+                    DfStColumn.HUB.value,
+                    DfStColumn.EC.value,
+                    DfStColumn.SOURCE.value,
+                ]
             ]
             for s, h, e, source in ids_ts_cl.itertuples(index=False, name=None):
                 filename_ts_cl = f"{source}-TSCL"
@@ -351,7 +394,12 @@ def _format_file_granularity(
                 df_ts_cl_cur = df_ts_cl.xs(
                     (s, h, e, source),
                     axis=1,
-                    level=(COL_STAGE, COL_HUB, COL_EC, COL_SOURCE),
+                    level=(
+                        DfStColumn.STAGE.value,
+                        DfStColumn.HUB.value,
+                        DfStColumn.EC.value,
+                        DfStColumn.SOURCE.value,
+                    ),
                     drop_level=False,
                 )
                 if len(df_ts_cl_cur) > 0:

@@ -285,7 +285,7 @@ class EbmTechs:
         expected_unit = DimlessUnit()
         if not in_eff.unit.same_type_as(expected_unit):
             raise exceptions.DataException(
-                ExceptionKey.OUTEFF_SET.value,
+                ExceptionKey.INEFF_SET.value,
                 [s, x],
                 f"Unit of in_eff[{s}, {x}] = {in_eff} "
                 f"does not match expected unit {expected_unit}",

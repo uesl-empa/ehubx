@@ -1,6 +1,12 @@
 Changelog
 ==========
 
+**2.2.4** (11.12.2025)
+------------------------
+- ATES module reworked following insights from Bispebjerg paper.
+- Advective radius now based on thermal-front velocity.
+- Renamed some ates_param entries in hubs.yaml for clarity.
+
 **2.2.3** (09.10.2025)
 ------------------------
 - Tightened the problem formulation by significantly improving bigM values.

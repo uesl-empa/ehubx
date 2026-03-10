@@ -27,10 +27,9 @@ from ehubx.writer import (
     tech_writer,
 )
 from ehubx.writer.common_writer import (
+    DfStBuilder,
     FileGranularity,
-    add_to_df_st,
     create_dir,
-    init_df_st,
 )
 
 
@@ -208,13 +207,12 @@ def _format_all_system(
     energy_system: EnergySystem, model: Model, dir_path: str
 ) -> List[Tuple[pd.DataFrame, str]]:
     # Initialize dataframe
-    df_st = init_df_st()
+    df_st_builder = DfStBuilder()
 
     # Default interest rate
     try:
         interest_rate = energy_system.interest_rate_def
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_INTERESTRATEDEF,
             interest_rate,
             unit=DimlessUnit(),
@@ -226,8 +224,7 @@ def _format_all_system(
 
     # TRL threshold
     trl_threshold = energy_system.trl_threshold
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_TRLTHRESHOLD,
         trl_threshold,
         DimlessUnit(),
@@ -237,15 +234,14 @@ def _format_all_system(
 
     # Number of horizon timesteps
     num_ts_hor = energy_system.num_times_horizon
-    add_to_df_st(
-        df_st, ENTRY_NUMTIMESHORIZON, str(num_ts_hor), source=SOURCE, in_res="input"
+    df_st_builder.add_row(
+        ENTRY_NUMTIMESHORIZON, str(num_ts_hor), source=SOURCE, in_res="input"
     )
 
     # Number of clustered timesteps
     if energy_system.times.is_clustered:
         num_ts_cl = energy_system.times.num_ts
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_NUMTIMESCLUSTERED,
             str(num_ts_cl),
             source=SOURCE,
@@ -255,8 +251,7 @@ def _format_all_system(
     # Stage start year
     for s in energy_system.stages.ids_in_order:
         start_year = energy_system.stages.get_start_year(s)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_STAGESTARTYEAR,
             str(start_year),
             stage=s.key,
@@ -267,8 +262,7 @@ def _format_all_system(
     # Stage co2_min
     for s in energy_system.stages.ids_in_order:
         co2_min = energy_system.stages.get_co2_min(s)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_STAGECO2MIN,
             co2_min,
             unit=energy_system.mass_unit,
@@ -280,8 +274,7 @@ def _format_all_system(
     # Stage co2_max
     for s in energy_system.stages.ids_in_order:
         co2_max = energy_system.stages.get_co2_max(s)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_STAGECO2MAX,
             co2_max,
             unit=energy_system.mass_unit,
@@ -293,8 +286,7 @@ def _format_all_system(
     # Stage co2_price
     for s in energy_system.stages.ids_in_order:
         co2_price = energy_system.stages.get_co2_price(s)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_STAGECO2PRICE,
             co2_price,
             unit=(energy_system.currency_unit / energy_system.mass_unit),
@@ -305,8 +297,7 @@ def _format_all_system(
 
     # Self-sufficiency calculation method
     aut_calc_method = energy_system.self_sufficiency.calculation_method
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_SELFSUFFCALCULATIONMETHOD,
         aut_calc_method.value,
         source=SOURCE_SELFSUFF,
@@ -315,8 +306,7 @@ def _format_all_system(
 
     # self_sufficiency_min
     self_suff_min = energy_system.self_sufficiency.self_sufficiency_min
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_SELFSUFFMIN,
         self_suff_min,
         unit=DimlessUnit(),
@@ -326,8 +316,7 @@ def _format_all_system(
 
     # self_sufficiency_max
     self_suff_max = energy_system.self_sufficiency.self_sufficiency_max
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_SELFSUFFMAX,
         self_suff_max,
         unit=DimlessUnit(),
@@ -340,8 +329,7 @@ def _format_all_system(
     co2_penalty_fl = value(var, exception=False)
     if co2_penalty_fl is not None:
         co2_penalty = Value(co2_penalty_fl, unit=energy_system.currency_unit)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SYSTEMCO2PENALTY,
             co2_penalty,
             unit=energy_system.currency_unit,
@@ -352,8 +340,7 @@ def _format_all_system(
     # System cost
     var = getattr(model, energy_system_model.VAR_SYSTEMCOST)
     cost = value(var, exception=False)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_SYSTEMCOST,
         cost,
         unit=energy_system.currency_unit,
@@ -365,8 +352,7 @@ def _format_all_system(
     var = getattr(model, energy_system_model.VAR_SYSTEMCO2)
     for s in energy_system.stages.ids_in_order:
         co2 = value(var[s.key], exception=False)
-        add_to_df_st(
-            df_st,
+        df_st_builder.add_row(
             ENTRY_SYSTEMCO2,
             co2,
             unit=energy_system.mass_unit,
@@ -378,8 +364,7 @@ def _format_all_system(
     # Total system CO2
     var = getattr(model, energy_system_model.VAR_SYSTEMCO2TOTAL)
     co2_total = value(var, exception=False)
-    add_to_df_st(
-        df_st,
+    df_st_builder.add_row(
         ENTRY_SYSTEMCO2TOTAL,
         co2_total,
         unit=energy_system.mass_unit,
@@ -391,7 +376,9 @@ def _format_all_system(
     objectives = model.component_objects(Objective, active=True)
     for obj in objectives:
         obj_val = value(obj, exception=False)
-        add_to_df_st(df_st, ENTRY_OBJECTIVEVAL, obj_val, source=SOURCE, in_res="result")
+        df_st_builder.add_row(
+            ENTRY_OBJECTIVEVAL, obj_val, source=SOURCE, in_res="result"
+        )
 
     # System self-sufficiency, energy_system_model.VAR_SYSTEMSELFSUFFICIENCY):
     var = getattr(model, energy_system_model.VAR_SYSTEMSELFSUFFICIENCY, None)
@@ -399,8 +386,7 @@ def _format_all_system(
         self_suff_fl = value(var, exception=False)
         if self_suff_fl is not None:
             self_suff = Value(self_suff_fl)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_SYSTEMSELFSUFF,
                 self_suff,
                 unit=DimlessUnit(),
@@ -414,8 +400,7 @@ def _format_all_system(
         internal_imp_fl = value(var, exception=False)
         if internal_imp_fl is not None:
             internal_imp = Value(internal_imp_fl)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_SELFSUFFIMPINTERNAL,
                 internal_imp,
                 source=SOURCE_SELFSUFF,
@@ -428,8 +413,7 @@ def _format_all_system(
         cross_imp_fl = value(var, exception=False)
         if cross_imp_fl is not None:
             cross_imp = Value(cross_imp_fl)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_SELFSUFFIMPCROSS,
                 cross_imp,
                 source=SOURCE_SELFSUFF,
@@ -442,8 +426,7 @@ def _format_all_system(
         self_suff_fl = value(var, exception=False)
         if self_suff_fl is not None:
             self_suff = Value(self_suff_fl)
-            add_to_df_st(
-                df_st,
+            df_st_builder.add_row(
                 ENTRY_SELFSUFF,
                 self_suff,
                 source=SOURCE_SELFSUFF,
@@ -452,6 +435,7 @@ def _format_all_system(
 
     # Return
     filename = os.path.join(dir_path, f"{FILENAME_SYSTEM}.csv")
+    df_st = df_st_builder.build()
     return [(df_st, filename)]
 
 
