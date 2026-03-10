@@ -105,7 +105,7 @@ def _parse_demand_profiles(
                         HubId(h),
                         EcId(e),
                         TimeId(t),
-                        demand_cur.get_value(t) + Value(val, unit),
+                        demand_cur.get_value(TimeId(t)) + Value(val, unit),
                     )
 
 
