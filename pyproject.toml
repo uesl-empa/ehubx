@@ -3,21 +3,21 @@ name = "ehubx"
 version = "2.2.4"
 description = "A Python framework for modeling and optimizing energy systems based on the energy hub concept"
 authors = [
-    { name = "Dennis Beermann" }, 
-    { name = "Leonie Fierz" }, 
-    { name = "Andrew Bollinger" }, 
-    { name = "Robin Mutschler" }, 
-    { name = "Wassim Chedhli" }, 
-    { name = "Yi-Chung Chen" }, 
-    { name = "Binod Prasad Koirala" }, 
-    { name = "Julien Marquant" }, 
-    { name = "Michael Obrist" }, 
-    { name = "Youssef Sherif" }, 
-    { name = "Arijit Upadhyay" }, 
-    { name = "Mashael Yazdanie" },
+    name = "Dennis Beermann", 
+    name = "Leonie Fierz", 
+    name = "Andrew Bollinger", 
+    name = "Robin Mutschler", 
+    name = "Wassim Chedhli", 
+    name = "Yi-Chung Chen", 
+    name = "Binod Prasad Koirala", 
+    name = "Julien Marquant", 
+    name = "Michael Obrist", 
+    name = "Youssef Sherif", 
+    name = "Arijit Upadhyay", 
+    name = "Mashael Yazdanie",
 ]
 maintainers = [
-    { name = "Urban Energy Systems Laboratory, Empa" }
+    "Urban Energy Systems Laboratory, Empa",
 ]
 classifiers=[
     "Development Status :: 5 - Production/Stable",
