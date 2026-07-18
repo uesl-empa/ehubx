@@ -6,6 +6,16 @@ on:
   pull_request:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      publish_target:
+        description: "Optional publication target"
+        required: true
+        default: "none"
+        type: choice
+        options:
+          - none
+          - testpypi
 
 permissions:
   contents: read
@@ -96,15 +106,25 @@ jobs:
 
   # ========== build_release (wheel + source distribution) ==========
   build_release:
-    if: github.event_name == 'release'
+    if: >
+      github.event_name == 'release' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        inputs.publish_target == 'testpypi'
+      )
     needs: python_test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout released tag
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: >-
+            ${{
+              github.event_name == 'release'
+              && github.event.release.tag_name
+              || github.ref
+            }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -129,6 +149,33 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 7
+
+  # ========== publish_testpypi (Trusted Publishing) ==========
+  publish_testpypi:
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      inputs.publish_target == 'testpypi'
+    needs: build_release
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/ehubx/
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/
+
+      - name: Publish distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
   # ========== publish_pypi (Trusted Publishing) ==========
   publish_pypi:
