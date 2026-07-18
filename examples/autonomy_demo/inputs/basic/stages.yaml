@@ -1,0 +1,15 @@
+system_params:
+  trl_threshold: 4
+  interest_rate_def: 0.01
+  num_times_horizon: 504
+  currency_unit: CHF
+  mass_unit: kg
+  length_unit: m
+  power_unit: kW
+
+stages:
+- stage_id: S1
+  start_year: 2020
+  co2_min: 0 kg
+  co2_max:
+  autonomy_allow_unmet_demand: False

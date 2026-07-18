@@ -150,7 +150,7 @@ def _parse_modules(input_path: str, energy_system: EnergySystem) -> None:
     hp_techs = hp_tech_parser.parse_primary(tech_root_node, stages, ecs, techs)
     ates_techs = ates_parser.parse_primary(tech_root_node, stages, ecs, techs)
     ebm_techs = ebm_tech_parser.parse_primary(tech_root_node, stages, ecs, techs)
-    tech_parser.parse_primary(tech_root_node, techs, energy_system, stages)
+    tech_parser.parse_primary(tech_root_node, conv_techs, techs, energy_system, stages)
     net_techs = net_tech_parser.parse_primary(
         network_subpath, energy_system, stages, ecs
     )

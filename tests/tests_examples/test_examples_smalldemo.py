@@ -22,8 +22,10 @@ from ehubx.model import (
 from ..util import (
     DIRNAME_EXAMPLES,
     DIRNAME_TMPTESTMODEL,
+    clear_tmp_model,
     init_tmp_model,
 )
+
 
 def test_examples_smalldemo():
     # Init
@@ -309,3 +311,5 @@ def test_examples_smalldemo():
             "S1", "H15", "X15Ates", "E15b", 3
         ]
     ) == pytest.approx(1000)
+    # Clear
+    clear_tmp_model()

@@ -1,0 +1,20 @@
+- stages: S1
+  hubs: H1
+  ec: Sol
+
+- stages: S1
+  hubs: H1
+  ec: Wnd
+  profile_path: profiles/VAWT_profile.csv
+
+- stages: S1
+  hubs: H1
+  ec: Diesel
+  price: 0.17 CHF/kWh # 1.80 CHF/L
+  sum_max: 1000 kWh
+
+- stages: S1
+  hubs: H1
+  ec: Elec
+  price: 0.35 CHF/kWh
+  sum_max: 10000 kWh

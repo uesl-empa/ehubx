@@ -793,7 +793,6 @@ def parse_optional_yeardep_float_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
-            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartofloat_to_stagetofloat(
             year_to_value_dict, stages
@@ -864,7 +863,6 @@ def parse_mandatory_yeardep_float_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
-            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartofloat_to_stagetofloat(
             year_to_value_dict, stages
@@ -970,7 +968,6 @@ def parse_optional_yeardep_value_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
-            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartovalue_to_stagetovalue(
             year_to_value_dict, stages
@@ -1072,7 +1069,6 @@ def parse_mandatory_yeardep_value_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
-            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartovalue_to_stagetovalue(
             year_to_value_dict, stages

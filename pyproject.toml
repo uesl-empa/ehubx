@@ -1,13 +1,42 @@
 [tool.poetry]
 name = "ehubx"
 version = "2.2.4"
-description = "A platform for modeling and optimizing energy systems based on the energy hub concept"
-authors = ["Dennis Beermann <dennis.beermann@empa.ch>", "Fierz Leonie", "TODO"]
-classifiers=['Development Status :: Development',
-    'Intended Audience :: Developers',
-    'Natural Language :: English',
-    'Programming Language :: Python :: 3.11'
+description = "A Python framework for modeling and optimizing energy systems based on the energy hub concept"
+authors = [
+    "Dennis Beermann", 
+    "Leonie Fierz", 
+    "Andrew Bollinger", 
+    "Robin Mutschler", 
+    "Wassim Chedhli", 
+    "Yi-Chung Chen", 
+    "Binod Prasad Koirala", 
+    "Julien Marquant", 
+    "Michael Obrist", 
+    "Youssef Sherif", 
+    "Arijit Upadhyay", 
+    "Mashael Yazdanie",
 ]
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = [
+    "energy systems",
+    "energy hub",
+    "optimization",
+    "mathematical optimization",
+]
+license = "TODO"
+readme = "README.md"
+repository = "https://github.com/uesl-empa/ehubx"
+# documentation = "TODO"
 
 packages = [
     { include = "ehubx", from="src" }

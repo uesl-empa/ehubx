@@ -56,6 +56,14 @@ ENTRY_DEMANDSUM: str = "Demand-sum"
 ENTRY_DEMANDSUPPLY: str = f"Demand supply ({demand_model.VAR_DEMANDSUPPLY})"
 """Entry name for demand supply variable in result files"""
 
+ENTRY_DEMANDUNMETCOST: str = f"Unmet demand cost ({demand_model.VAR_DEMANDUNMETCOST})"
+"""Entry name for unmet demand cost in result files"""
+
+ENTRY_DEMANDUNMETCOSTTOTAL: str = (
+    f"Total unmet demand cost ({demand_model.VAR_DEMANDUNMETCOSTTOTAL})"
+)
+"""Entry name for total unmet demand cost variable in result files"""
+
 
 def format_all(
     energy_system: EnergySystem,
@@ -72,13 +80,28 @@ def format_all(
 
     # Tuple-specific values
     for s, h, e in energy_system.demands.tuples:
-        _format_tuple(energy_system, model, s, h, e, df_ts_hor, df_ts_cl)
+        _format_tuple(energy_system, model, s, h, e, df_st_builder, df_ts_hor, df_ts_cl)
     for s, h, e in energy_system.demands.profile_tuples:
         _format_profile_tuple(
             energy_system, s, h, e, df_st_builder, df_ts_hor, df_ts_cl
         )
     for s, h, e in energy_system.demands.sum_tuples:
         _format_sum_tuple(energy_system, s, h, e, df_st_builder)
+
+    # Total unmet demand cost
+    var = getattr(model, demand_model.VAR_DEMANDUNMETCOSTTOTAL)
+    total_demand_unmet_cost_fl = value(var, exception=False)
+    if total_demand_unmet_cost_fl is not None:
+        total_demand_unmet_cost = Value(
+            total_demand_unmet_cost_fl, unit=energy_system.currency_unit
+        )
+        df_st_builder.add_row(
+            ENTRY_DEMANDUNMETCOSTTOTAL,
+            total_demand_unmet_cost,
+            unit=energy_system.currency_unit,
+            source=SOURCE,
+            in_res="result",
+        )
 
     # Child modules
     load_shedding_writer.format_all(
@@ -122,6 +145,7 @@ def _format_tuple(
     s: StageId,
     h: HubId,
     e: EcId,
+    df_st_builder: DfStBuilder,
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
@@ -153,6 +177,21 @@ def _format_tuple(
         source=SOURCE,
         in_res="result",
     )
+    # Unmet demand cost
+    var = getattr(model, demand_model.VAR_DEMANDUNMETCOST)
+    unmet_cost_fl = value(var[s.key, h.key, e.key], exception=False)
+    if unmet_cost_fl is not None:
+        unmet_cost = Value(unmet_cost_fl, unit=energy_system.currency_unit)
+        df_st_builder.add_row(
+            ENTRY_DEMANDUNMETCOST,
+            unmet_cost,
+            unit=energy_system.currency_unit,
+            stage=s.key,
+            hub=h.key,
+            ec=e.key,
+            source=SOURCE,
+            in_res="result",
+        )
 
 
 def _format_profile_tuple(

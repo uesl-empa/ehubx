@@ -1,11 +1,16 @@
 # ehubX
 
-ehubX is a Python platform for optimization-based energy system models. Its input structure is based on YAML and CSV files which are translated into a Mixed-Integer Linear Programming (MILP) model that is solved using external optimization solvers. ehubX capabilities include a multitude of modules such as:
+ehubX is a Python framework for optimization-based energy system modeling developed by the [Urban Energy Systems Laboratory at Empa](https://www.empa.ch/web/s313). It has been applied in numerous large-scale energy system analyses for both scientific research and municipal planning projects.
 
-* Imports, exports, demands, load shedding, load shifting
-* Storage, conversion, solar, wind and electromobility technologies
-* Network transfer
-* Multi-stage, multi-hub and multi-objective models
+Energy system models are defined through a combination of YAML configuration files and CSV input data. ehubX translates these inputs into Mixed-Integer Linear Programming (MILP) models that can be solved using a variety of external optimization solvers.
+
+Its modular architecture supports a wide range of modeling capabilities, including:
+
+- Energy imports, exports, demands, load shedding, and load shifting
+- Storage, conversion, solar, wind, and electromobility technologies
+- Energy network modeling and transfer
+- Multi-stage, multi-hub, and multi-objective optimization
+- Single- and multi-objective optimization with objectives such as costs, emissions, and self-sufficiency
 
 ## Installation
 
@@ -23,7 +28,7 @@ Since ehubX relies on external MILP solvers, additionally ensure that you have a
    conda create -n ehubx python=PYTHON_VERSION
    ```
 
-Make sure that the ``PYTHON_VERSION`` you choose is compatible with the current version of ehubX (see *pyproject.toml* in the root directory).
+Make sure that the ``PYTHON_VERSION`` you choose is a compatible with the current version of ehubX (see *pyproject.toml* in the root directory).
 
 3. **Activate the environment:**
 
@@ -48,22 +53,12 @@ Make sure that the ``PYTHON_VERSION`` you choose is compatible with the current 
 
 ## Documentation
 
-Documentation is currently available locally. Run
-
-    sphinx-build -M html docs/source docs/build
-
-in a terminal and the documentation will be available under docs/build/html
+TODO.
 
 ## Examples
 
-The examples directory contains demo projects that give an impression on how to work with ehubX models. The most academic example and a good place to start is the *toy_model*.
+The ``examples`` directory contains demo projects that give an impression on how to work with ehubX models. The most academic example and a good place to start is the *toy_model*.
 
-## Project Info
-- Main contact: [Dennis Beermann](dennis.beermann@empa.ch)
-- Developers: Dennis Beermann, Léonie Fierz (former)
-- Programming Language: Python
-- Contributors: Robin Mutschler, Binod Koirala, ...
-- Third-party dependencies: Mainly [Pyomo](http://www.pyomo.org/) and a third-party optimization solver (e.g.; [Gurobi](https://www.gurobi.com/), [GLPK](https://www.gnu.org/software/glpk/)). For a full list, see pyproject.toml
+## How to cite
 
-## Project Status
-In development (see also CHANGELOG.rst)
+TODO
