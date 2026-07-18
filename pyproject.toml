@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ehubx"
-version = "2.3.0"
+version = "2.3.1.dev0"
 description = "A Python framework for modeling and optimizing energy systems based on the energy hub concept"
 authors = [
     "Dennis Beermann", 
