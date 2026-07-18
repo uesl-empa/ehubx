@@ -19,11 +19,24 @@ Its modular architecture supports a wide range of modeling capabilities, includi
 
 ## Installation
 
-We recommend setting up **ehubX** in a dedicated Python virtual environment to avoid conflicts with other packages. The step-by-step guide below is formulated using [conda](https://docs.conda.io/en/latest/) but can be adapted for other package managers or a manual setup. Similarly, we use [poetry](https://python-poetry.org/) for dependency management, which can be replaced with [pip](https://pip.pypa.io/en/stable/) if preferred.
+ehubX can be installed either via a PyPI pipeline, or for local development.
+
+### PyPI installation
+
+ehubX is available on [PyPI](https://pypi.org/project/ehubx/) and can simply be installed via the command
+
+```
+pip install ehubx
+pip install ehubx==2.3.0  # Install a specific version
+```
+
+### Local development installation
+
+For local development, we recommend setting up **ehubX** in a dedicated Python virtual environment to avoid conflicts with other packages. The step-by-step guide below is formulated using [conda](https://docs.conda.io/en/latest/) but can be adapted for other package managers or a manual setup. Similarly, we use [poetry](https://python-poetry.org/) for dependency management, which can be replaced with [pip](https://pip.pypa.io/en/stable/) if preferred.
 
 Since ehubX relies on external MILP solvers, additionally ensure that you have a compatible solver installed and properly configured in your environment (see *Specify solver* in the documentation).
 
-### Steps
+### Development installation
 
 1. **Clone the ehubX repository.**
 

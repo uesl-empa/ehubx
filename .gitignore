@@ -41,3 +41,5 @@ models/*
 docs/source/index.rst
 docs/source/ehubx*
 
+# PyPI
+dist
