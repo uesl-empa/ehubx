@@ -1,6 +1,11 @@
 Changelog
 ==========
 
+**2.3.0** (18.07.2026)
+------------------------
+- Publish codebase on GitHub and make it open-source under the GNU General Public License v3.
+- Added ReadTheDocs configuration for automatic documentation generation.
+
 **2.2.4** (11.12.2025)
 ------------------------
 - ATES module reworked following insights from Bispebjerg paper.

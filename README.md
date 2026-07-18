@@ -57,8 +57,15 @@ TODO.
 
 ## Examples
 
-The ``examples`` directory contains demo projects that give an impression on how to work with ehubX models. The most academic example and a good place to start is the *toy_model*.
+The ``examples`` directory contains demo projects that give an impression on how to work with ehubX models. The most academic example and a good place to start is the *small_demo*.
 
 ## How to cite
 
 TODO
+
+## License 
+
+Copyright (C) 2026 Urban Energy Systems Laboratory, Empa.
+
+This project is licensed under the GNU General Public License v3.0 or later.
+See the ``LICENSE`` file for details.
