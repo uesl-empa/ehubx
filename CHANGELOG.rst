@@ -1,6 +1,10 @@
 Changelog
 ==========
 
+**2.3.1.dev0** (tbd)
+------------------------
+- Automated PyPI release workflow using GitHub actions. Releases will trigger a build of the package and upload it to PyPI.
+
 **2.3.0** (18.07.2026)
 ------------------------
 - Publish codebase on GitHub and make it open-source under the GNU General Public License v3.
