@@ -1,5 +1,10 @@
 # ehubX
 
+[![CI](https://github.com/uesl-empa/ehubx/actions/workflows/ci.yml/badge.svg)](https://github.com/uesl-empa/ehubx/actions/workflows/ci.yml)
+[![Documentation Status](https://readthedocs.org/projects/ehubx/badge/?version=latest)](https://ehubx.readthedocs.io/)
+![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+
 ehubX is a Python framework for optimization-based energy system modeling developed by the [Urban Energy Systems Laboratory at Empa](https://www.empa.ch/web/s313). It has been applied in numerous large-scale energy system analyses for both scientific research and municipal planning projects.
 
 Energy system models are defined through a combination of YAML configuration files and CSV input data. ehubX translates these inputs into Mixed-Integer Linear Programming (MILP) models that can be solved using a variety of external optimization solvers.
@@ -53,7 +58,9 @@ Make sure that the ``PYTHON_VERSION`` you choose is a compatible with the curren
 
 ## Documentation
 
-TODO.
+The complete documentation is available at:
+
+**https://ehubx.readthedocs.io/**
 
 ## Examples
 

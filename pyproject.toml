@@ -16,6 +16,9 @@ authors = [
     "Arijit Upadhyay", 
     "Mashael Yazdanie",
 ]
+maintainers = [
+    "Urban Energy Systems Laboratory, Empa",
+]
 classifiers=[
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
