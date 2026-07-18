@@ -4,6 +4,7 @@
 [![Documentation Status](https://readthedocs.org/projects/ehubx/badge/?version=latest)](https://ehubx.readthedocs.io/)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+[![PyPI version](https://img.shields.io/pypi/v/ehubx.svg)](https://pypi.org/project/ehubx/)
 
 ehubX is a Python framework for optimization-based energy system modeling developed by the [Urban Energy Systems Laboratory at Empa](https://www.empa.ch/web/s313). It has been applied in numerous large-scale energy system analyses for both scientific research and municipal planning projects.
 
