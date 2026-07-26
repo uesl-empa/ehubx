@@ -488,24 +488,13 @@ class EhubX:
             )
         # Add labels
         if pareto_front.obj_key_1 == ObjectiveType.COST.value:
-            pareto_front.obj_key_1 = (
-                f"annualized {pareto_front.obj_key_1} "
-                f"[{self.energy_system.currency_unit.value}/yr]"
-            )
+            pareto_front.obj_key_1 += f" [{self.energy_system.currency_unit.value}]"
         elif pareto_front.obj_key_1 == ObjectiveType.CO2.value:
             pareto_front.obj_key_1 += f" [{self.energy_system.mass_unit.value}]"
-        elif pareto_front.obj_key_1 == ObjectiveType.AUTONOMY.value:
-            pareto_front.obj_key_1 += f" [{self.energy_system.time_unit.value}]"
-
         if pareto_front.obj_key_2 == ObjectiveType.COST.value:
-            pareto_front.obj_key_2 = (
-                f"annualized {pareto_front.obj_key_2} "
-                f"[{self.energy_system.currency_unit.value}/yr]"
-            )
+            pareto_front.obj_key_2 += f" [{self.energy_system.currency_unit.value}]"
         elif pareto_front.obj_key_2 == ObjectiveType.CO2.value:
             pareto_front.obj_key_2 += f" [{self.energy_system.mass_unit.value}]"
-        elif pareto_front.obj_key_2 == ObjectiveType.AUTONOMY.value:
-            pareto_front.obj_key_2 += f" [{self.energy_system.time_unit.value}]"
         # Outputs
         save_pareto_front(pareto_front, mo_results_dir_path)
 

@@ -12,7 +12,7 @@ from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.stor_tech_data import StorageTechs
 from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit
+from ehubx.data.unit import MassUnit, PowerUnit
 from ehubx.model.ec_model import get_ec_model_unit
 from ehubx.model.tech_model import (
     SET_TECH,
@@ -43,16 +43,6 @@ VAR_STORTECHOUTFLOW: str = "V_StorTechOutflow"
 
 VAR_STORTECHENERGY: str = "V_StorTechEnergy"
 """Name of variable for energy stored in storage techs"""
-
-VAR_STORTECHENERGYFINAL: str = "V_StorTechEnergyFinal"
-"""Name of variable for the storage energy level after the last horizon timestep"""
-
-VAR_STORTECHFILLCOST: str = "V_StorTechFillCost"
-"""Name of variable for the storage fill cost"""
-
-VAR_STORTECHFILLCOSTTOTAL: str = "V_StorTechFillCostTotal"
-"""Name of variable for the total cost of pre-filled energy in non-cyclic
-storage"""
 
 PAR_STORTECHEC: str = "P_StorTechEc"
 """Name of parameter specifying the ecs stored in storage techs"""
@@ -85,25 +75,6 @@ CON_STORTECHENERGYINIT: str = "C_StorTechEnergyInit"
 """Name of constraint setting the initial storage energy based on the
 parameter 'soc_init'"""
 
-CON_STORTECHENERGYFINALSOCMIN: str = "C_StorTechEnergyFinalSocMin"
-"""Name of constraint setting a lower limit for the final stored energy of
-non-cyclic storage based on minimal SOC and tech capacity"""
-
-CON_STORTECHENERGYFINALSOCMAX: str = "C_StorTechEnergyFinalSocMax"
-"""Name of constraint setting an upper limit for the final stored energy of
-non-cyclic storage based on maximal SOC and tech capacity"""
-
-CON_STORTECHENERGYFINAL: str = "C_StorTechEnergyFinal"
-"""Name of constraint setting the final stored energy of cyclic storage equal to
-its initial stored energy"""
-
-CON_STORTECHFILLCOST: str = "C_StorTechFillCost"
-"""Name of constraint defining the per-tuple storage fill cost"""
-
-CON_STORTECHFILLCOSTTOTAL: str = "C_StorTechFillCostTotal"
-"""Name of constraint setting the total fill cost of non-cyclic storage as the
-sum of the tech-specific fill costs"""
-
 
 def build(model: Model, system: EnergySystem) -> None:
     """
@@ -133,9 +104,6 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     techs: Techs = system.techs
     stor_techs: StorageTechs = system.stor_techs
     times: Times = system.times
-    ecs: Ecs = system.ecs
-    mass_unit: MassUnit = system.mass_unit
-    power_unit: PowerUnit = system.power_unit
     # [SET] Storage techs
     setattr(
         model,
@@ -187,24 +155,6 @@ def _build_base(model: Model, system: EnergySystem) -> None:
             domain=NonNegativeReals,
         ),
     )
-    # [VAR] Final energy level
-    setattr(
-        model,
-        VAR_STORTECHENERGYFINAL,
-        Var(getattr(model, SET_STORTECHTUPLE), within=NonNegativeReals),
-    )
-    # [VAR] Per-tuple fill cost
-    setattr(
-        model,
-        VAR_STORTECHFILLCOST,
-        Var(getattr(model, SET_STORTECHTUPLE), within=NonNegativeReals),
-    )
-    # [VAR] Total fill cost
-    setattr(
-        model,
-        VAR_STORTECHFILLCOSTTOTAL,
-        Var(within=NonNegativeReals),
-    )
     # [CON] Respect maximal inflow and outflow (based on capacity)
     _con_stor_tech_inoutflow_max(model, stor_techs)
     # [CON] Tech usage (monitored over sum summed-up sum of inflow and outflow)
@@ -223,7 +173,7 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     #       next based on flow and standby loss. A cyclical SOC approach is
     #       used so that the flow at the last horizon_ts charges the first
     #       horizon_ts
-    # _con_stor_tech_charging_dynamic(model, stor_techs, times)
+    _con_stor_tech_charging_dynamic(model, stor_techs, times)
     # [CON] Respect minimal and maximal storage energy levels (based on cap)
     _con_stor_tech_energy_minmax(model, stor_techs)
     # [CON] Initial energy. Constraint depends on initial SOC value in data
@@ -231,17 +181,6 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     #       chosen by the optimizer. Otherwise, energy is set in all stages by
     #       the initial  SOC value
     _con_stor_tech_energy_init(model, stages, techs, stor_techs)
-    # [CON] charging dynamic
-    _con_stor_tech_charging_dynamic(model, stor_techs, times)
-    # [CON] SOC bounds on the final energy level
-    _con_stor_tech_energy_final_soc(model, stor_techs)
-    # [CON] Final energy level: cyclic: equals initial; non-cyclic: set by
-    # the charging dynamic at the last horizon timestep
-    _con_stor_tech_energy_final(model, stor_techs)
-    # [CON] Per-tuple fill cost
-    _con_stor_tech_fill_cost(model, stor_techs, ecs, mass_unit, power_unit)
-    # [CON] Total fill cost
-    _con_stor_tech_fill_cost_total(model)
 
 
 def _con_stor_tech_inoutflow_max(model: Model, stor_techs: StorageTechs) -> None:
@@ -354,21 +293,15 @@ def _con_stor_tech_charging_dynamic(
             in_eff * getattr(model, VAR_STORTECHINFLOW)[s, h, x, t]
             - getattr(model, VAR_STORTECHOUTFLOW)[s, h, x, t] / out_eff
         )
-        # Calculate energy level at next horizon_ts
+        # Calulate energy level at next horizon_ts
         energy_next = (1 - standby_loss) * getattr(model, VAR_STORTECHENERGY)[
             s, h, x, t_hor
         ] + energy_flow
-        # Last horizon timestep: cyclic wraps back, non-cyclic writes to the
-        # final-energy variable so the last timestep's flows are still debited
-        if t_hor == t_hor_last:
-            if stor_techs.get_cyclic(HubId(h), TechId(x)):
-                return (
-                    getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_first]
-                    == energy_next
-                )
-            return getattr(model, VAR_STORTECHENERGYFINAL)[s, h, x] == energy_next
-        # All other timesteps
-        t_hor_next = getattr(model, SET_TIMEHORIZON).next(t_hor)
+        # Get next horizon_ts (cycle back to start if at the end)
+        t_hor_next = t_hor_first
+        if t_hor != t_hor_last:
+            t_hor_next = getattr(model, SET_TIMEHORIZON).next(t_hor)
+        # Set the constraint
         return getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_next] == energy_next
 
     setattr(
@@ -452,92 +385,4 @@ def _con_stor_tech_energy_init(
         Constraint(
             getattr(model, SET_STORTECHTUPLE), rule=__rule_stor_tech_energy_init
         ),
-    )
-
-
-def _con_stor_tech_energy_final_soc(model: Model, stor_techs: StorageTechs) -> None:
-    def __rule_min(model, s, h, x):
-        if stor_techs.get_cyclic(HubId(h), TechId(x)):
-            return Constraint.Skip
-        soc_min = stor_techs.get_soc_min(StageId(s), TechId(x)).to_float()
-        return (
-            getattr(model, VAR_STORTECHENERGYFINAL)[s, h, x]
-            >= soc_min * getattr(model, VAR_TECHCAP)[s, h, x]
-        )
-
-    def __rule_max(model, s, h, x):
-        if stor_techs.get_cyclic(HubId(h), TechId(x)):
-            return Constraint.Skip
-        soc_max = stor_techs.get_soc_max(StageId(s), TechId(x)).to_float()
-        return (
-            getattr(model, VAR_STORTECHENERGYFINAL)[s, h, x]
-            <= min(soc_max, 1) * getattr(model, VAR_TECHCAP)[s, h, x]
-        )
-
-    setattr(
-        model,
-        CON_STORTECHENERGYFINALSOCMIN,
-        Constraint(getattr(model, SET_STORTECHTUPLE), rule=__rule_min),
-    )
-    setattr(
-        model,
-        CON_STORTECHENERGYFINALSOCMAX,
-        Constraint(getattr(model, SET_STORTECHTUPLE), rule=__rule_max),
-    )
-
-
-def _con_stor_tech_energy_final(model: Model, stor_techs: StorageTechs) -> None:
-    t_hor_first = getattr(model, SET_TIMEHORIZON).first()
-
-    def __rule_stor_tech_energy_final(model, s, h, x):
-        # Non-cyclic storage: the final level is set by the charging dynamic at
-        # the last horizon timestep
-        if not stor_techs.get_cyclic(HubId(h), TechId(x)):
-            return Constraint.Skip
-        # Cyclic storage: the final level equals the initial level
-        return (
-            getattr(model, VAR_STORTECHENERGYFINAL)[s, h, x]
-            == getattr(model, VAR_STORTECHENERGY)[s, h, x, t_hor_first]
-        )
-
-    setattr(
-        model,
-        CON_STORTECHENERGYFINAL,
-        Constraint(
-            getattr(model, SET_STORTECHTUPLE), rule=__rule_stor_tech_energy_final
-        ),
-    )
-
-
-def _con_stor_tech_fill_cost_total(model: Model) -> None:
-    def __rule_fill_cost_total(m):
-        return getattr(m, VAR_STORTECHFILLCOSTTOTAL) == sum(
-            getattr(m, VAR_STORTECHFILLCOST)[s, h, x]
-            for (s, h, x) in getattr(m, SET_STORTECHTUPLE)
-        )
-
-    setattr(model, CON_STORTECHFILLCOSTTOTAL, Constraint(rule=__rule_fill_cost_total))
-
-
-def _con_stor_tech_fill_cost(
-    model: Model, stor_techs: StorageTechs, ecs: Ecs, mass_unit, power_unit
-) -> None:
-    t_hor_0 = getattr(model, SET_TIMEHORIZON).first()
-
-    def __rule_fill_cost(m, s, h, x):
-        if stor_techs.get_cyclic(HubId(h), TechId(x)):
-            return getattr(m, VAR_STORTECHFILLCOST)[s, h, x] == 0
-        price_val = stor_techs.get_fill_price(HubId(h), TechId(x))
-        ec_id = stor_techs.get_ec(TechId(x))
-        unit_energy = get_ec_model_unit(ecs.get_unit(ec_id), mass_unit, power_unit)
-        price = price_val.to_float(unit=CurrencyUnit.CHF / unit_energy)
-        return (
-            getattr(m, VAR_STORTECHFILLCOST)[s, h, x]
-            == getattr(m, VAR_STORTECHENERGY)[s, h, x, t_hor_0] * price
-        )
-
-    setattr(
-        model,
-        CON_STORTECHFILLCOST,
-        Constraint(getattr(model, SET_STORTECHTUPLE), rule=__rule_fill_cost),
     )

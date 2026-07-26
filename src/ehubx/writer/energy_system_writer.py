@@ -104,9 +104,6 @@ ENTRY_SYSTEMCO2TOTAL: str = (
 ENTRY_SYSTEMCOST: str = f"Cost ({energy_system_model.VAR_SYSTEMCOST})"
 """Entry name for the cost variable in result files"""
 
-ENTRY_SYSTEMAUTONOMY: str = f"Cost ({energy_system_model.VAR_SYSTEMAUTONOMY})"
-"""Entry name for the autonomy variable in result files"""
-
 ENTRY_SYSTEMSELFSUFF: str = (
     f"Self-sufficiency ({energy_system_model.VAR_SYSTEMSELFSUFFICIENCY})"
 )
@@ -363,17 +360,6 @@ def _format_all_system(
             source=SOURCE,
             in_res="result",
         )
-
-    # System autonomy
-    var = getattr(model, energy_system_model.VAR_SYSTEMAUTONOMY)
-    autonomy = value(var, exception=False)
-    df_st_builder.add_row(
-        ENTRY_SYSTEMAUTONOMY,
-        autonomy,
-        unit=energy_system.time_unit,
-        source=SOURCE,
-        in_res="result",
-    )
 
     # Total system CO2
     var = getattr(model, energy_system_model.VAR_SYSTEMCO2TOTAL)

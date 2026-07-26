@@ -13,8 +13,8 @@ from ehubx.data.hub_data import HubId, Hubs
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.time_data import TimeId, Times
 from ehubx.data.time_series import TimeSeries
-from ehubx.data.unit import CurrencyUnit, TimeUnit, Unit
-from ehubx.data.value import Optional, Value
+from ehubx.data.unit import TimeUnit, Unit
+from ehubx.data.value import Value
 
 
 class ExceptionKey(Enum):
@@ -35,9 +35,6 @@ class ExceptionKey(Enum):
     DEMANDSUM_SET = "setting 'demand_sum' of Demands"
     DEMANDSUM_GET = "getting 'demand_sum' from Demands"
     DEMANDSUM_VAL = "validating 'demand_sum' of Demands"
-    DEMANDUNMETPENALTY_SET = "setting 'demand_unmet_penalty' of Demands"
-    DEMANTUNMETPENALTY_GET = "getting 'demand_unmet_penalty' from Demands"
-    DEMANTUNMETPENALTY_VAL = "validating 'demand_unmet_penalty' of Demands"
 
 
 # -------- #
@@ -48,9 +45,6 @@ LOG_MODULE_STR: str = "data/demand"
 
 DEF_DEMAND: float = 0
 """Default value for parameter 'demand' in the demand data module"""
-
-DEF_DEMANDUNMETPENALTY: float = 0
-"""Default value for the unmet-demand penalty (currency per energy)"""
 
 
 class Demands:
@@ -231,49 +225,6 @@ class Demands:
             self._sum_tuples.add((s, h, e))
         self._demand_sum[s, h, e] = demand_sum
 
-    # ----------------------- #
-    # Property: demand_unmet_penalty #
-    # ----------------------- #
-    def get_demand_unmet_penalty(
-        self,
-        s: StageId,
-        h: HubId,
-        e: EcId,
-    ) -> Optional[Value]:
-        """
-        Get the parameter 'demand_unmet_penalty' which denotes the cost per unit
-        of unmet demand energy for a (stage, hub, ec) tuple. This is an optional
-        parameter; None if not set, treated as zero in the model.
-
-        :param s: Stage
-        :type s: StageId
-        :param h: Hub
-        :type h: HubId
-        :param e: ec
-        :type e: EcId
-        :return: Unmet-demand penalty (currency per energy), None if not set
-        :rtype: Optional[Value]
-        """
-        return self._demand_unmet_penalty.get((s, h, e))
-
-    def set_demand_unmet_penalty(
-        self, s: StageId, h: HubId, e: EcId, demand_unmet_penalty: Value
-    ) -> None:
-        """
-        Set the parameter 'demand_unmet_penalty' which denotes the cost per unit of
-        unmet demand energy for a (stage, hub, ec) tuple.
-
-        :param s: Stage index of the tuple
-        :type s: StageId
-        :param h: Hub index of the tuple
-        :type h: HubId
-        :param e: ec index of the tuple
-        :type e: EcId
-        :param demand_unmet_penalty: Penalty cost per unit of unmet demand energy
-        :type demand_unmet_penalty: Value
-        """
-        self._demand_unmet_penalty[s, h, e] = demand_unmet_penalty
-
     # ------------------------------- #
     # Secondary property: time_series #
     # ------------------------------- #
@@ -340,7 +291,6 @@ class Demands:
         self._sum_tuples: Set[Tuple[StageId, HubId, EcId]] = set()
         self._demand_profile: Dict[Tuple[StageId, HubId, EcId], TimeSeries] = {}
         self._demand_sum: Dict[Tuple[StageId, HubId, EcId], Value] = {}
-        self._demand_unmet_penalty: Dict[Tuple[StageId, HubId, EcId], Value] = {}
 
     # ---------- #
     # Validation #
@@ -364,7 +314,6 @@ class Demands:
         self._validate_sum_tuples(stages, hubs, ecs)
         self._validate_demand_profiles(ecs, times)
         self._validate_demand_sum(ecs)
-        self._validate_demand_unmet_penalty(ecs)
 
     def _validate_profile_tuples(self, stages: Stages, hubs: Hubs, ecs: Ecs) -> None:
         exc_key = ExceptionKey.PROFILETUPLES_VAL.value
@@ -449,22 +398,6 @@ class Demands:
             # Demand sum must be nonnegative
             if demand_sum.is_negative:
                 msg = f"{demand_sum} = demand_sum[{s}, {h}, {e}] < 0"
-                logging.log_warning(msg, module=LOG_MODULE_STR)
-
-    def _validate_demand_unmet_penalty(self, ecs: Ecs) -> None:
-        exc_key = ExceptionKey.DEMANTUNMETPENALTY_VAL.value
-        for (s, h, e), penalty in self._demand_unmet_penalty.items():
-            expected_unit = CurrencyUnit.CHF / ecs.get_unit(e)
-            if not penalty.unit.same_type_as(expected_unit):
-                msg = (
-                    f"Unit of demand_unmet_penalty[{s}, {h}, {e}] = {penalty} "
-                    f"does not match expected unit {expected_unit}"
-                )
-                raise exceptions.DataException(
-                    exc_key, [s, h, e], msg, module=LOG_MODULE_STR
-                )
-            if penalty.is_negative:
-                msg = f"{penalty} = demand_unmet_penalty[{s}, {h}, {e}] < 0"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
 
     # ---------- #

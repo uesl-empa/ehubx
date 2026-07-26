@@ -248,7 +248,7 @@ After a model has been built, ehubX can solve it using a single objective functi
 
 This method combines several steps, namely:
 
-* Setting an objective (cost, emissions, autonomy, or self-sufficiency)
+* Setting an objective (cost, emissions, or self-sufficiency)
 * Writing out the model to an .lp file
 * Creating a solver if none is specified
 * The actual solving phase

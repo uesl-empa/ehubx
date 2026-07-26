@@ -4,7 +4,7 @@ Stage data module
 
 import collections
 from enum import Enum
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Set
 
 from ehubx.core import logging
 from ehubx.data import exceptions
@@ -39,8 +39,6 @@ class ExceptionKey(Enum):
     CO2MAX_SET = "setting 'co2_max' of Stages"
     CO2MAX_GET = "getting 'co2_max' from Stages"
     CO2MINMAX_VAL = "validating 'co2_min' against 'co2_max' of Stages"
-    AUTALLOWUNMETDEMAND_GET = "getting autonomy_allow_demand from Stages"
-    AUTALLOWUNMETDEMAND_SET = "setting autonomy_allow_demand of Stages"
 
 
 # -------- #
@@ -256,18 +254,6 @@ class Stages:
             )
         self._co2_max[s] = co2_max
 
-    # ------------------------------------- #
-    # Property: autonomy_allow_unmet_demand #
-    # ------------------------------------- #
-
-    def get_allow_unmet_demand(self, s: StageId) -> Optional[bool]:
-        self._check_id(s, ExceptionKey.AUTALLOWUNMETDEMAND_GET)
-        return self._autonomy_allow_unmet_demand.get(s, None)
-
-    def set_allow_unmet_demand(self, s: StageId, val: bool) -> None:
-        self._check_id(s, ExceptionKey.AUTALLOWUNMETDEMAND_SET)
-        self._autonomy_allow_unmet_demand[s] = bool(val)
-
     # -------------------- #
     # Secondary properties #
     # -------------------- #
@@ -300,7 +286,6 @@ class Stages:
         self._co2_price: Dict[StageId, Value] = {}
         self._co2_min: Dict[StageId, Value] = {}
         self._co2_max: Dict[StageId, Value] = {}
-        self._autonomy_allow_unmet_demand: Dict[StageId, Optional[bool]] = {}
 
     # ---------- #
     # Validation #

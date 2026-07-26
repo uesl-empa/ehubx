@@ -12,7 +12,7 @@ from ehubx.data.hub_data import HubId, Hubs
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.unit import DimlessUnit, TimeUnit
-from ehubx.data.value import Optional, Value
+from ehubx.data.value import Value
 
 
 class ExceptionKey(Enum):
@@ -55,12 +55,6 @@ class ExceptionKey(Enum):
     SOCINITMINMAX_VAL = (
         "validating 'soc_init' against 'soc_min' and 'soc_max' of StorageTechs"
     )
-    CYCLIC_SET = "setting 'cyclic' of StorageTechs"
-    CYCLIC_GET = "getting 'cyclic' of StorageTechs"
-    CYCLIC_VAL = "validating 'cyclic' of StorageTechs"
-    FILLPRICE_SET = "setting 'fill_price' of StorageTechs"
-    FILLPRICE_GET = "getting 'fill_price' of StorageTechs"
-    FILLPRICE_VAL = "validating 'fill_price' of StorageTechs"
 
 
 # -------- #
@@ -101,14 +95,6 @@ module"""
 DEF_SOCINIT: float = float("inf")
 """Default value for parameter 'soc_init' in the storage technology data
 module"""
-
-DEF_CYCLIC: bool = True
-"""Default value for 'cyclic'. True reproduces the standard cyclic storage
-condition"""
-
-DEF_FILLPRICE: Optional[Value] = None
-"""Default value for 'fill_price'. None means unset: the parameter is mandatory
-for non-cyclic storage and unused for cyclic storage."""
 
 
 class StorageTechs:
@@ -576,47 +562,6 @@ class StorageTechs:
             )
         self._soc_init[h, x] = soc_init
 
-    # ---------------- #
-    # Property: cyclic #
-    # ---------------- #
-    def get_cyclic(self, h: HubId, x: TechId) -> bool:
-        """
-        Get the parameter 'cyclic' which specifies whether a storage
-        technology's energy level at the end of the time horizon must return to
-        its initial value. If False, the storage is drained without being
-        refilled and its final level is unconstrained. Optional parameter with a
-        default value of True.
-        """
-        self._check_id(x, ExceptionKey.CYCLIC_GET)
-        return self._cyclic.get((h, x), DEF_CYCLIC)
-
-    def set_cyclic(self, h: HubId, x: TechId, cyclic: bool) -> None:
-        """
-        Set the parameter 'cyclic'.
-        """
-        self._check_id(x, ExceptionKey.CYCLIC_SET)
-        self._cyclic[h, x] = cyclic
-
-    # -------------------- #
-    # Property: fill_price #
-    # -------------------- #
-    def get_fill_price(self, h: HubId, x: TechId) -> Optional[Value]:
-        """
-        Get the parameter 'fill_price' which denotes the cost per unit of energy
-        pre-positioned in a non-cyclic storage technology at the first time step
-        of the horizon. Optional parameter; None if not set.
-        """
-        self._check_id(x, ExceptionKey.FILLPRICE_GET)
-        return self._fill_price.get((h, x), DEF_FILLPRICE)
-
-    def set_fill_price(self, h: HubId, x: TechId, fill_price: Value) -> None:
-        """
-        Set the parameter 'fill_price'. Only relevant for non-cyclic storage,
-        where the initial energy is not repaid through the cyclic condition.
-        """
-        self._check_id(x, ExceptionKey.FILLPRICE_SET)
-        self._fill_price[h, x] = fill_price
-
     # ----------- #
     # Constructor #
     # ----------- #
@@ -631,8 +576,6 @@ class StorageTechs:
         self._soc_min: Dict[Tuple[StageId, TechId], Value] = {}
         self._soc_max: Dict[Tuple[StageId, TechId], Value] = {}
         self._soc_init: Dict[Tuple[HubId, TechId], Value] = {}
-        self._cyclic: Dict[Tuple[HubId, TechId], bool] = {}
-        self._fill_price: Dict[Tuple[HubId, TechId], Value] = {}
 
     # ---------- #
     # Validation #
@@ -664,8 +607,6 @@ class StorageTechs:
         self._validate_soc_minmax()
         self._validate_soc_init(hubs)
         self._validate_soc_initminmax()
-        self._validate_fill_price()
-        self._validate_cyclic()
 
     def _validate_ids(self, techs: Techs) -> None:
         exc_key = ExceptionKey.ID_VAL.value
@@ -883,37 +824,6 @@ class StorageTechs:
                     raise exceptions.DataException(
                         exc_key, [s, h, x], msg, module=LOG_MODULE_STR
                     )
-
-    def _validate_fill_price(self) -> None:
-        exc_key = ExceptionKey.FILLPRICE_VAL.value
-        for (h, x), cyclic in self._cyclic.items():
-            if not cyclic and self.get_fill_price(h, x) is None:
-                raise exceptions.DataException(
-                    exc_key,
-                    [h, x],
-                    f"Storage '{x}' at hub '{h}' has cyclic=False but no "
-                    f"fill_price is defined. Non-cyclic storage must define the "
-                    f"price of its initial energy, which is otherwise obtained "
-                    f"for free.",
-                    module=LOG_MODULE_STR,
-                )
-
-    def _validate_cyclic(self) -> None:
-        exc_key = ExceptionKey.CYCLIC_VAL.value
-        for (h, x), cyclic in self._cyclic.items():
-            # Non-cyclic storage is drained without being refilled, so its
-            # initial energy is not repaid through the cyclic condition and must
-            # be priced explicitly
-            if not cyclic and self.get_fill_price(h, x) is None:
-                msg = (
-                    f"Storage '{x}' at hub '{h}' has cyclic=False but no "
-                    f"fill_price is defined. Non-cyclic storage must define the "
-                    f"price of its initial energy, which is otherwise obtained "
-                    f"for free."
-                )
-                raise exceptions.DataException(
-                    exc_key, [h, x], msg, module=LOG_MODULE_STR
-                )
 
     # ---------- #
     # Id checker #
