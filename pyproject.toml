@@ -1,19 +1,19 @@
 [tool.poetry]
 name = "ehubx"
-version = "2.3.1.dev0"
+version = "2.3.1"
 description = "A Python framework for modeling and optimizing energy systems based on the energy hub concept"
 authors = [
-    "Dennis Beermann", 
-    "Leonie Fierz", 
-    "Andrew Bollinger", 
-    "Robin Mutschler", 
-    "Wassim Chedhli", 
-    "Yi-Chung Chen", 
-    "Binod Prasad Koirala", 
-    "Julien Marquant", 
-    "Michael Obrist", 
-    "Youssef Sherif", 
-    "Arijit Upadhyay", 
+    "Dennis Beermann",
+    "Leonie Fierz",
+    "Andrew Bollinger",
+    "Robin Mutschler",
+    "Wassim Chedhli",
+    "Yi-Chung Chen",
+    "Binod Prasad Koirala",
+    "Julien Marquant",
+    "Michael Obrist",
+    "Youssef Sherif",
+    "Arijit Upadhyay",
     "Mashael Yazdanie",
 ]
 maintainers = [

@@ -19,11 +19,13 @@ from ehubx.model import (
     stor_tech_model,
     tech_model,
 )
+
 from ..util import (
     DIRNAME_EXAMPLES,
     DIRNAME_TMPTESTMODEL,
     init_tmp_model,
 )
+
 
 def test_examples_smalldemo():
     # Init
@@ -36,7 +38,7 @@ def test_examples_smalldemo():
     ehubx.build()
     glpk = Glpk()
     ehubx.set_solver(glpk)
-    ehubx.solve_single_obj(obj_type=ObjectiveType.CO2)
+    ehubx.solve_single_obj(obj_type=ObjectiveType.COST)
     model = ehubx._model
     # Check H1 (conversion)
     assert value(
