@@ -4,6 +4,7 @@ Changelog
 **2.3.1.dev0** (tbd)
 ------------------------
 - Automated PyPI release workflow using GitHub actions. Releases will trigger a build of the package and upload it to PyPI.
+- Introduced autonomy objective type and model.
 
 **2.3.0** (18.07.2026)
 ------------------------

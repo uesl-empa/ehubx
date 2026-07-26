@@ -103,6 +103,7 @@ class EnergySystem:
         self._length_unit: LengthUnit = LengthUnit.M
         self._mass_unit: MassUnit = MassUnit.KG
         self._power_unit: PowerUnit = PowerUnit.KW
+        self._time_unit: TimeUnit = TimeUnit.H
         self._demand_file_paths: Set[str] = set()
         self._heur_limit_max_in_sh: Dict[Tuple[StageId, HubId, EcId], Value] = {}
         self._heur_limit_max_in: Dict[EcId, Value] = {}
@@ -260,6 +261,19 @@ class EnergySystem:
     @power_unit.setter
     def power_unit(self, power_unit: PowerUnit) -> None:
         self._power_unit = power_unit
+
+    # -------------------- #
+    # Property: time_unit #
+    # -------------------- #
+    @property
+    def time_unit(self) -> TimeUnit:
+        """Time unit used in the system. This is an optional parameter which
+        defaults to hours."""
+        return self._time_unit
+
+    @time_unit.setter
+    def time_unit(self, time_unit: TimeUnit) -> None:
+        self._time_unit = time_unit
 
     # ------------------------------- #
     # Secondary property: time_series #

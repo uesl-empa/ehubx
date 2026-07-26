@@ -1173,8 +1173,6 @@ def parse_int_from_value_node(value_node: YamlNode) -> int:
 def parse_float_from_value_node(value_node: YamlNode) -> float:
     check_node_type(value_node, YamlNodeKind.VALUE)
     value = value_node.value
-    if isinstance(value, Value):
-        return value.to_float()
     try:
         value_as_float = float(value)
     except ValueError as exc:

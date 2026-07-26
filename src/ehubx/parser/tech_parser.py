@@ -287,22 +287,40 @@ def _parse_costs(
 
 
 def _parse_emissions(
-    tech_node: yaml_parser.YamlDictNode, tech_id: TechId, stages: Stages, techs: Techs
+    tech_node: yaml_parser.YamlDictNode,
+    tech_id: TechId,
+    stages: Stages,
+    techs: Techs,
 ) -> None:
+    """Parse embodied and operational technology emission parameters."""
+
     emissions_node = tech_node[YAMLKEY_EMISSIONS]
+
     if emissions_node is None:
         return
-    yaml_parser.check_node_type(emissions_node, yaml_parser.YamlNodeKind.DICT)
-    # co2_per_cap
+
+    yaml_parser.check_node_type(
+        emissions_node,
+        yaml_parser.YamlNodeKind.DICT,
+    )
+
+    # ---------------------- #
+    # Embodied CO2 per cap   #
+    # ---------------------- #
     co2_per_cap = yaml_parser.parse_optional_yeardep_value_from_dict_node(
         emissions_node,
         YAMLKEY_CO2PERCAP,
         stages,
-        expected_unit=(MassUnit.KG / techs.get_cap_unit(tech_id)),
+        expected_unit=MassUnit.KG / techs.get_cap_unit(tech_id),
     )
+
     if co2_per_cap is not None:
         for stage_id, value in co2_per_cap.items():
-            techs.set_co2_per_cap(stage_id, tech_id, value)
+            techs.set_co2_per_cap(
+                stage_id,
+                tech_id,
+                value,
+            )
 
 
 def _parse_coupled_techs(tech_node: yaml_parser.YamlDictNode, techs: Techs) -> None:
@@ -473,7 +491,7 @@ def _preprocess_coupled_techs_secondary(
             main_tech_params_node, YAMLKEY_LASTINSTYEAR, expected_unit=DimlessUnit()
         )
         if last_inst_year_main is not None:
-            last_inst_year = last_inst_year_main.to_float(DimlessUnit())
+            last_inst_year = last_inst_year_main
             new_tech_params_node.add_child_value(YAMLKEY_LASTINSTYEAR, last_inst_year)
         # cap_min & cap_max are not set for coupled techs
         # Add tech node to techs_node

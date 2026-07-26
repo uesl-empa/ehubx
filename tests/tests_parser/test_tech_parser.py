@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from ehubx.data import exceptions as data_exceptions
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
-from ehubx.data.tech_data import ExceptionKey as TechExcKey, TechId, Techs
+from ehubx.data.tech_data import ExceptionKey as TechExcKey
+from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.unit import CurrencyUnit, DimlessUnit, MassUnit, TimeUnit
 from ehubx.data.value import Value
 from ehubx.parser import exceptions, tech_parser, yaml_parser
@@ -32,7 +34,9 @@ def _make_coupled_node(
     coupling.add_child_value(tech_parser.YAMLKEY_MAINTECHID, main_tech_id)
     node.add_dict_child(tech_parser.YAMLKEY_COUPLINGPARAMS, coupling)
     if with_tech_params:
-        node.add_dict_child(tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path))
+        node.add_dict_child(
+            tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path)
+        )
     return node
 
 
@@ -54,8 +58,9 @@ def test_parse_initial_skips_missing_techs_node():
     root = MagicMock()
     root.__getitem__.return_value = None
 
-    with patch("ehubx.parser.yaml_parser.parse", return_value=root), patch(
-        "ehubx.parser.yaml_parser.check_node_type"
+    with (
+        patch("ehubx.parser.yaml_parser.parse", return_value=root),
+        patch("ehubx.parser.yaml_parser.check_node_type"),
     ):
         techs, root_out = tech_parser.parse_initial("/tmp")
 
@@ -71,13 +76,12 @@ def test_parse_initial_calls_preprocess_and_parse_initial():
     techs_node.set_id = MagicMock()
     root.__getitem__.return_value = techs_node
 
-    with patch("ehubx.parser.yaml_parser.parse", return_value=root), patch(
-        "ehubx.parser.yaml_parser.check_node_type"
-    ), patch(
-        "ehubx.parser.tech_parser._preprocess_coupled_techs_primary"
-    ) as mock_pre, patch(
-        "ehubx.parser.tech_parser._parse_tech_initial"
-    ) as mock_parse_initial:
+    with (
+        patch("ehubx.parser.yaml_parser.parse", return_value=root),
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch("ehubx.parser.tech_parser._preprocess_coupled_techs_primary") as mock_pre,
+        patch("ehubx.parser.tech_parser._parse_tech_initial") as mock_parse_initial,
+    ):
         techs, _ = tech_parser.parse_initial("/tmp")
 
     assert isinstance(techs, Techs)
@@ -119,7 +123,9 @@ def test_preprocess_coupled_techs_primary_sub_has_params_raises():
     file_path = "techs.yaml"
     techs_node = yaml_parser.YamlListNode(file_path)
     main_node = _make_tech_node(file_path, "t_main")
-    main_node.add_dict_child(tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path))
+    main_node.add_dict_child(
+        tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path)
+    )
     techs_node.add_list_child(main_node)
     techs_node.add_list_child(
         _make_coupled_node(file_path, "t_sub", "t_main", with_tech_params=True)
@@ -191,15 +197,20 @@ def test_parse_tech_params_primary_trl_none_allows_all_stages():
     tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
     tech_params_node = MagicMock(spec=yaml_parser.YamlDictNode)
 
-    with patch(
-        "ehubx.parser.yaml_parser.get_mandatory_subnode_from_dict_node",
-        return_value=tech_params_node,
-    ), patch("ehubx.parser.yaml_parser.check_node_type"), patch(
-        "ehubx.parser.yaml_parser.parse_mandatory_value_from_dict_node",
-        return_value=Value(20, TimeUnit.A),
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
-        side_effect=[None, None],
+    with (
+        patch(
+            "ehubx.parser.yaml_parser.get_mandatory_subnode_from_dict_node",
+            return_value=tech_params_node,
+        ),
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch(
+            "ehubx.parser.yaml_parser.parse_mandatory_value_from_dict_node",
+            return_value=Value(20, TimeUnit.A),
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
+            side_effect=[None, None],
+        ),
     ):
         tech_parser._parse_tech_params_primary(
             tech_node, tech_id, energy_system, stages, techs
@@ -229,15 +240,20 @@ def test_parse_tech_params_primary_trl_threshold_filters():
     tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
     tech_params_node = MagicMock(spec=yaml_parser.YamlDictNode)
 
-    with patch(
-        "ehubx.parser.yaml_parser.get_mandatory_subnode_from_dict_node",
-        return_value=tech_params_node,
-    ), patch("ehubx.parser.yaml_parser.check_node_type"), patch(
-        "ehubx.parser.yaml_parser.parse_mandatory_value_from_dict_node",
-        return_value=Value(20, TimeUnit.A),
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
-        side_effect=[trl_dict, None],
+    with (
+        patch(
+            "ehubx.parser.yaml_parser.get_mandatory_subnode_from_dict_node",
+            return_value=tech_params_node,
+        ),
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch(
+            "ehubx.parser.yaml_parser.parse_mandatory_value_from_dict_node",
+            return_value=Value(20, TimeUnit.A),
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
+            side_effect=[trl_dict, None],
+        ),
     ):
         tech_parser._parse_tech_params_primary(
             tech_node, tech_id, energy_system, stages, techs
@@ -281,24 +297,36 @@ def test_parse_costs_sets_values():
     tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
     tech_node.__getitem__.return_value = costs_node
 
-    with patch("ehubx.parser.yaml_parser.check_node_type"), patch(
-        "ehubx.parser.yaml_parser.parse_optional_value_from_dict_node",
-        return_value=Value(0.04, DimlessUnit()),
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
-        side_effect=[
-            {stage_id: Value(100, CurrencyUnit.CHF)},
-            {stage_id: Value(2, CurrencyUnit.CHF / DimlessUnit())},
-            {stage_id: Value(10, CurrencyUnit.CHF)},
-            {stage_id: Value(1, CurrencyUnit.CHF / DimlessUnit())},
-        ],
+    with (
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_value_from_dict_node",
+            return_value=Value(0.04, DimlessUnit()),
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
+            side_effect=[
+                {stage_id: Value(100, CurrencyUnit.CHF)},
+                {stage_id: Value(2, CurrencyUnit.CHF / DimlessUnit())},
+                {stage_id: Value(10, CurrencyUnit.CHF)},
+                {stage_id: Value(1, CurrencyUnit.CHF / DimlessUnit())},
+            ],
+        ),
     ):
         tech_parser._parse_costs(tech_node, tech_id, MagicMock(), stages, techs)
 
-    assert techs.get_one_time_capex(stage_id, tech_id).to_float(CurrencyUnit.CHF) == pytest.approx(100)
-    assert techs.get_capex_per_cap(stage_id, tech_id).to_float(CurrencyUnit.CHF / DimlessUnit()) == pytest.approx(2)
-    assert techs.get_one_time_opex(stage_id, tech_id).to_float(CurrencyUnit.CHF) == pytest.approx(10)
-    assert techs.get_opex_per_cap(stage_id, tech_id).to_float(CurrencyUnit.CHF / DimlessUnit()) == pytest.approx(1)
+    assert techs.get_one_time_capex(stage_id, tech_id).to_float(
+        CurrencyUnit.CHF
+    ) == pytest.approx(100)
+    assert techs.get_capex_per_cap(stage_id, tech_id).to_float(
+        CurrencyUnit.CHF / DimlessUnit()
+    ) == pytest.approx(2)
+    assert techs.get_one_time_opex(stage_id, tech_id).to_float(
+        CurrencyUnit.CHF
+    ) == pytest.approx(10)
+    assert techs.get_opex_per_cap(stage_id, tech_id).to_float(
+        CurrencyUnit.CHF / DimlessUnit()
+    ) == pytest.approx(1)
 
 
 def test_parse_emissions_sets_co2_per_cap():
@@ -312,13 +340,18 @@ def test_parse_emissions_sets_co2_per_cap():
     tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
     tech_node.__getitem__.return_value = emissions_node
 
-    with patch("ehubx.parser.yaml_parser.check_node_type"), patch(
-        "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
-        return_value={stage_id: Value(4, MassUnit.KG / DimlessUnit())},
+    with (
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
+            return_value={stage_id: Value(4, MassUnit.KG / DimlessUnit())},
+        ),
     ):
         tech_parser._parse_emissions(tech_node, tech_id, MagicMock(), techs)
 
-    assert techs.get_co2_per_cap(stage_id, tech_id).to_float(MassUnit.KG / DimlessUnit()) == pytest.approx(4)
+    assert techs.get_co2_per_cap(stage_id, tech_id).to_float(
+        MassUnit.KG / DimlessUnit()
+    ) == pytest.approx(4)
 
 
 # ==========================================================================
@@ -339,17 +372,22 @@ def test_parse_coupled_techs_sets_main_and_cap_factor():
     coupling_node = MagicMock(spec=yaml_parser.YamlDictNode)
     tech_node.__getitem__.return_value = coupling_node
 
-    with patch(
-        "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
-        side_effect=["sub", "main"],
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_mandatory_value_from_dict_node",
-        return_value=Value(0.5, DimlessUnit()),
+    with (
+        patch(
+            "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
+            side_effect=["sub", "main"],
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_mandatory_value_from_dict_node",
+            return_value=Value(0.5, DimlessUnit()),
+        ),
     ):
         tech_parser._parse_coupled_techs(tech_node, techs)
 
     assert techs.get_coupled_main_tech(sub_id) == main_id
-    assert techs.get_coupled_cap_factor(sub_id).to_float(DimlessUnit()) == pytest.approx(0.5)
+    assert techs.get_coupled_cap_factor(sub_id).to_float(
+        DimlessUnit()
+    ) == pytest.approx(0.5)
 
 
 def test_parse_coupled_techs_missing_sub_id_exception_key():
@@ -383,9 +421,11 @@ def test_parse_primary_calls_parse_and_log():
     techs_node = MagicMock(__iter__=lambda self: iter([tech_node]))
     root.__getitem__.return_value = techs_node
 
-    with patch("ehubx.parser.tech_parser._parse_tech_primary") as mock_parse, patch(
-        "ehubx.parser.tech_parser._parse_coupled_techs"
-    ) as mock_coupled, patch("ehubx.parser.tech_parser._log") as mock_log:
+    with (
+        patch("ehubx.parser.tech_parser._parse_tech_primary") as mock_parse,
+        patch("ehubx.parser.tech_parser._parse_coupled_techs") as mock_coupled,
+        patch("ehubx.parser.tech_parser._log") as mock_log,
+    ):
         tech_parser.parse_primary(root, Techs(), MagicMock(), MagicMock())
 
     mock_parse.assert_called_once()
@@ -416,8 +456,9 @@ def test_parse_secondary_calls_parse_hub_secondary():
     hubs_node = MagicMock(__iter__=lambda self: iter([hub_node]))
     root.__getitem__.return_value = hubs_node
 
-    with patch("ehubx.parser.tech_parser._parse_hub_secondary") as mock_parse, patch(
-        "ehubx.parser.tech_parser._parse_tech_lists", return_value={}
+    with (
+        patch("ehubx.parser.tech_parser._parse_hub_secondary") as mock_parse,
+        patch("ehubx.parser.tech_parser._parse_tech_lists", return_value={}),
     ):
         tech_parser.parse_secondary(root, MagicMock(), Techs())
 
@@ -518,9 +559,13 @@ def test_preprocess_coupled_techs_secondary_raises_on_existing_params():
     file_path = "techs.yaml"
     techs_node = yaml_parser.YamlListNode(file_path)
     main_node = _make_tech_node(file_path, "main")
-    main_node.add_dict_child(tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path))
+    main_node.add_dict_child(
+        tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path)
+    )
     sub_node = _make_tech_node(file_path, "sub")
-    sub_node.add_dict_child(tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path))
+    sub_node.add_dict_child(
+        tech_parser.YAMLKEY_TECHPARAMS, yaml_parser.YamlDictNode(file_path)
+    )
     techs_node.add_list_child(main_node)
     techs_node.add_list_child(sub_node)
     techs_node.set_id(tech_parser.YAMLKEY_TECHID)
@@ -547,31 +592,43 @@ def test_parse_tech_secondary_sets_params():
     tech_params_node = MagicMock(spec=yaml_parser.YamlDictNode)
     tech_node.__getitem__.return_value = tech_params_node
 
-    with patch(
-        "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
-        return_value="t1",
-    ), patch("ehubx.parser.yaml_parser.check_node_type"), patch(
-        "ehubx.parser.yaml_parser.parse_optional_float_from_dict_node",
-        return_value=2030.0,
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_value_from_dict_node",
-        side_effect=[Value(5, DimlessUnit()), Value(2, TimeUnit.A)],
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
-        side_effect=[
-            {stage_id: Value(1, DimlessUnit())},
-            {stage_id: Value(3, DimlessUnit())},
-        ],
+    with (
+        patch(
+            "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
+            return_value="t1",
+        ),
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_float_from_dict_node",
+            return_value=2030.0,
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_value_from_dict_node",
+            side_effect=[Value(5, DimlessUnit()), Value(2, TimeUnit.A)],
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
+            side_effect=[
+                {stage_id: Value(1, DimlessUnit())},
+                {stage_id: Value(3, DimlessUnit())},
+            ],
+        ),
     ):
         tech_parser._parse_tech_secondary(
             tech_node, hub_id, MagicMock(), techs, {tech_id}
         )
 
     assert techs.get_last_inst_year(hub_id, tech_id) == 2030.0
-    assert techs.get_cap_init(hub_id, tech_id).to_float(DimlessUnit()) == pytest.approx(5)
+    assert techs.get_cap_init(hub_id, tech_id).to_float(DimlessUnit()) == pytest.approx(
+        5
+    )
     assert techs.get_age_init(hub_id, tech_id).to_float(TimeUnit.A) == pytest.approx(2)
-    assert techs.get_cap_min(stage_id, hub_id, tech_id).to_float(DimlessUnit()) == pytest.approx(1)
-    assert techs.get_cap_max(stage_id, hub_id, tech_id).to_float(DimlessUnit()) == pytest.approx(3)
+    assert techs.get_cap_min(stage_id, hub_id, tech_id).to_float(
+        DimlessUnit()
+    ) == pytest.approx(1)
+    assert techs.get_cap_max(stage_id, hub_id, tech_id).to_float(
+        DimlessUnit()
+    ) == pytest.approx(3)
 
 
 def test_parse_tech_secondary_warns_for_disallowed_tech():
@@ -583,20 +640,25 @@ def test_parse_tech_secondary_warns_for_disallowed_tech():
     tech_params_node = MagicMock(spec=yaml_parser.YamlDictNode)
     tech_node.__getitem__.return_value = tech_params_node
 
-    with patch("ehubx.core.logging.log_warning") as mock_log, patch(
-        "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
-        return_value="t1",
-    ), patch(
-        "ehubx.parser.yaml_parser.check_node_type"
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_float_from_dict_node",
-        return_value=None,
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_value_from_dict_node",
-        return_value=None,
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
-        return_value=None,
+    with (
+        patch("ehubx.core.logging.log_warning") as mock_log,
+        patch(
+            "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
+            return_value="t1",
+        ),
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_float_from_dict_node",
+            return_value=None,
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_value_from_dict_node",
+            return_value=None,
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
+            return_value=None,
+        ),
     ):
         tech_parser._parse_tech_secondary(
             tech_node, HubId("H1"), MagicMock(), techs, set()
@@ -619,13 +681,18 @@ def test_parse_tech_lists_warns_unknown_tech():
     tech_lists_node.set_id = MagicMock()
     hub_root.__getitem__.return_value = tech_lists_node
 
-    with patch("ehubx.parser.yaml_parser.check_node_type"), patch(
-        "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
-        return_value="list1",
-    ), patch(
-        "ehubx.parser.yaml_parser.parse_str_list_from_dict_node",
-        return_value=["known", "unknown"],
-    ), patch("ehubx.core.logging.log_warning") as mock_log:
+    with (
+        patch("ehubx.parser.yaml_parser.check_node_type"),
+        patch(
+            "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
+            return_value="list1",
+        ),
+        patch(
+            "ehubx.parser.yaml_parser.parse_str_list_from_dict_node",
+            return_value=["known", "unknown"],
+        ),
+        patch("ehubx.core.logging.log_warning") as mock_log,
+    ):
         tech_lists = tech_parser._parse_tech_lists(hub_root, techs)
 
     assert "list1" in tech_lists

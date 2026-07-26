@@ -57,6 +57,15 @@ Parameter table
       - Node path(s)
       - File
 
+    * - **Autonomy unmet demand allowed** (autonomy)
+      - ✖
+      - False
+      -
+      - ✖
+      - ✖
+      - :code:`stages[ID]/autonomy_allow_unmet_demand`
+      - :ref:`stages.yaml<stages_yaml>`
+
     * - **Availability** (ates)
       - ✖
       - 1

@@ -14,7 +14,7 @@ from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.time_data import TimeId, Times
 from ehubx.data.time_series import TimeSeries
-from ehubx.data.unit import CurrencyUnit, DimlessUnit, Unit
+from ehubx.data.unit import CurrencyUnit, DimlessUnit, MassUnit, Unit
 from ehubx.data.value import Value
 
 
@@ -58,6 +58,9 @@ class ExceptionKey(Enum):
     OUTSUMMINMAX_VAL = (
         "validating 'out_sum_min' against 'out_sum_max' of ConversionTechs"
     )
+    CO2PERIN_SET = "setting 'co2_per_in' of Techs"
+    CO2PERIN_GET = "getting 'co2_per_in' from Techs"
+    CO2PERIN_VAL = "validating 'co2_per_in' of Techs"
     AVAILABILITY_SET = "setting 'availability' of ConversionTechs"
     AVAILABILITY_DEFSET = "setting default 'availability' of ConversionTechs"
     AVAILABILITY_GET = "getting 'availability' from ConversionTechs"
@@ -91,6 +94,9 @@ data module"""
 DEF_AVAILABILITY: float = 1
 """Default value for parameter 'availability' in the conversion technology
 data module"""
+
+DEF_CO2PERIN: float = 0
+"""Default value for parameter 'co2_per_in' in the technology data module"""
 
 
 class ConversionTechs:
@@ -172,6 +178,9 @@ class ConversionTechs:
         for s, h, x2 in list(self._availability.keys()):
             if x == x2:
                 self._availability.pop((s, h, x))
+        for s, x2, e in list(self._co2_per_in.keys()):
+            if x == x2:
+                self._co2_per_in.pop((s, x2, e))
 
     # ------------------------- #
     # Property: opex_per_energy #
@@ -736,6 +745,63 @@ class ConversionTechs:
             )
         self._availability[s, h, x].def_value = availability_def
 
+    # -------------------- #
+    # Property: co2_per_in #
+    # -------------------- #
+    def get_co2_per_in(
+        self,
+        s: StageId,
+        x: TechId,
+        e: EcId,
+    ) -> Value:
+        """
+        Get operational CO2 emissions per unit of consumed input carrier.
+
+        The parameter is optional and defaults to zero.
+        """
+        self._check_id(x, ExceptionKey.CO2PERIN_GET)
+
+        key = (s, x, e)
+
+        # Return the configured value directly when it exists
+        if key in self._co2_per_in:
+            return self._co2_per_in[key]
+
+        # No value configured: construct a correctly dimensioned zero
+        input_unit = self.get_in_part(s, x, e).unit
+        expected_unit = MassUnit.KG / input_unit
+
+        return Value(
+            DEF_CO2PERIN,
+            expected_unit,
+        )
+
+    def set_co2_per_in(
+        self,
+        s: StageId,
+        x: TechId,
+        e: EcId,
+        co2_per_in: Value,
+    ) -> None:
+        """Set operational CO2 emissions per unit of input carrier."""
+        self._check_id(x, ExceptionKey.CO2PERIN_SET)
+
+        # Also validates that e belongs to the technology inputs
+        input_unit = self.get_in_part(s, x, e).unit
+        expected_unit = MassUnit.KG / input_unit
+
+        if not co2_per_in.unit.same_type_as(expected_unit):
+            raise exceptions.DataException(
+                ExceptionKey.CO2PERIN_SET.value,
+                [s, x, e],
+                f"Unit {co2_per_in.unit} of "
+                f"co2_per_in[{s}, {x}, {e}] does not match "
+                f"expected unit {expected_unit}",
+                module=LOG_MODULE_STR,
+            )
+
+        self._co2_per_in[(s, x, e)] = co2_per_in
+
     # ------------------------------- #
     # Secondary property: time_series #
     # ------------------------------- #
@@ -824,6 +890,7 @@ class ConversionTechs:
         self._out_sum_min: Dict[Tuple[StageId, HubId, TechId], Value] = {}
         self._out_sum_max: Dict[Tuple[StageId, HubId, TechId], Value] = {}
         self._availability: Dict[Tuple[StageId, HubId, TechId], TimeSeries] = {}
+        self._co2_per_in: dict[Tuple[StageId, TechId, EcId], Value] = {}
 
     # ---------- #
     # Validation #
@@ -861,6 +928,7 @@ class ConversionTechs:
         self._validate_out_sum_minmax()
         self._validate_opex_per_energy(stages)
         self._validate_availability(stages, hubs, times)
+        self._validate_co2_per_in(stages)
 
     def _validate_ids(self, techs: Techs) -> None:
         exc_key = ExceptionKey.ID_VAL.value
@@ -1123,6 +1191,18 @@ class ConversionTechs:
                 if availability_def > Value(1):
                     msg = f"{availability_def} = availability[{s}, {h}, {x}] > 1"
                     logging.log_warning(msg, module=LOG_MODULE_STR)
+
+    def _validate_co2_per_in(self, stages: Stages) -> None:
+        exc_key = ExceptionKey.CO2PERIN_VAL.value
+        for (s, x, e), co2_per_in in self._co2_per_in.items():
+            # Unknown stage
+            if s not in stages.ids:
+                msg = f"Unknown stage {s} in co2_per_in[{s}, {x}, {e}]"
+                raise exceptions.DataException(exc_key, [s], msg, module=LOG_MODULE_STR)
+            # co2_per_in usually nonnegative
+            if co2_per_in.is_negative:
+                msg = f"{co2_per_in} = co2_per_in[{s}, {x}, {e}] < 0"
+                logging.log_warning(msg, module=LOG_MODULE_STR)
 
     # ---------- #
     # Id checker #
