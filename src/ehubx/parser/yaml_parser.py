@@ -793,6 +793,7 @@ def parse_optional_yeardep_float_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
+            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartofloat_to_stagetofloat(
             year_to_value_dict, stages
@@ -863,6 +864,7 @@ def parse_mandatory_yeardep_float_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
+            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartofloat_to_stagetofloat(
             year_to_value_dict, stages
@@ -968,6 +970,7 @@ def parse_optional_yeardep_value_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
+            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartovalue_to_stagetovalue(
             year_to_value_dict, stages
@@ -1069,6 +1072,7 @@ def parse_mandatory_yeardep_value_from_dict_node(
                     ExceptionKey.YEARDEP_YEARSNOTINCREASING.value,
                     module=LOG_MODULE_STR,
                 )
+            previous_year = year
             year_to_value_dict[year] = year_value
         stage_to_value_dict = _transform_yeartovalue_to_stagetovalue(
             year_to_value_dict, stages
@@ -1169,6 +1173,8 @@ def parse_int_from_value_node(value_node: YamlNode) -> int:
 def parse_float_from_value_node(value_node: YamlNode) -> float:
     check_node_type(value_node, YamlNodeKind.VALUE)
     value = value_node.value
+    if isinstance(value, Value):
+        return value.to_float()
     try:
         value_as_float = float(value)
     except ValueError as exc:

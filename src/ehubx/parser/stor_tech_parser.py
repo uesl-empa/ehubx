@@ -21,8 +21,6 @@ YAMLKEY_STANDBYLOSS = "standby_loss"
 YAMLKEY_SOCMIN = "soc_min"
 YAMLKEY_SOCMAX = "soc_max"
 YAMLKEY_SOCINIT = "soc_init"
-YAMLKEY_CYCLIC = "cyclic"
-YAMLKEY_FILLPRICE = "fill_price"
 
 # Literals
 LOG_MODULE_STR: str = "pars/stor_techs"
@@ -192,18 +190,6 @@ def _parse_tech_secondary(
     )
     if soc_init is not None:
         stor_techs.set_soc_init(hub_id, tech_id, soc_init)
-    # cyclic
-    cyclic = yaml_parser.parse_optional_bool_from_dict_node(
-        storage_params_node, YAMLKEY_CYCLIC
-    )
-    if cyclic is not None:
-        stor_techs.set_cyclic(hub_id, tech_id, cyclic)
-    # fill_price
-    fill_price = yaml_parser.parse_optional_value_from_dict_node(
-        storage_params_node, YAMLKEY_FILLPRICE
-    )
-    if fill_price is not None:
-        stor_techs.set_fill_price(hub_id, tech_id, fill_price)
 
 
 def _log(stor_techs: StorageTechs) -> None:

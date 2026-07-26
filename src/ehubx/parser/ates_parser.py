@@ -89,6 +89,7 @@ def parse_primary(
         return ates_techs
     for tech_node in techs_node:
         _parse_ates_tech_primary(tech_node, stages, ecs, techs, ates_techs)
+    # [TODO]: Logging
     return ates_techs
 
 

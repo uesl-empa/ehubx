@@ -11,7 +11,7 @@ from ehubx.data.ec_data import EcId, Ecs
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId
-from ehubx.data.unit import CurrencyUnit, TimeUnit, Unit
+from ehubx.data.unit import TimeUnit, Unit
 from ehubx.data.value import Value
 from ehubx.parser import csv_parser, exceptions, yaml_parser
 
@@ -23,8 +23,6 @@ YAMLKEY_DEMANDSUM = "demand_sum"
 YAMLKEY_STAGES = "stages"
 YAMLKEY_HUBS = "hubs"
 YAMLKEY_EC = "ec"
-YAMLKEY_DEMANDUNMETPENALTIES = "demand_unmet_penalties"
-YAMLKEY_DEMANDUNMETPENALTY = "demand_unmet_penalty"
 
 # Literals
 LOG_MODULE_STR: str = "pars/demand"
@@ -51,9 +49,6 @@ def parse(
     # Demand-sums
     demand_sums_node = demand_root_node[YAMLKEY_DEMANDSUMS]
     _parse_demand_sums(demand_sums_node, ecs, demands)
-    # Unmet-penalties
-    unmet_penalties_node = demand_root_node[YAMLKEY_DEMANDUNMETPENALTIES]
-    _parse_unmet_penalties(unmet_penalties_node, ecs, demands)
     # Logging
     _log(demands)
     # Return
@@ -110,7 +105,7 @@ def _parse_demand_profiles(
                         HubId(h),
                         EcId(e),
                         TimeId(t),
-                        demand_cur.get_value(t) + Value(val, unit),
+                        demand_cur.get_value(TimeId(t)) + Value(val, unit),
                     )
 
 
@@ -194,54 +189,6 @@ def _parse_demand_sum(
     )
     for stage_id, hub_id in stage_hub_tuples:
         demands.set_demand_sum(stage_id, hub_id, ec_id, demand_sum)
-
-
-def _parse_unmet_penalties(
-    unmet_penalties_node: Optional[yaml_parser.YamlNode], ecs: Ecs, demands: Demands
-) -> None:
-    if unmet_penalties_node is None:
-        return
-    yaml_parser.check_node_type(unmet_penalties_node, yaml_parser.YamlNodeKind.LIST)
-    previous_tuples: Set[Tuple[StageId, HubId, EcId]] = set()
-    for penalty_node in unmet_penalties_node:
-        yaml_parser.check_node_type(penalty_node, yaml_parser.YamlNodeKind.DICT)
-        # stages
-        stages_str = yaml_parser.parse_str_list_from_dict_node(
-            penalty_node, YAMLKEY_STAGES, optional=False
-        )
-        stage_ids = {StageId(stage_str) for stage_str in stages_str}
-        # hubs
-        hubs_str = yaml_parser.parse_str_list_from_dict_node(
-            penalty_node, YAMLKEY_HUBS, optional=False
-        )
-        hub_ids = {HubId(hub_str) for hub_str in hubs_str}
-        # ec
-        ec_str = yaml_parser.parse_mandatory_str_from_dict_node(
-            penalty_node, YAMLKEY_EC
-        )
-        ec_id = EcId(ec_str)
-        # Expected unit: currency per energy (e.g. CHF/kWh)
-        expected_unit = CurrencyUnit.CHF / ecs.get_unit(ec_id)
-        unmet_penalty = yaml_parser.parse_mandatory_value_from_dict_node(
-            penalty_node, YAMLKEY_DEMANDUNMETPENALTY, expected_unit=expected_unit
-        )
-        # Id tuples + duplicate check
-        stage_hub_tuples = set(itertools.product(stage_ids, hub_ids))
-        dupe_tuples = previous_tuples.intersection(
-            {(stage_id, hub_id, ec_id) for (stage_id, hub_id) in stage_hub_tuples}
-        )
-        if len(dupe_tuples) > 0:
-            raise exceptions.ParsingException(
-                penalty_node.file_path,
-                "Overlap detected in demand module: The (stage, hub, ec) tuples "
-                f"{dupe_tuples} occur in more than one unmet_penalties entry",
-                module=LOG_MODULE_STR,
-            )
-        for stage_id, hub_id in stage_hub_tuples:
-            demands.set_demand_unmet_penalty(stage_id, hub_id, ec_id, unmet_penalty)
-        previous_tuples = previous_tuples.union(
-            {(stage_id, hub_id, ec_id) for (stage_id, hub_id) in stage_hub_tuples}
-        )
 
 
 def _log(demands: Demands) -> None:
