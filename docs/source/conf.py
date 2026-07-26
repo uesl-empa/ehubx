@@ -11,7 +11,7 @@ from typing import List
 project = "ehubX"
 copyright = "Copyright 2026, Urban Energy Systems Lab, Empa"
 author = "Urban Energy Systems Lab, Empa"
-release = "2.3.1.dev0"
+release = "2.3.1"
 
 # -- General configuration ---------------------------------------------------
 

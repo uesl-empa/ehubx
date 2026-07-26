@@ -1,10 +1,11 @@
 Changelog
 ==========
 
-**2.3.1.dev0** (tbd)
+**2.3.1** (26.07.2026)
 ------------------------
 - Automated PyPI release workflow using GitHub actions. Releases will trigger a build of the package and upload it to PyPI.
 - Introduced autonomy objective type and model.
+- Added parsing tests.
 
 **2.3.0** (18.07.2026)
 ------------------------
