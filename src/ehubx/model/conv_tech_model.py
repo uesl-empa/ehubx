@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pyomo.core import Constraint, Model, NonNegativeReals, Reals, Set, Var
+from pyomo.core import Constraint, Model, NonNegativeReals, Reals, Set, Var, quicksum
 
 from ehubx.core import common, logging
 from ehubx.data.conv_tech_data import ConversionTechs
@@ -14,6 +14,7 @@ from ehubx.data.tech_data import TechId
 from ehubx.data.time_data import TimeId, Times
 from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
+from ehubx.model.stage_model import SET_STAGE
 from ehubx.model.tech_model import (
     SET_TECHTUPLE,
     VAR_TECHCAP,
@@ -44,6 +45,12 @@ VAR_CONVTECHOUT: str = "V_ConvTechOut"
 VAR_CONVTECHCOSTOPEXOUT: str = "V_ConvTechCostOpexOut"
 """Name of variable for cost of OPEX for conversion tech outputs"""
 
+VAR_CONVTECHCO2OPER: str = "V_ConvTechCo2Oper"
+"""Name of variable for operational CO2 from tech input"""
+
+VAR_CONVTECHCO2OPERTOTAL: str = "V_ConvTechCo2OperTotal"
+"""Name of variable for the total operational CO2 from tech input"""
+
 VAR_CONVTECHCOSTTOTAL: str = "V_ConvTechCostTotal"
 """Name of variable for total cost in conversion tech module (equals OPEX for "
 conversion outputs)"""
@@ -71,6 +78,12 @@ CON_CONVTECHOUTSUMMAX: str = "C_ConvTechOutSumMax"
 
 CON_CONVTECHCOSTOPEXOUT: str = "C_ConvTechCostOpexOut"
 """Name of constraint calculation the OPEX costs for conversion outputs"""
+
+CON_CONVTECHCO2OPER: str = "C_ConvTechCo2Oper"
+"""Name of constraint calculation the operational CO2 emissions"""
+
+CON_CONVTECHCO2OPERTOTAL: str = "C_ConvTechCo2OperTotal"
+"""Name of constraint calculation the total operational CO2 emissions"""
 
 CON_CONVTECHCOSTTOTAL: str = "C_ConvTechCostTotal"
 """Name of constraint calculation the total conversion costs (equals OPEX for "
@@ -174,6 +187,24 @@ def _build_base(model: Model, system: EnergySystem) -> None:
             domain=NonNegativeReals,
         ),
     )
+    # [VAR] Operational CO2 by conversion technology
+    setattr(
+        model,
+        VAR_CONVTECHCO2OPER,
+        Var(
+            getattr(model, SET_CONVTECHTUPLE),
+            domain=NonNegativeReals,
+        ),
+    )
+    # [VAR] Total Operational CO2 by conversion technology
+    setattr(
+        model,
+        VAR_CONVTECHCO2OPERTOTAL,
+        Var(
+            getattr(model, SET_STAGE),
+            domain=NonNegativeReals,
+        ),
+    )
     # [CON] Input composition
     _con_conv_tech_in_part(model, ecs, conv_techs, mass_unit, power_unit)
     # [CON] Output efficiency
@@ -185,6 +216,10 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     _con_conv_tech_cap_and_availability(model, conv_techs)
     # [CON] Enforce minima and maxima for up outputs
     _con_conv_tech_out_sum_minmax(model, ecs, conv_techs, times, mass_unit, power_unit)
+    # [CON] Operational CO2 emissions
+    _con_conv_tech_co2_oper(model, times, conv_techs, mass_unit)
+    # [CON] Total Operational CO2 emissions
+    _con_conv_tech_co2_oper_total(model)
 
 
 def _build_cost(
@@ -457,6 +492,66 @@ def _con_conv_tech_cost_opex_out(
         CON_CONVTECHCOSTOPEXOUT,
         Constraint(
             getattr(model, SET_CONVTECHTUPLE), rule=__rule_conv_tech_cost_opex_out
+        ),
+    )
+
+
+def _con_conv_tech_co2_oper(
+    model: Model,
+    times: Times,
+    conv_techs: ConversionTechs,
+    mass_unit: MassUnit,
+) -> None:
+    def __rule_conv_tech_co2_oper(model, s, h, x):
+        co2_oper = sum(
+            times.get_weight(StageId(s), TimeId(t))
+            * conv_techs.get_co2_per_in(
+                StageId(s),
+                TechId(x),
+                e,
+            ).to_float(
+                unit=mass_unit
+                / conv_techs.get_in_part(
+                    StageId(s),
+                    TechId(x),
+                    e,
+                ).unit
+            )
+            * getattr(model, VAR_CONVTECHIN)[s, h, x, e.key, t]
+            for e in conv_techs.get_in_ecs(TechId(x))
+            for t in getattr(model, SET_TIME)
+        )
+
+        return getattr(model, VAR_CONVTECHCO2OPER)[s, h, x] == co2_oper
+
+    setattr(
+        model,
+        CON_CONVTECHCO2OPER,
+        Constraint(
+            getattr(model, SET_CONVTECHTUPLE),
+            rule=__rule_conv_tech_co2_oper,
+        ),
+    )
+
+
+def _con_conv_tech_co2_oper_total(model: Model) -> None:
+    """Sum operational CO2 emissions over all conversion technologies."""
+
+    def __rule_conv_tech_co2_oper_total(model, s):
+        co2_oper_total = quicksum(
+            getattr(model, VAR_CONVTECHCO2OPER)[s_tuple, h, x]
+            for s_tuple, h, x in getattr(model, SET_CONVTECHTUPLE)
+            if s_tuple == s
+        )
+
+        return getattr(model, VAR_CONVTECHCO2OPERTOTAL)[s] == co2_oper_total
+
+    setattr(
+        model,
+        CON_CONVTECHCO2OPERTOTAL,
+        Constraint(
+            getattr(model, SET_STAGE),
+            rule=__rule_conv_tech_co2_oper_total,
         ),
     )
 

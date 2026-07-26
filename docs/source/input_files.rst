@@ -80,7 +80,7 @@ stages.yaml
 * **co2_price** (*optional, default=0, [CHF/kg]*): Price for CO2 emissions.
 * **co2_min** (*optional, default=* -:math:`\infty`, *, [kg]*): Minimal amount of CO2 emissions in this stage.
 * **co2_max** (*optional*, *default=* :math:`\infty`, *[kg]*): Maximal amount of CO2 emissions in this stage.
-
+* **autonomy_allow_unmet_demand** (*optional, default=False*): Specifies whether unmet demand is allowed in autonomy optimization for this stage. If ``False`` (default), unmet demand is strictly forbidden. If ``True``, unmet demand may occur after autonomy failure when the autonomy objective is active.
 
 .. _hubs_yaml:
 

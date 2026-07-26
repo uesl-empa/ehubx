@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Set, Tuple
 
 from ehubx.core import logging
+from ehubx.data.conv_tech_data import ConversionTechs
 from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import Stages
@@ -27,6 +28,7 @@ YAMLKEY_ONETIMEOPEX = "one_time_opex"
 YAMLKEY_OPEXPERCAP = "opex_per_cap"
 YAMLKEY_EMISSIONS = "emissions"
 YAMLKEY_CO2PERCAP = "co2_per_cap"
+YAMLKEY_CO2PERIN = "co2_per_in"
 YAMLKEY_TECHLISTS = "tech_lists"
 YAMLKEY_TECHLISTID = "tech_list_id"
 YAMLKEY_ALLOWEDTECHLISTS = "allowed_tech_lists"
@@ -79,6 +81,7 @@ def parse_initial(basic_subpath: str) -> Tuple[Techs, Optional[yaml_parser.YamlN
 
 def parse_primary(
     tech_root_node: Optional[yaml_parser.YamlNode],
+    conv_techs: ConversionTechs,
     techs: Techs,
     energy_system: EnergySystem,
     stages: Stages,
@@ -92,7 +95,7 @@ def parse_primary(
         return
     # Parsing
     for tech_node in techs_node:
-        _parse_tech_primary(tech_node, energy_system, stages, techs)
+        _parse_tech_primary(tech_node, conv_techs, energy_system, stages, techs)
     for tech_node in techs_node:
         _parse_coupled_techs(tech_node, techs)
     # Logging
@@ -173,6 +176,7 @@ def _parse_tech_initial(
 
 def _parse_tech_primary(
     tech_node: yaml_parser.YamlDictNode,
+    conv_techs: ConversionTechs,
     energy_system: EnergySystem,
     stages: Stages,
     techs: Techs,
@@ -187,7 +191,7 @@ def _parse_tech_primary(
     # costs
     _parse_costs(tech_node, tech_id, energy_system, stages, techs)
     # emissions
-    _parse_emissions(tech_node, tech_id, stages, techs)
+    _parse_emissions(tech_node, conv_techs, tech_id, stages, techs)
 
 
 def _parse_tech_params_primary(
@@ -287,22 +291,84 @@ def _parse_costs(
 
 
 def _parse_emissions(
-    tech_node: yaml_parser.YamlDictNode, tech_id: TechId, stages: Stages, techs: Techs
+    tech_node: yaml_parser.YamlDictNode,
+    conv_techs: ConversionTechs,
+    tech_id: TechId,
+    stages: Stages,
+    techs: Techs,
 ) -> None:
+    """Parse embodied and operational technology emission parameters."""
+
     emissions_node = tech_node[YAMLKEY_EMISSIONS]
+
     if emissions_node is None:
         return
-    yaml_parser.check_node_type(emissions_node, yaml_parser.YamlNodeKind.DICT)
-    # co2_per_cap
+
+    yaml_parser.check_node_type(
+        emissions_node,
+        yaml_parser.YamlNodeKind.DICT,
+    )
+
+    # ---------------------- #
+    # Embodied CO2 per cap   #
+    # ---------------------- #
     co2_per_cap = yaml_parser.parse_optional_yeardep_value_from_dict_node(
         emissions_node,
         YAMLKEY_CO2PERCAP,
         stages,
-        expected_unit=(MassUnit.KG / techs.get_cap_unit(tech_id)),
+        expected_unit=MassUnit.KG / techs.get_cap_unit(tech_id),
     )
+
     if co2_per_cap is not None:
         for stage_id, value in co2_per_cap.items():
-            techs.set_co2_per_cap(stage_id, tech_id, value)
+            techs.set_co2_per_cap(
+                stage_id,
+                tech_id,
+                value,
+            )
+
+    # -------------------------------- #
+    # Operational CO2 per input carrier #
+    # -------------------------------- #
+    co2_per_in_node = emissions_node[YAMLKEY_CO2PERIN]
+
+    # Optional parameter: when absent, get_co2_per_in() returns zero.
+    if co2_per_in_node is None:
+        return
+
+    yaml_parser.check_node_type(
+        co2_per_in_node,
+        yaml_parser.YamlNodeKind.DICT,
+    )
+
+    reference_stage = stages.ids_in_order[0]
+
+    for ec_id in conv_techs.get_in_ecs(tech_id):
+        input_unit = conv_techs.get_in_part(
+            reference_stage,
+            tech_id,
+            ec_id,
+        ).unit
+
+        co2_per_in = yaml_parser.parse_optional_yeardep_value_from_dict_node(
+            co2_per_in_node,
+            ec_id.key,
+            stages,
+            expected_unit=MassUnit.KG / input_unit,
+        )
+
+        # No value was given for this particular input carrier.
+        # Its default remains zero.
+        if co2_per_in is None:
+            continue
+
+        for stage_id, value in co2_per_in.items():
+            conv_techs.set_co2_per_in(
+                stage_id,
+                tech_id,
+                ec_id,
+                value,
+            )
 
 
 def _parse_coupled_techs(tech_node: yaml_parser.YamlDictNode, techs: Techs) -> None:
@@ -473,7 +539,7 @@ def _preprocess_coupled_techs_secondary(
             main_tech_params_node, YAMLKEY_LASTINSTYEAR, expected_unit=DimlessUnit()
         )
         if last_inst_year_main is not None:
-            last_inst_year = last_inst_year_main.to_float(DimlessUnit())
+            last_inst_year = last_inst_year_main
             new_tech_params_node.add_child_value(YAMLKEY_LASTINSTYEAR, last_inst_year)
         # cap_min & cap_max are not set for coupled techs
         # Add tech node to techs_node

@@ -65,6 +65,21 @@ ENTRY_OUTFLOW: str = f"Storage outflow ({stor_tech_model.VAR_STORTECHOUTFLOW})"
 ENTRY_ENERGY: str = f"Storage energy ({stor_tech_model.VAR_STORTECHENERGY})"
 """Entry name for storage energy variable in result files"""
 
+ENTRY_STORTECHFILLCOST: str = (
+    f"Storage fill cost ({stor_tech_model.VAR_STORTECHFILLCOST})"
+)
+"""Entry name for storage fill cost variable in result files"""
+
+ENTRY_STORTECHFILLCOSTTOTAL: str = (
+    f"Total storage fill cost ({stor_tech_model.VAR_STORTECHFILLCOSTTOTAL})"
+)
+"""Entry name for total storage fill cost variable in result files"""
+
+ENTRY_STORTECHENERGYFINAL: str = (
+    f"Final storage energy ({stor_tech_model.VAR_STORTECHENERGYFINAL})"
+)
+"""Entry name for final storage energy level in result files"""
+
 
 def format_all(
     energy_system: EnergySystem,
@@ -76,6 +91,18 @@ def format_all(
     # Tech-specific properties
     for tech_id in energy_system.stor_techs.ids_in_order:
         _format_tech(energy_system, model, tech_id, df_st_builder, df_ts_hor, df_ts_cl)
+    # Total storage fill cost
+    var = getattr(model, stor_tech_model.VAR_STORTECHFILLCOSTTOTAL)
+    total_fill_cost_fl = value(var, exception=False)
+    if total_fill_cost_fl is not None:
+        total_fill_cost = Value(total_fill_cost_fl, unit=energy_system.currency_unit)
+        df_st_builder.add_row(
+            ENTRY_STORTECHFILLCOSTTOTAL,
+            total_fill_cost,
+            unit=energy_system.currency_unit,
+            source=SOURCE,
+            in_res="result",
+        )
 
 
 def _format_tech(
@@ -301,3 +328,52 @@ def _format_tech(
                 source=SOURCE,
                 in_res="result",
             )
+
+    # Storage fill cost
+    for s in energy_system.stages.ids_in_order:
+        if s not in energy_system.techs.get_allowed_stages(x):
+            continue
+        for h in energy_system.hubs.ids_in_order:
+            if h not in energy_system.techs.get_allowed_hubs(x):
+                continue
+            var = getattr(model, stor_tech_model.VAR_STORTECHFILLCOST)
+            fill_cost_fl = value(var[s.key, h.key, x.key], exception=False)
+            if fill_cost_fl is not None:
+                fill_cost = Value(fill_cost_fl, unit=energy_system.currency_unit)
+                df_st_builder.add_row(
+                    ENTRY_STORTECHFILLCOST,
+                    fill_cost,
+                    unit=energy_system.currency_unit,
+                    stage=s.key,
+                    hub=h.key,
+                    tech=x.key,
+                    source=SOURCE,
+                    in_res="result",
+                )
+
+    # Final storage energy (non-cyclic storage)
+    for s in energy_system.stages.ids_in_order:
+        if s not in energy_system.techs.get_allowed_stages(x):
+            continue
+        for h in energy_system.hubs.ids_in_order:
+            if h not in energy_system.techs.get_allowed_hubs(x):
+                continue
+            var = getattr(model, stor_tech_model.VAR_STORTECHENERGYFINAL)
+            energy_final_fl = value(var[s.key, h.key, x.key], exception=False)
+            if energy_final_fl is not None:
+                ec_id = energy_system.stor_techs.get_ec(x)
+                energy_unit = ec_model.get_ec_model_unit(
+                    energy_system.ecs.get_unit(ec_id),
+                    energy_system.mass_unit,
+                    energy_system.power_unit,
+                )
+                df_st_builder.add_row(
+                    ENTRY_STORTECHENERGYFINAL,
+                    Value(energy_final_fl, unit=energy_unit),
+                    unit=energy_unit,
+                    stage=s.key,
+                    hub=h.key,
+                    tech=x.key,
+                    source=SOURCE,
+                    in_res="result",
+                )
