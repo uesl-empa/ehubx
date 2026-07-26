@@ -9,7 +9,7 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.time_data import TimeId
-from ehubx.data.unit import CurrencyUnit, DimlessUnit, TimeUnit, Unit
+from ehubx.data.unit import CurrencyUnit, DimlessUnit, MassUnit, TimeUnit, Unit
 from ehubx.data.value import Value
 from ehubx.parser import csv_parser, exceptions, hub_parser, tech_parser, yaml_parser
 
@@ -20,6 +20,7 @@ YAMLKEY_INECS = "in_ecs"
 YAMLKEY_INID = "in_id"
 YAMLKEY_INPART = "in_part"
 YAMLKEY_MAININEC = "main_in_ec"
+YAMLKEY_CO2PERIN = "co2_per_in"
 YAMLKEY_OUTECS = "out_ecs"
 YAMLKEY_ECID = "ec_id"
 YAMLKEY_OUTEFF = "out_eff"
@@ -298,6 +299,27 @@ def _parse_conv_tech_primary(
         if opex_per_energy is not None:
             for stage_id, value in opex_per_energy.items():
                 conv_techs.set_opex_per_energy(stage_id, tech_id, value)
+    # emissions
+    emissions_node = tech_node[tech_parser.YAMLKEY_EMISSIONS]
+    if emissions_node is not None:
+        co2_per_in_node = emissions_node[YAMLKEY_CO2PERIN]
+        if co2_per_in_node is not None:
+            yaml_parser.check_node_type(co2_per_in_node, yaml_parser.YamlNodeKind.DICT)
+            reference_stage = stages.ids_in_order[0]
+            for ec_id in conv_techs.get_in_ecs(tech_id):
+                input_unit = conv_techs.get_in_part(
+                    reference_stage, tech_id, ec_id
+                ).unit
+                co2_per_in = yaml_parser.parse_optional_yeardep_value_from_dict_node(
+                    co2_per_in_node,
+                    ec_id.key,
+                    stages,
+                    expected_unit=MassUnit.KG / input_unit,
+                )
+                if co2_per_in is None:
+                    continue
+                for stage_id, value in co2_per_in.items():
+                    conv_techs.set_co2_per_in(stage_id, tech_id, ec_id, value)
 
 
 def _parse_in_ecs(
