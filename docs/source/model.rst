@@ -72,7 +72,7 @@ This module introduces an index set :math:`\mathcal{S}_{Ec}` of ecs (energy carr
 Times model
 ------------
 
-This module introduces two index sets :math:`\mathcal{S}_{TimeHorizon}` and :math:`\mathcal{S}_{Time}` (energy carriers). They each consist of unique integers :math:`1, 2, ...` that act as time indices. In case where :ref:`reduced-order modeling <rom>` is employed, :math:`\mathcal{S}_{Time}` holds the cluster indices and :math:`\mathcal{S}_{TimeHorizon}` holds the full-horizon indices. If no clustering is used, these two sets are identical.
+This module introduces two index sets :math:`\mathcal{S}_{TimeHorizon}` and :math:`\mathcal{S}_{Time}`. They each consist of unique integers :math:`1, 2, ...` that act as time indices. In case where :ref:`reduced-order modeling <rom>` is employed, :math:`\mathcal{S}_{Time}` holds the cluster indices and :math:`\mathcal{S}_{TimeHorizon}` holds the full-horizon indices. If no clustering is used, these two sets are identical.
 
 
 
@@ -218,7 +218,7 @@ Shedding loads is associated with certain costs. These are measure by the fixed 
 \mathcal{V}_{LoadSheddingCost}: \mathcal{S}_{LoadShedding} &\to \mathbb{R}^+_0, \\ \mathcal{V}_{LoadSheddingCost}[s, h, e] &= \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot energy\_cost[s, h, e, t] \cdot \mathcal{V}_{LoadShedding}[s, h, e, t]
 \end{align*}`
 
-Here, :math:`energy\_cost` is a parameter from :ref:`demands.yaml<demands_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value. Inforomation about these costs are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variable for convenience:
+Here, :math:`energy\_cost` is a parameter from :ref:`demands.yaml<demands_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value. Information about these costs are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variable for convenience:
 
 :raw-math:`$$ \mathcal{V}_{LoadSheddingCostTotal} \in \mathbb R^+_0, \quad \mathcal{V}_{LoadSheddingCostTotal} = \sum\limits_{(s, h, e) \in \mathcal{S}_{LoadSheddingTuple}} \mathcal{V}_{LoadSheddingCost}[s, h, e] $$`
 
@@ -439,7 +439,7 @@ Another set of parameters that limits the capacity are :math:`cap\_min` and :mat
 
 :raw-math:`\begin{align*} cap\_min[s, h, x] \le \mathcal{V}_{TechCap}[s, h, x] \le cap\_max[s, h, x] \end{align*}`
 
-Furthermore, there is the parameter :math:`last_inst_year` from :ref:`techs.yaml<techs_yaml>` which may forbid any installation after that year:
+Furthermore, there is the parameter :math:`last\_inst\_year` from :ref:`techs.yaml<techs_yaml>` which may forbid any installation after that year:
 
 :raw-math:`\begin{align*} \mathcal{V}_{YTechCapInstl}[s, h, x] = 0 \text{ if } start\_year[s] > last\_instl\_year[x] \end{align*}`
 
@@ -1097,7 +1097,7 @@ In ehubX, the concept of self-sufficiency is calculated by two kinds of energy i
 
 The ec-specific parameters :math:`is\_energy` and :math:`imp\_exp\_type` can be specified in :ref:`ecs.yaml<ecs_yaml>`, and :math:`weight` is a :ref:`clustering<rom>` parameter. The idea behind this variable is that it should measure all imports into the system that would be unavailable if neighboring energy systems were not able to provide them. We think of energy carriers like electricity or gas that are purchased from different countries or regions.
 
-In contrast the these cross-import, the ehubX model also allows for "imports" that originate in natural resources and would remain be available if the energy system became completely isolated. These are e.g.; solar energy or thermal resources. The total amount of these imports is measured in the fixed scalar variable
+In contrast to these cross-import, the ehubX model also allows for "imports" that originate in natural resources and would remain be available if the energy system became completely isolated. These are e.g.; solar energy or thermal resources. The total amount of these imports is measured in the fixed scalar variable
 
 :raw-math:`\begin{align*} \mathcal{V}_{SelfSufficiencyImpInternal} &\in \mathbb{R}_0^+, \\ \mathcal{V}_{SelfSufficiencyImpInternal} &= \sum\limits_{\substack{(s, h, e) \in \mathcal{S}_{ImpTuple} \\ is\_energy[e] = True \\ imp\_exp\_type[e] = internal}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] + \sum\limits_{\substack{(s, h, x, e) \in \mathcal{S}_{ConvTechOut} \\ x \in \mathcal{S}_{ConvTechInternal}}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, e, t] \end{align*}`
 
