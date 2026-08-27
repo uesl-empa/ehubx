@@ -8,7 +8,7 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.stor_tech_data import ExceptionKey as StorTechExcKey, StorageTechs
 from ehubx.data.tech_data import TechId, Techs
-from ehubx.data.unit import DimlessUnit, TimeUnit
+from ehubx.data.unit import CurrencyUnit, DimlessUnit, TimeUnit
 from ehubx.data.value import Value
 from ehubx.parser import stor_tech_parser, tech_parser, yaml_parser
 
@@ -96,6 +96,9 @@ def test_parse_stor_tech_primary_sets_params(stages, ecs, techs):
     standby_loss = {stage_id: Value(0.01, DimlessUnit() / TimeUnit.H)}
     soc_min = {stage_id: Value(0.1, DimlessUnit())}
     soc_max = {stage_id: Value(0.95, DimlessUnit())}
+    # opex_per_energy is priced per unit of the stored ec
+    opex_unit = CurrencyUnit.CHF / ecs.get_unit(EcId("EC1"))
+    opex_per_energy = {stage_id: Value(0.5, opex_unit)}
 
     with patch(
         "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
@@ -118,6 +121,7 @@ def test_parse_stor_tech_primary_sets_params(stages, ecs, techs):
             standby_loss,
             soc_min,
             soc_max,
+            opex_per_energy,
         ],
     ):
         stor_tech_parser._parse_stor_tech_primary(tech_node, stages, ecs, techs, stor_techs)
@@ -143,6 +147,46 @@ def test_parse_stor_tech_primary_sets_params(stages, ecs, techs):
     )
     assert stor_techs.get_soc_min(stage_id, tech_id).to_float(DimlessUnit()) == pytest.approx(0.1)
     assert stor_techs.get_soc_max(stage_id, tech_id).to_float(DimlessUnit()) == pytest.approx(0.95)
+    assert (
+        stor_techs.get_opex_per_energy(stage_id, tech_id).to_float(opex_unit)
+        == pytest.approx(0.5)
+    )
+
+
+def test_parse_stor_tech_primary_without_costs_node(stages, ecs, techs):
+    tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
+    # No 'costs' block in this tech node
+    tech_node.__getitem__.return_value = None
+    storage_params_node = MagicMock(spec=yaml_parser.YamlDictNode)
+    stor_techs = StorageTechs()
+    stage_id = StageId("S1")
+
+    with patch(
+        "ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node",
+        side_effect=["stor1", "EC1"],
+    ), patch(
+        "ehubx.parser.yaml_parser.parse_optional_str_from_dict_node",
+        return_value=tech_parser.TechType.STORAGE.value,
+    ), patch(
+        "ehubx.parser.yaml_parser.get_mandatory_subnode_from_dict_node",
+        return_value=storage_params_node,
+    ), patch(
+        "ehubx.parser.yaml_parser.check_node_type"
+    ), patch(
+        "ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node",
+        return_value=None,
+    ) as mock_yeardep:
+        stor_tech_parser._parse_stor_tech_primary(tech_node, stages, ecs, techs, stor_techs)
+
+    tech_id = TechId("stor1")
+    assert tech_id in stor_techs.ids
+    # Only the seven storage_params are parsed, opex_per_energy is skipped
+    assert mock_yeardep.call_count == 7
+    # ... and the getter falls back to the default of 0
+    opex_unit = CurrencyUnit.CHF / ecs.get_unit(EcId("EC1"))
+    assert stor_techs.get_opex_per_energy(stage_id, tech_id).to_float(
+        opex_unit
+    ) == pytest.approx(0.0)
 
 
 def test_parse_stor_tech_primary_duplicate_id_raises_exception_key(stages, ecs, techs):

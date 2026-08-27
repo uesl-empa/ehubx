@@ -635,6 +635,14 @@ For a final consideration, the energy storage level is currently able to 'start'
 
 Here, :math:`s_0 \in \mathcal{S}_{Stage}` is the *first* stage in the model, i.e.; the one with the smallest :math:`start\_year`, and :math:`t_{h,0} \in \mathcal{S}_{TimeHorizon}` is the initial horizon time step. Note that regardless of whether an initial energy level is set in the first stage, the model has to maintain the same initial storage level across all stages.
 
+Like the conversion technology model, the storage technology model has its own cost concept in addition to the costs defined in the :ref:`tech model<tech_model>`, namely OPEX costs that arise proportionally to the amount of energy that is being discharged from the storage technologies. The calculation of these costs uses the cost parameter :math:`opex\_per\_energy` from :ref:`techs.yaml<techs_yaml>`:
+
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechCostOpexOut}&: \mathcal{S}_{StorTechTuple} \to \mathbb{R}, \\ \mathcal{V}_{StorTechCostOpexOut}[s, h, x] &= opex\_per\_energy[s, x] \cdot \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{StorTechOutflow}[s, h, x, t] \end{align*}`
+
+Note that these costs are charged on the storage technology's outflow only, mirroring the way the :ref:`conversion model<conversion_model>` charges the output of its main output carrier. All costs in the storage model (i.e.; only the energy-related OPEX costs above) are bundled into a single variable for convenient use outside of the storage module:
+
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{StorTechCostTotal} &= \sum\limits_{(s, h, x) \in \mathcal{S}_{StorTechTuple}} \mathcal{V}_{StorTechCostOpexOut}[s, h, x] \end{align*}`
+
 It has to be mentioned at this point that the chosen storage formulation would allow for simultaneous inflow and outflow from the storage technology (i.e.; :math:`mathcal{V}_{StorTechInflow}[s, h, x, t] > 0` and :math:`mathcal{V}_{StorTechOutflow}[s, h, x, t] > 0`). It is generally possible to avoid this by introducing a time-dependent binary variable which monitors whether a charging or discharing process is taking place at the current time step. However, this drastically increases the complexity of the resulting MILP problem which is why ehubX decides to avoid this. Instead, we rely on the fact that if certain costs are associated with the flow variables, an optimal solution will always try to avoid situations where both variables take nonzero values simulteneously. For example, take the case of :math:`\mathcal{V}_{StorTechOutflow} - \mathcal{V}_{StorTechInflow} = 3` which could be comprised of the following two value pairs for the sub-variables:
 
 a) :math:`\mathcal{V}_{StorTechOutflow}[s, h, e, t] = 5` and :math:`\mathcal{V}_{StorTechInflow}[s, h, e, t] = 2`
@@ -1325,7 +1333,7 @@ Finally, when CO2 emissions are to be chosen as an objective function, they need
 
 Moving from system CO2 emissions to system costs, these are collected in a similar global variable
 
-:raw-math:`\begin{align*} \mathcal{V}_{SystemCost} \in~ &\mathbb{R}, \\ \mathcal{V}_{SystemCost} =~ &\mathcal{V}_{TechCostTotal} + \mathcal{V}_{ConvTechCostTotal} + \mathcal{V}_{ImpCostTotal} - \mathcal{V}_{ExpProfitTotal} \\ &~ + \mathcal{V}_{LoadSheddingCostTotal} + \mathcal{V}_{LoadShiftingCostTotal} + \mathcal{V}_{NetTechCostTotal} + \mathcal{V}_{SystemCostCo2Penalty} \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SystemCost} \in~ &\mathbb{R}, \\ \mathcal{V}_{SystemCost} =~ &\mathcal{V}_{TechCostTotal} + \mathcal{V}_{ConvTechCostTotal} + \mathcal{V}_{StorTechCostTotal} + \mathcal{V}_{ImpCostTotal} - \mathcal{V}_{ExpProfitTotal} \\ &~ + \mathcal{V}_{LoadSheddingCostTotal} + \mathcal{V}_{LoadShiftingCostTotal} + \mathcal{V}_{NetTechCostTotal} + \mathcal{V}_{SystemCostCo2Penalty} \end{align*}`
 
 This variable is a possible objective function of the system alongside the CO2 total emissions.
 

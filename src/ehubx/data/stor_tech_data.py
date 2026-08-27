@@ -11,7 +11,7 @@ from ehubx.data.ec_data import EcId, Ecs
 from ehubx.data.hub_data import HubId, Hubs
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.tech_data import TechId, Techs
-from ehubx.data.unit import DimlessUnit, TimeUnit
+from ehubx.data.unit import CurrencyUnit, DimlessUnit, TimeUnit, Unit
 from ehubx.data.value import Optional, Value
 
 
@@ -61,6 +61,9 @@ class ExceptionKey(Enum):
     FILLPRICE_SET = "setting 'fill_price' of StorageTechs"
     FILLPRICE_GET = "getting 'fill_price' of StorageTechs"
     FILLPRICE_VAL = "validating 'fill_price' of StorageTechs"
+    OPEXPERENERGY_SET = "setting 'opex_per_energy' of StorageTechs"
+    OPEXPERENERGY_GET = "getting 'opex_per_energy' from StorageTechs"
+    OPEXPERENERGY_VAL = "validating 'opex_per_energy' of StorageTechs"
 
 
 # -------- #
@@ -109,6 +112,9 @@ condition"""
 DEF_FILLPRICE: Optional[Value] = None
 """Default value for 'fill_price'. None means unset: the parameter is mandatory
 for non-cyclic storage and unused for cyclic storage."""
+DEF_OPEXPERENERGY: float = 0
+"""Default value for parameter 'opex_per_energy' in the storage technology data
+module"""
 
 
 class StorageTechs:
@@ -171,7 +177,7 @@ class StorageTechs:
             )
         return ec
 
-    def set_ec(self, x: TechId, e: EcId) -> None:
+    def set_ec(self, x: TechId, e: EcId, ec_unit: Unit) -> None:
         """
         Set the ec that is stored in the storage technology. This is a
         mandatory parameter for storage technologies.
@@ -185,6 +191,7 @@ class StorageTechs:
         """
         self._check_id(x, ExceptionKey.EC_SET)
         self._ec[x] = e
+        self._ec_unit[x] = ec_unit
 
     # ---------------- #
     # Property: in_eff #
@@ -616,6 +623,54 @@ class StorageTechs:
         """
         self._check_id(x, ExceptionKey.FILLPRICE_SET)
         self._fill_price[h, x] = fill_price
+    # ------------------------- #
+    # Property: opex_per_energy #
+    # ------------------------- #
+    def get_opex_per_energy(self, s: StageId, x: TechId) -> Value:
+        """
+        Get the parameter 'opex_per_energy' which quantifies the amount of
+        operation & maintenance cost for a storage technology per amount of
+        energy that is discharged from the technology. This is an optional
+        parameter with a default value of 0.
+
+        :param s: Stage id
+        :type s: StageId
+        :param x: Id of storage technology
+        :type x: TechId
+        :return: opex_per_energy
+        :rtype: Value
+        """
+        self._check_id(x, ExceptionKey.OPEXPERENERGY_GET)
+        unit = CurrencyUnit.CHF / self._ec_unit[x]
+        return self._opex_per_energy.get((s, x), Value(DEF_OPEXPERENERGY, unit))
+
+    def set_opex_per_energy(
+        self, s: StageId, x: TechId, opex_per_energy: Value
+    ) -> None:
+        """
+        Set the parameter 'opex_per_energy' which quantifies the amount of
+        operation & maintenance cost for a storage technology per amount of
+        energy that is discharged from the technology. This is an optional
+        parameter with a default value of 0.
+
+        :param s: Stage id
+        :type s: StageId
+        :param x: Id of storage technology
+        :type x: TechId
+        :param opex_per_energy: opex_per_energy
+        :type opex_per_energy: Value
+        """
+        self._check_id(x, ExceptionKey.OPEXPERENERGY_SET)
+        expected_unit = CurrencyUnit.CHF / self._ec_unit[x]
+        if not opex_per_energy.unit.same_type_as(expected_unit):
+            raise exceptions.DataException(
+                ExceptionKey.OPEXPERENERGY_SET.value,
+                [s, x],
+                f"Unit of opex_per_energy[{s}, {x}] = {opex_per_energy} "
+                f"does not match expected unit {expected_unit}",
+                module=LOG_MODULE_STR,
+            )
+        self._opex_per_energy[s, x] = opex_per_energy
 
     # ----------- #
     # Constructor #
@@ -623,6 +678,7 @@ class StorageTechs:
     def __init__(self) -> None:
         self._ids: Set[TechId] = set()
         self._ec: Dict[TechId, EcId] = {}
+        self._ec_unit: Dict[TechId, Unit] = {}
         self._in_eff: Dict[Tuple[StageId, TechId], Value] = {}
         self._out_eff: Dict[Tuple[StageId, TechId], Value] = {}
         self._charge_max: Dict[Tuple[StageId, TechId], Value] = {}
@@ -633,6 +689,7 @@ class StorageTechs:
         self._soc_init: Dict[Tuple[HubId, TechId], Value] = {}
         self._cyclic: Dict[Tuple[HubId, TechId], bool] = {}
         self._fill_price: Dict[Tuple[HubId, TechId], Value] = {}
+        self._opex_per_energy: Dict[Tuple[StageId, TechId], Value] = {}
 
     # ---------- #
     # Validation #
@@ -666,6 +723,7 @@ class StorageTechs:
         self._validate_soc_initminmax()
         self._validate_fill_price()
         self._validate_cyclic()
+        self._validate_opex_per_energy(stages)
 
     def _validate_ids(self, techs: Techs) -> None:
         exc_key = ExceptionKey.ID_VAL.value
@@ -914,6 +972,19 @@ class StorageTechs:
                 raise exceptions.DataException(
                     exc_key, [h, x], msg, module=LOG_MODULE_STR
                 )
+    def _validate_opex_per_energy(self, stages: Stages) -> None:
+        exc_key = ExceptionKey.OPEXPERENERGY_VAL.value
+        for (s, x), opex_per_energy in self._opex_per_energy.items():
+            # Unknown stage
+            if s not in stages.ids:
+                msg = f"Unknown stage {s} in opex_per_energy[{s}, {x}]"
+                raise exceptions.DataException(
+                    exc_key, [s, x], msg, module=LOG_MODULE_STR
+                )
+            # opex_per_energy usually nonnegative
+            if opex_per_energy.is_negative:
+                msg = f"{opex_per_energy} = opex_per_energy[{s}, {x}] < 0"
+                logging.log_warning(msg, module=LOG_MODULE_STR)
 
     # ---------- #
     # Id checker #

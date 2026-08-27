@@ -2,7 +2,16 @@
 
 from datetime import datetime
 
-from pyomo.core import Any, Constraint, Model, NonNegativeReals, Param, Set, Var
+from pyomo.core import (
+    Any,
+    Constraint,
+    Model,
+    NonNegativeReals,
+    Param,
+    Reals,
+    Set,
+    Var,
+)
 
 from ehubx.core import common, logging
 from ehubx.data.ec_data import Ecs
@@ -60,6 +69,12 @@ VAR_STORTECHFILLCOST: str = "V_StorTechFillCost"
 VAR_STORTECHFILLCOSTTOTAL: str = "V_StorTechFillCostTotal"
 """Name of variable for the total cost of pre-filled energy in non-cyclic
 storage"""
+VAR_STORTECHCOSTOPEXOUT: str = "V_StorTechCostOpexOut"
+"""Name of variable for cost of OPEX for storage tech outflow"""
+
+VAR_STORTECHCOSTTOTAL: str = "V_StorTechCostTotal"
+"""Name of variable for total cost in storage tech module (equals OPEX for
+storage outflow)"""
 
 PAR_STORTECHEC: str = "P_StorTechEc"
 """Name of parameter specifying the ecs stored in storage techs"""
@@ -110,6 +125,12 @@ CON_STORTECHFILLCOST: str = "C_StorTechFillCost"
 CON_STORTECHFILLCOSTTOTAL: str = "C_StorTechFillCostTotal"
 """Name of constraint setting the total fill cost of non-cyclic storage as the
 sum of the tech-specific fill costs"""
+CON_STORTECHCOSTOPEXOUT: str = "C_StorTechCostOpexOut"
+"""Name of constraint calculating the OPEX costs for storage outflow"""
+
+CON_STORTECHCOSTTOTAL: str = "C_StorTechCostTotal"
+"""Name of constraint calculating the total storage costs (equals OPEX for
+storage outflow)"""
 
 
 def build(model: Model, system: EnergySystem) -> None:
@@ -126,6 +147,7 @@ def build(model: Model, system: EnergySystem) -> None:
     # Start measuring build time
     start = datetime.now()
     _build_base(model, system)
+    _build_cost(model, system)
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
@@ -246,6 +268,21 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     _con_stor_tech_fill_cost(model, system)
     # [CON] Total fill cost
     _con_stor_tech_fill_cost_total(model)
+
+
+def _build_cost(model: Model, system: EnergySystem) -> None:
+    # [VAR] OPEX (operation & maintenance) cost from storage outflow
+    setattr(
+        model,
+        VAR_STORTECHCOSTOPEXOUT,
+        Var(getattr(model, SET_STORTECHTUPLE), domain=Reals),
+    )
+    # [CON] OPEX (operation & maintenance) cost from storage outflow
+    _con_stor_tech_cost_opex_out(model, system)
+    # [VAR] Total cost
+    setattr(model, VAR_STORTECHCOSTTOTAL, Var(domain=Reals))
+    # [CON] Total cost
+    _con_stor_tech_cost_total(model)
 
 
 def _con_stor_tech_inoutflow_max(model: Model, stor_techs: StorageTechs) -> None:
@@ -567,3 +604,60 @@ def _con_stor_tech_fill_cost(model: Model, system: EnergySystem) -> None:
         CON_STORTECHFILLCOST,
         Constraint(getattr(model, SET_STORTECHTUPLE), rule=__rule_fill_cost),
     )
+def _con_stor_tech_cost_opex_out(model: Model, system: EnergySystem) -> None:
+    # Extract data from modules
+    ecs: Ecs = system.ecs
+    stor_techs: StorageTechs = system.stor_techs
+    times: Times = system.times
+    currency_unit: CurrencyUnit = system.currency_unit
+    mass_unit: MassUnit = system.mass_unit
+    power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
+
+    def __rule_stor_tech_cost_opex_out(model, s, h, x):
+        # Get parameters
+        ec = stor_techs.get_ec(TechId(x))
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(ec),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
+        opex_per_energy = stor_techs.get_opex_per_energy(
+            StageId(s), TechId(x)
+        ).to_float(unit=(currency_unit / ec_unit))
+        # Calculate summed-up outflow
+        out_sum = sum(
+            times.get_weight(StageId(s), TimeId(t))
+            * getattr(model, VAR_STORTECHOUTFLOW)[s, h, x, t]
+            for t in getattr(model, SET_TIME)
+        )
+        # Calculate OPEX per outflow energy cost
+        cost_opex_out = opex_per_energy * out_sum
+        # Set constraint
+        return getattr(model, VAR_STORTECHCOSTOPEXOUT)[s, h, x] == cost_opex_out
+
+    setattr(
+        model,
+        CON_STORTECHCOSTOPEXOUT,
+        Constraint(
+            getattr(model, SET_STORTECHTUPLE), rule=__rule_stor_tech_cost_opex_out
+        ),
+    )
+
+
+def _con_stor_tech_cost_total(model: Model) -> None:
+    def __rule_stor_tech_cost_total(model):
+        # Calculate the total storage tech cost
+        stor_tech_cost_total = sum(
+            getattr(model, VAR_STORTECHCOSTOPEXOUT)[s, h, x]
+            for (s, h, x) in getattr(model, SET_STORTECHTUPLE)
+        )
+        # Set the constraint
+        return getattr(model, VAR_STORTECHCOSTTOTAL) == stor_tech_cost_total
+
+    setattr(model, CON_STORTECHCOSTTOTAL, Constraint(rule=__rule_stor_tech_cost_total))
