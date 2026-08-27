@@ -6,7 +6,7 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import Stages
 from ehubx.data.stor_tech_data import StorageTechs
 from ehubx.data.tech_data import TechId, Techs
-from ehubx.data.unit import DimlessUnit, TimeUnit
+from ehubx.data.unit import CurrencyUnit, DimlessUnit, TimeUnit
 from ehubx.parser import hub_parser, tech_parser, yaml_parser
 
 
@@ -23,6 +23,7 @@ YAMLKEY_SOCMAX = "soc_max"
 YAMLKEY_SOCINIT = "soc_init"
 YAMLKEY_CYCLIC = "cyclic"
 YAMLKEY_FILLPRICE = "fill_price"
+YAMLKEY_OPEXPERENERGY = "opex_per_energy"
 
 # Literals
 LOG_MODULE_STR: str = "pars/stor_techs"
@@ -81,9 +82,10 @@ def _parse_stor_tech_primary(
         storage_params_node, YAMLKEY_EC
     )
     ec_id = EcId(ec_id_str)
-    stor_techs.set_ec(tech_id, ec_id)
+    ec_unit = ecs.get_unit(ec_id)
+    stor_techs.set_ec(tech_id, ec_id, ec_unit)
     # cap_unit
-    cap_unit = ecs.get_unit(ec_id)
+    cap_unit = ec_unit
     techs.set_cap_unit(tech_id, cap_unit)
     # in_eff
     in_eff = yaml_parser.parse_optional_yeardep_value_from_dict_node(
@@ -143,6 +145,19 @@ def _parse_stor_tech_primary(
     if soc_max is not None:
         for stage_id, value in soc_max.items():
             stor_techs.set_soc_max(stage_id, tech_id, value)
+    # costs
+    costs_node = tech_node[tech_parser.YAMLKEY_COSTS]
+    # opex_per_energy
+    if costs_node is not None:
+        opex_per_energy = yaml_parser.parse_optional_yeardep_value_from_dict_node(
+            costs_node,
+            YAMLKEY_OPEXPERENERGY,
+            stages,
+            expected_unit=(CurrencyUnit.CHF / ec_unit),
+        )
+        if opex_per_energy is not None:
+            for stage_id, value in opex_per_energy.items():
+                stor_techs.set_opex_per_energy(stage_id, tech_id, value)
 
 
 def parse_secondary(

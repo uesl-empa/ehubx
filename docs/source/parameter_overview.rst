@@ -1129,6 +1129,15 @@ Parameter table
       - :code:`techs[ID]/costs/opex_per_energy`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **OPEX per outflow energy** (storage)
+      - ✖
+      - 0
+      - CHF/ec
+      - **✓**
+      - ✖
+      - :code:`techs[ID]/costs/opex_per_energy`
+      - :ref:`techs.yaml<techs_yaml>`
+
     * - **OPEX per transported energy** (net_tech)
       - ✖
       - 0

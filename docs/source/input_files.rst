@@ -292,13 +292,13 @@ techs.yaml
 
 **Technology cost parameters**:
 
-* **costs** (*mandatory*): Dictionary with cost parameters for the :ref:`tech model <tech_model>` and the :ref:`conversion model <conversion_model>`.
+* **costs** (*mandatory*): Dictionary with cost parameters for the :ref:`tech model <tech_model>`, the :ref:`conversion model <conversion_model>` and the :ref:`storage model <storage_model>`.
 * **interest_rate** (*optional, default=None, [-]*): Interest rate for this technology. If none is specified, the default interest rate defined in :ref:`stages.yaml <stages_yaml>` will be used.
 * **one_time_capex** (*optional, default=0, [CHF], per-year*): Fixed CAPEX cost that occurs if any amount of capacity is installed for this technology.
 * **capex_per_cap** (*optional, default=0, [CHF/CAP], per-year*): CAPEX cost per amount of installed capacity for this technology.
 * **one_time_opex** (*optional, default=0, [CHF], per-year*): Operation & maintenance cost that occurs if any amount of this technology is used during the time horizon.
 * **opex_per_cap** (*optional, default=0, [CHF/CAP], per-year*): Operation & maintenance cost per amount of installed capacity for this technology.
-* **opex_per_energy** (*optional, default=0, [CHF/(ec_out_main)], per-year*): Operation & maintenance cost for conversion technologies per amount of output of the conversion technology's main output carrier (see :ref:`conversion model<conversion_model>` for more details)
+* **opex_per_energy** (*optional, default=0, [CHF/(ec_out_main)] for conversion technologies and [CHF/ec] for storage technologies, per-year*): Operation & maintenance cost per amount of energy that the technology delivers. For conversion technologies, this is the output of the technology's main output carrier (see :ref:`conversion model<conversion_model>` for more details). For storage technologies, this is the energy discharged from the technology, i.e.; its outflow (see :ref:`storage model<storage_model>` for more details).
 
 **Technology emission parameters**:
 

@@ -79,6 +79,19 @@ ENTRY_STORTECHENERGYFINAL: str = (
     f"Final storage energy ({stor_tech_model.VAR_STORTECHENERGYFINAL})"
 )
 """Entry name for final storage energy level in result files"""
+ENTRY_OPEXPERENERGY: str = "OPEX cost per outflow energy (opex_per_energy)"
+"""Entry name for storage input parameter 'opex_per_energy' in result files"""
+
+ENTRY_STORTECHCOSTOPEXOUT: str = (
+    f"Storage tech OPEX cost for outflow ({stor_tech_model.VAR_STORTECHCOSTOPEXOUT})"
+)
+"""Entry name for outflow-related OPEX cost variable of storage technologies in
+result files"""
+
+ENTRY_STORTECHCOSTTOTAL: str = (
+    f"Total storage tech costs ({stor_tech_model.VAR_STORTECHCOSTTOTAL})"
+)
+"""Entry name for total storage-related costs in result files"""
 
 
 def format_all(
@@ -88,6 +101,21 @@ def format_all(
     df_ts_hor: pd.DataFrame,
     df_ts_cl: Optional[pd.DataFrame],
 ) -> None:
+    # Total storage-related costs
+    var = getattr(model, stor_tech_model.VAR_STORTECHCOSTTOTAL)
+    stor_tech_cost_total_fl = value(var, exception=False)
+    if stor_tech_cost_total_fl is not None:
+        stor_tech_cost_total = Value(
+            stor_tech_cost_total_fl, energy_system.currency_unit
+        )
+        df_st_builder.add_row(
+            ENTRY_STORTECHCOSTTOTAL,
+            stor_tech_cost_total,
+            unit=energy_system.currency_unit,
+            source=SOURCE,
+            in_res="result",
+        )
+
     # Tech-specific properties
     for tech_id in energy_system.stor_techs.ids_in_order:
         _format_tech(energy_system, model, tech_id, df_st_builder, df_ts_hor, df_ts_cl)
@@ -116,6 +144,15 @@ def _format_tech(
     # ec
     ec = energy_system.stor_techs.get_ec(x)
     df_st_builder.add_row(ENTRY_EC, ec.key, tech=x.key, source=SOURCE, in_res="input")
+    ec_unit = ec_model.get_ec_model_unit(
+        energy_system.ecs.get_unit(ec),
+        energy_system.mass_unit,
+        energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
+    )
+    flow_unit = ec_unit / TimeUnit.H
 
     # in_eff
     for s in energy_system.stages.ids_in_order:
@@ -237,16 +274,22 @@ def _format_tech(
             in_res="input",
         )
 
+    # opex_per_energy
+    for s in energy_system.stages.ids_in_order:
+        if s not in energy_system.techs.get_allowed_stages(x):
+            continue
+        opex_per_energy = energy_system.stor_techs.get_opex_per_energy(s, x)
+        df_st_builder.add_row(
+            ENTRY_OPEXPERENERGY,
+            opex_per_energy,
+            unit=(energy_system.currency_unit / ec_unit),
+            stage=s.key,
+            tech=x.key,
+            source=SOURCE,
+            in_res="input",
+        )
+
     # Storage inflow
-    ec_unit = ec_model.get_ec_model_unit(
-        energy_system.ecs.get_unit(energy_system.stor_techs.get_ec(x)),
-        energy_system.mass_unit,
-        energy_system.power_unit,
-        energy_system.length_unit,
-        energy_system.passenger_unit,
-        energy_system.freight_unit,
-    )
-    flow_unit = ec_unit / TimeUnit.H
     for s in energy_system.stages.ids_in_order:
         if s not in energy_system.techs.get_allowed_stages(x):
             continue
@@ -377,6 +420,32 @@ def _format_tech(
                     ENTRY_STORTECHENERGYFINAL,
                     Value(energy_final_fl, unit=energy_unit),
                     unit=energy_unit,
+                    stage=s.key,
+                    hub=h.key,
+                    tech=x.key,
+                    source=SOURCE,
+                    in_res="result",
+                )
+
+    # OPEX costs for storage outflow
+    for s in energy_system.stages.ids_in_order:
+        if s not in energy_system.techs.get_allowed_stages(x):
+            continue
+        for h in energy_system.hubs.ids_in_order:
+            if h not in energy_system.techs.get_allowed_hubs(x):
+                continue
+            var = getattr(model, stor_tech_model.VAR_STORTECHCOSTOPEXOUT)
+            stor_tech_cost_opex_out_fl = value(
+                var[s.key, h.key, x.key], exception=False
+            )
+            if stor_tech_cost_opex_out_fl is not None:
+                stor_tech_cost_opex_out = Value(
+                    stor_tech_cost_opex_out_fl, energy_system.currency_unit
+                )
+                df_st_builder.add_row(
+                    ENTRY_STORTECHCOSTOPEXOUT,
+                    stor_tech_cost_opex_out,
+                    unit=energy_system.currency_unit,
                     stage=s.key,
                     hub=h.key,
                     tech=x.key,

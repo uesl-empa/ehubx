@@ -303,6 +303,8 @@ def _con_system_cost(model: Model) -> None:
         system_cost_total += getattr(model, tech_model.VAR_TECHCOSTTOTAL)
         # Conversion tech cost (OPEX from energy output)
         system_cost_total += getattr(model, conv_tech_model.VAR_CONVTECHCOSTTOTAL)
+        # Storage tech cost (OPEX from storage outflow)
+        system_cost_total += getattr(model, stor_tech_model.VAR_STORTECHCOSTTOTAL)
         # Import cost
         system_cost_total += getattr(model, import_model.VAR_IMPCOSTTOTAL)
         # Export profit

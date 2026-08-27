@@ -1,12 +1,18 @@
 import pytest
 from contextlib import contextmanager
 
-from ehubx.data.stor_tech_data import StorageTechs, ExceptionKey, DEF_INEFF, DEF_CHARGEMAX
+from ehubx.data.stor_tech_data import (
+    StorageTechs,
+    ExceptionKey,
+    DEF_INEFF,
+    DEF_CHARGEMAX,
+    DEF_OPEXPERENERGY,
+)
 from ehubx.data.ec_data import EcId, Ecs
 from ehubx.data.hub_data import HubId, Hubs
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.tech_data import TechId, Techs
-from ehubx.data.unit import DimlessUnit, TimeUnit
+from ehubx.data.unit import CurrencyUnit, DimlessUnit, PowerUnit, TimeUnit
 from ehubx.data.value import Value
 from ehubx.data import exceptions
 
@@ -54,7 +60,7 @@ def test_ec_get_set_and_validate_keys():
 
     # Set ec and get works
     e = EcId("e1")
-    st.set_ec(t, e)
+    st.set_ec(t, e, PowerUnit.KW * TimeUnit.H)
     assert st.get_ec(t) == e
 
     # Validate with ecs missing ec should raise EC_VAL
@@ -129,3 +135,44 @@ def test_soc_minmax_and_init_bounds():
     # Correct bounds -> pass
     st.set_soc_init(h, t, Value(0.5, DimlessUnit()))
     st.validate(stages, hubs, ecs, techs)
+
+
+def test_opex_per_energy_get_and_set():
+    st, t, s, h, stages, hubs, techs, ecs = make_basic_env()
+    kwh = PowerUnit.KW * TimeUnit.H
+    expected_unit = CurrencyUnit.CHF / kwh
+
+    # Unknown id -> setting and getting raise UnknownIdException
+    with raises_with_key(
+        exceptions.UnknownIdException, ExceptionKey.OPEXPERENERGY_SET.value
+    ):
+        st.set_opex_per_energy(s, t, Value(1.0, expected_unit))
+    with raises_with_key(
+        exceptions.UnknownIdException, ExceptionKey.OPEXPERENERGY_GET.value
+    ):
+        st.get_opex_per_energy(s, t)
+
+    # Prepare tech and ec so the parameter's unit can be derived from the ec
+    st.add_id(t)
+    e = EcId("e1")
+    ecs.add_id(e)
+    st.set_ec(t, e, kwh)
+
+    # Default getter returns DEF_OPEXPERENERGY in currency per ec unit
+    assert st.get_opex_per_energy(s, t).to_float(expected_unit) == pytest.approx(
+        DEF_OPEXPERENERGY
+    )
+
+    # Unit mismatch on setting -> OPEXPERENERGY_SET
+    with raises_with_key(exceptions.DataException, ExceptionKey.OPEXPERENERGY_SET.value):
+        st.set_opex_per_energy(s, t, Value(1.0, DimlessUnit()))
+
+    # Correct unit -> set and get round-trip, and validation passes
+    st.set_opex_per_energy(s, t, Value(2.5, expected_unit))
+    assert st.get_opex_per_energy(s, t).to_float(expected_unit) == pytest.approx(2.5)
+    st.validate(stages, hubs, ecs, techs)
+
+    # Unknown stage is caught during validation -> OPEXPERENERGY_VAL
+    st.set_opex_per_energy(StageId("s_unknown"), t, Value(1.0, expected_unit))
+    with raises_with_key(exceptions.DataException, ExceptionKey.OPEXPERENERGY_VAL.value):
+        st.validate(stages, hubs, ecs, techs)
