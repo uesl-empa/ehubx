@@ -118,7 +118,7 @@ hubs.yaml
 * **age_init** (*optional, default=0, [a]*): Age of preinstalled technology at this hub.
 * **cap_init** (*optional, default=0, [CAP]*): Capacity amount of preinstalled technology at this hub.
 * **cap_min** (*optional, default=0, [CAP], per-year*): Minimal amount of installed capacity at this hub.
-* **cap_max** (*optional*, *default=* :math:`\infty`, *[CAP], per-year*): Maximal amount of installed capacity at this hub.
+* **cap_max** (*optional*, *default: heuristic*, *[CAP], per-year*): Maximal amount of installed capacity at this hub. If unset, ehubX derives a finite heuristic upper bound from the demand data instead of using :math:`\infty` (see :ref:`heuristic limits <heur_limits>`). For storage technologies this bound is proportional to the time step :ref:`weights <weight>`, so leaving *cap_max* unset in a model with non-unit weights can silently restrict installable capacity. Setting it explicitly is recommended.
 * **last_inst_year** (*optional*, *default=* :math:`\infty`, *[-]*): Last year where installation of this technology is allowed at this hub.
 
 **Hub-specific storage technology parameters**:
