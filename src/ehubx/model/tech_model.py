@@ -51,13 +51,21 @@ VAR_YTECHUSED: str = "V_YTechUsed"
 """Name of binary variable monitoring tech usage"""
 
 VAR_TECHCOSTCAPEX: str = "V_TechCostCapex"
-"""Name of variable for CAPEX costs of tech installation"""
+"""Name of variable for CAPEX costs of tech installation in one
+stage-hub-tech tuple (s, h, x). Building block of V_TechCostPerStage"""
 
 VAR_TECHCOSTOPEXCAP: str = "V_TechCostOpexCap"
-"""Name of variable for OPEX costs for tech capacity"""
+"""Name of variable for OPEX costs for tech capacity in one stage-hub-tech
+tuple (s, h, x). Building block of V_TechCostPerStage"""
+
+VAR_TECHCOSTPERSTAGE: str = "V_TechCostPerStage"
+"""Name of variable for tech capacity-related costs (CAPEX and OPEX) in one
+stage s, i.e.; V_TechCostCapex plus V_TechCostOpexCap summed over all hubs h
+and techs x of the stage. Building block of V_TechCostTotal"""
 
 VAR_TECHCOSTTOTAL: str = "V_TechCostTotal"
-"""Name of variable for total tech capacity-related costs (CAPEX and OPEX)"""
+"""Name of variable for total tech capacity-related costs (CAPEX and OPEX),
+i.e.; V_TechCostPerStage summed over all stages s (unweighted)"""
 
 VAR_TECHCO2INSTL: str = "V_TechCo2Instl"
 """Name of variable for embodied CO2 from tech installation"""
@@ -86,6 +94,9 @@ CON_TECHCOSTCAPEX: str = "C_TechCostCapex"
 
 CON_TECHCOSTOPEXCAP: str = "C_TechCostOpexCap"
 """Name of constraint calculating tech costs from OPEX"""
+
+CON_TECHCOSTPERSTAGE: str = "C_TechCostPerStage"
+"""Name of constraint calculating tech costs (CAPEX + OPEX) per stage"""
 
 CON_TECHCOSTTOTAL: str = "C_TechCostTotal"
 """Name of constraint calculating total tech costs (CAPEX + OPEX)"""
@@ -134,7 +145,13 @@ def build(model: Model, system: EnergySystem) -> None:
         freight_unit,
     )
     _build_co2(
-        model, stages, techs, length_unit, mass_unit, power_unit, passenger_unit,
+        model,
+        stages,
+        techs,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
         freight_unit,
     )
     # Logging
@@ -250,7 +267,13 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     # [CON] Define TechCap as the sum of initial capacity and installed
     #       capacity from previous stages for which lifetime has not run out
     _con_tech_cap(
-        model, stages, techs, length_unit, mass_unit, power_unit, passenger_unit,
+        model,
+        stages,
+        techs,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
         freight_unit,
     )
     # [CON] Force YTechCapInstl to 1 if TechCapInstl is nonzero
@@ -308,6 +331,10 @@ def _build_cost(
         passenger_unit,
         freight_unit,
     )
+    # [VAR] Cost per stage
+    setattr(model, VAR_TECHCOSTPERSTAGE, Var(getattr(model, SET_STAGE), domain=Reals))
+    # [CON] Cost per stage
+    _con_tech_cost_per_stage(model)
     # [VAR] Total cost
     setattr(model, VAR_TECHCOSTTOTAL, Var(domain=Reals))
     # [CON] Total cost
@@ -328,7 +355,13 @@ def _build_co2(
     setattr(model, VAR_TECHCO2INSTL, Var(getattr(model, SET_TECHTUPLE), domain=Reals))
     # [CON] CO2 emissions from tech installation
     _con_tech_co2_instl(
-        model, stages, techs, length_unit, mass_unit, power_unit, passenger_unit,
+        model,
+        stages,
+        techs,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
         freight_unit,
     )
     # [VAR] Total CO2 emissions from techs
@@ -618,13 +651,30 @@ def _con_tech_cost_opex_cap(
     )
 
 
-def _con_tech_cost_total(model: Model) -> None:
-    def __rule_tech_cost_total(model):
-        # Calculate the total tech cost
-        tech_cost_total = sum(
+def _con_tech_cost_per_stage(model: Model) -> None:
+    def __rule_tech_cost_per_stage(model, s):
+        # Calculate the tech cost of this stage
+        tech_cost_per_stage = sum(
             getattr(model, VAR_TECHCOSTCAPEX)[s, h, x]
             + getattr(model, VAR_TECHCOSTOPEXCAP)[s, h, x]
-            for (s, h, x) in getattr(model, SET_TECHTUPLE)
+            for (s_, h, x) in getattr(model, SET_TECHTUPLE)
+            if s == s_
+        )
+        # Set the constraint
+        return getattr(model, VAR_TECHCOSTPERSTAGE)[s] == tech_cost_per_stage
+
+    setattr(
+        model,
+        CON_TECHCOSTPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_tech_cost_per_stage),
+    )
+
+
+def _con_tech_cost_total(model: Model) -> None:
+    def __rule_tech_cost_total(model):
+        # Calculate the total tech cost by summing up the stages
+        tech_cost_total = sum(
+            getattr(model, VAR_TECHCOSTPERSTAGE)[s] for s in getattr(model, SET_STAGE)
         )
         # Set the constraint
         return getattr(model, VAR_TECHCOSTTOTAL) == tech_cost_total

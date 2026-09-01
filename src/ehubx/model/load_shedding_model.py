@@ -40,13 +40,24 @@ VAR_LOADSHEDDING: str = "V_LoadShedding"
 """Name of variable for load shedding amounts"""
 
 VAR_LOADHSHEDDINGCOST: str = "V_LoadSheddingCost"
-"""Name of variable for load shedding costs (per load shedding tuple)"""
+"""Name of variable for load shedding costs of one stage-hub-ec load
+shedding tuple (s, h, e), i.e.; summed over the time steps of the stage.
+Building block of V_LoadSheddingCostPerStage"""
+
+VAR_LOADSHEDDINGCOSTPERSTAGE: str = "V_LoadSheddingCostPerStage"
+"""Name of variable for the load shedding costs in one stage s, i.e.;
+V_LoadSheddingCost summed over all hubs h and ecs e of the stage. Building
+block of V_LoadSheddingCostTotal"""
 
 VAR_LOADHSHEDDINGCOSTTOTAL: str = "V_LoadSheddingCostTotal"
-"""Name of variable for total load shedding costs"""
+"""Name of variable for total load shedding costs, i.e.;
+V_LoadSheddingCostPerStage summed over all stages s (unweighted)"""
 
 CON_LOADSHEDDINGCOST: str = "C_LoadSheddingCost"
 """Name of constraint setting load shedding costs (per load sheddinfg tuple)"""
+
+CON_LOADSHEDDINGCOSTPERSTAGE: str = "C_LoadSheddingCostPerStage"
+"""Name of constraint setting load shedding costs per stage"""
 
 CON_LOADSHEDDINGCOSTTOTAL: str = "C_LoadSheddingCostTotal"
 """Name of constraint setting total load shedding costs"""
@@ -191,6 +202,14 @@ def _build_cost(
         passenger_unit,
         freight_unit,
     )
+    # [VAR] Load shedding cost per stage
+    setattr(
+        model,
+        VAR_LOADSHEDDINGCOSTPERSTAGE,
+        Var(getattr(model, SET_STAGE), domain=Reals),
+    )
+    # [CON] Load shedding cost per stage
+    _con_load_shedding_cost_per_stage(model)
     # [VAR] Total load shedding cost
     setattr(model, VAR_LOADHSHEDDINGCOSTTOTAL, Var(domain=Reals))
     # [CON] Total load shedding cost
@@ -239,12 +258,33 @@ def _con_load_shedding_cost(
     )
 
 
+def _con_load_shedding_cost_per_stage(model: Model) -> None:
+    def __rule_load_shedding_cost_per_stage(model, s):
+        # Calculate the load shedding cost of this stage
+        load_shedding_cost_per_stage = sum(
+            getattr(model, VAR_LOADHSHEDDINGCOST)[s, h, e]
+            for (s_, h, e) in getattr(model, SET_LOADSHEDDINGTUPLE)
+            if s == s_
+        )
+        # Set constraint
+        return (
+            getattr(model, VAR_LOADSHEDDINGCOSTPERSTAGE)[s]
+            == load_shedding_cost_per_stage
+        )
+
+    setattr(
+        model,
+        CON_LOADSHEDDINGCOSTPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_load_shedding_cost_per_stage),
+    )
+
+
 def _con_load_shedding_cost_total(model: Model) -> None:
     def __rule_load_shedding_cost_total(model):
-        # Calculate total load shedding cost
+        # Calculate total load shedding cost by summing up the stages
         load_shedding_cost_total = sum(
-            getattr(model, VAR_LOADHSHEDDINGCOST)[s, h, e]
-            for (s, h, e) in getattr(model, SET_LOADSHEDDINGTUPLE)
+            getattr(model, VAR_LOADSHEDDINGCOSTPERSTAGE)[s]
+            for s in getattr(model, SET_STAGE)
         )
         # Set constraint
         return getattr(model, VAR_LOADHSHEDDINGCOSTTOTAL) == load_shedding_cost_total

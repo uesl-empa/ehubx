@@ -81,6 +81,8 @@ stages.yaml
 * **co2_min** (*optional, default=* -:math:`\infty`, *, [kg]*): Minimal amount of CO2 emissions in this stage.
 * **co2_max** (*optional*, *default=* :math:`\infty`, *[kg]*): Maximal amount of CO2 emissions in this stage.
 * **autonomy_allow_unmet_demand** (*optional, default=False*): Specifies whether unmet demand is allowed in autonomy optimization for this stage. If ``False`` (default), unmet demand is strictly forbidden. If ``True``, unmet demand may occur after autonomy failure when the autonomy objective is active.
+* **stage_weight** (*optional, default=1, [-]*): Weight with which this stage's costs enter the cost objective, see :ref:`stage weights <stage_weight>`. A stage weighted 0 still has to fulfil all of its constraints, but its costs are not optimized. Stage weights must not be negative, and they must not all be 0 at the same time. Note that this parameter currently only affects the cost objective.
+
 
 .. _hubs_yaml:
 

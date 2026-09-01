@@ -1,0 +1,14 @@
+tech_lists:
+- tech_list_id: TL1
+  techs: [XEff, XCheap]
+
+hubs:
+- hub_id: H1
+  allowed_tech_lists: TL1
+  techs:
+  - tech_id: XEff
+    tech_params:
+      cap_max: 1000 kW
+  - tech_id: XCheap
+    tech_params:
+      cap_max: 1000 kW

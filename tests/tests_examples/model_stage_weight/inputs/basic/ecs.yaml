@@ -1,0 +1,13 @@
+# Demands in this model are given as sums rather than as profiles, so ehubX
+# cannot derive heuristic flow limits from demand profiles. They are set
+# explicitly here, generously above anything the model needs
+ecs:
+- ec_id: E0
+  unit: kWh
+  heur_max: 10000 kW
+  heur_sum_max: 100000 kWh
+
+- ec_id: EFuel
+  unit: kWh
+  heur_max: 10000 kW
+  heur_sum_max: 100000 kWh

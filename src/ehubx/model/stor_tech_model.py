@@ -30,6 +30,7 @@ from ehubx.data.unit import (
     PowerUnit,
 )
 from ehubx.model.ec_model import get_ec_model_unit
+from ehubx.model.stage_model import SET_STAGE
 from ehubx.model.tech_model import (
     SET_TECH,
     SET_TECHTUPLE,
@@ -70,11 +71,19 @@ VAR_STORTECHFILLCOSTTOTAL: str = "V_StorTechFillCostTotal"
 """Name of variable for the total cost of pre-filled energy in non-cyclic
 storage"""
 VAR_STORTECHCOSTOPEXOUT: str = "V_StorTechCostOpexOut"
-"""Name of variable for cost of OPEX for storage tech outflow"""
+"""Name of variable for OPEX from the outflow of one storage tech in one
+stage-hub-tech tuple (s, h, x), i.e.; summed over the time steps of the
+stage. The only cost type in the storage tech module. Building block of
+V_StorTechCostPerStage"""
+
+VAR_STORTECHCOSTPERSTAGE: str = "V_StorTechCostPerStage"
+"""Name of variable for the cost of the storage tech module in one stage s,
+i.e.; V_StorTechCostOpexOut summed over all hubs h and techs x of the stage.
+Building block of V_StorTechCostTotal"""
 
 VAR_STORTECHCOSTTOTAL: str = "V_StorTechCostTotal"
-"""Name of variable for total cost in storage tech module (equals OPEX for
-storage outflow)"""
+"""Name of variable for the total cost of the storage tech module, i.e.;
+V_StorTechCostPerStage summed over all stages s (unweighted)"""
 
 PAR_STORTECHEC: str = "P_StorTechEc"
 """Name of parameter specifying the ecs stored in storage techs"""
@@ -127,6 +136,9 @@ CON_STORTECHFILLCOSTTOTAL: str = "C_StorTechFillCostTotal"
 sum of the tech-specific fill costs"""
 CON_STORTECHCOSTOPEXOUT: str = "C_StorTechCostOpexOut"
 """Name of constraint calculating the OPEX costs for storage outflow"""
+
+CON_STORTECHCOSTPERSTAGE: str = "C_StorTechCostPerStage"
+"""Name of constraint calculating the storage tech costs per stage"""
 
 CON_STORTECHCOSTTOTAL: str = "C_StorTechCostTotal"
 """Name of constraint calculating the total storage costs (equals OPEX for
@@ -279,6 +291,12 @@ def _build_cost(model: Model, system: EnergySystem) -> None:
     )
     # [CON] OPEX (operation & maintenance) cost from storage outflow
     _con_stor_tech_cost_opex_out(model, system)
+    # [VAR] Cost per stage
+    setattr(
+        model, VAR_STORTECHCOSTPERSTAGE, Var(getattr(model, SET_STAGE), domain=Reals)
+    )
+    # [CON] Cost per stage
+    _con_stor_tech_cost_per_stage(model)
     # [VAR] Total cost
     setattr(model, VAR_STORTECHCOSTTOTAL, Var(domain=Reals))
     # [CON] Total cost
@@ -650,12 +668,30 @@ def _con_stor_tech_cost_opex_out(model: Model, system: EnergySystem) -> None:
     )
 
 
+def _con_stor_tech_cost_per_stage(model: Model) -> None:
+    def __rule_stor_tech_cost_per_stage(model, s):
+        # Calculate the storage tech cost of this stage
+        stor_tech_cost_per_stage = sum(
+            getattr(model, VAR_STORTECHCOSTOPEXOUT)[s, h, x]
+            for (s_, h, x) in getattr(model, SET_STORTECHTUPLE)
+            if s == s_
+        )
+        # Set the constraint
+        return getattr(model, VAR_STORTECHCOSTPERSTAGE)[s] == stor_tech_cost_per_stage
+
+    setattr(
+        model,
+        CON_STORTECHCOSTPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_stor_tech_cost_per_stage),
+    )
+
+
 def _con_stor_tech_cost_total(model: Model) -> None:
     def __rule_stor_tech_cost_total(model):
-        # Calculate the total storage tech cost
+        # Calculate the total storage tech cost by summing up the stages
         stor_tech_cost_total = sum(
-            getattr(model, VAR_STORTECHCOSTOPEXOUT)[s, h, x]
-            for (s, h, x) in getattr(model, SET_STORTECHTUPLE)
+            getattr(model, VAR_STORTECHCOSTPERSTAGE)[s]
+            for s in getattr(model, SET_STAGE)
         )
         # Set the constraint
         return getattr(model, VAR_STORTECHCOSTTOTAL) == stor_tech_cost_total

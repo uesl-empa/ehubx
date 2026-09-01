@@ -98,8 +98,15 @@ VAR_LOADSHIFTINGCOSTPEAK: str = "V_LoadShiftingCostPeak"
 VAR_LOADSHIFTINGCOSTFIX: str = "V_LoadShiftingCostFix"
 """Name of variable for fixed amounts in load shifting costs"""
 
+VAR_LOADSHIFTINGCOSTPERSTAGE: str = "V_LoadShiftingCostPerStage"
+"""Name of variable for the load shifting costs in one stage s, i.e.; the
+CAPEX, energy, peak and fix cost variables summed over all load shiftings
+ls, hubs h and ecs e of the stage. Building block of
+V_LoadShiftingCostTotal"""
+
 VAR_LOADSHIFTINGCOSTTOTAL: str = "V_LoadShiftingCostTotal"
-"""Name of variable for total load shifting costs"""
+"""Name of variable for total load shifting costs, i.e.;
+V_LoadShiftingCostPerStage summed over all stages s (unweighted)"""
 
 VAR_YLOADSHIFTING: str = "V_YLoadShifting"
 """Name of variable monitoring whether any amount of load shifting occurs"""
@@ -161,6 +168,9 @@ CON_LOADSHIFTINGCOSTPEAK: str = "C_LoadShiftingCostPeak"
 
 CON_LOADSHIFTINGCOSTFIX: str = "C_LoadShiftingCostFix"
 """Name of constraint setting the fixed load shifting costs"""
+
+CON_LOADSHIFTINGCOSTPERSTAGE: str = "C_LoadShiftingCostPerStage"
+"""Name of constraint setting the load shifting costs per stage"""
 
 CON_LOADSHIFTINGCOSTTOTAL: str = "C_LoadShiftingCostTotal"
 """Name of constraint setting the total load shifting costs"""
@@ -330,8 +340,15 @@ def _build_base(
     # [CON] Respect absolute and relative maximal values for above and below
     #       shifts
     _con_load_shifting_max_abovebelow(
-        model, ecs, demands, load_shifting, mass_unit, power_unit, length_unit,
-        passenger_unit, freight_unit,
+        model,
+        ecs,
+        demands,
+        load_shifting,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Load shifting capacity, maximal load shifting amount per interval
     setattr(
@@ -353,12 +370,24 @@ def _build_base(
     )
     # [CON] Define LoadShiftingCap as the sum of initial and installed capacity
     _con_load_shifting_cap(
-        model, ecs, load_shifting, mass_unit, power_unit, length_unit, passenger_unit,
+        model,
+        ecs,
+        load_shifting,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
         freight_unit,
     )
     # [CON] Respect cap_min and cap_max for load shifting capacity
     _con_load_shifting_cap_minmax(
-        model, ecs, load_shifting, mass_unit, power_unit, length_unit, passenger_unit,
+        model,
+        ecs,
+        load_shifting,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
         freight_unit,
     )
     # [CON] Respect interval capacity, i.e. time integral over total amount of
@@ -382,13 +411,27 @@ def _build_base(
     # [VAR] Binary variable to monitor load shifting occurences. Only defend
     #       for tuples with fix costs
     _var_y_load_shifting(
-        model, ecs, load_shifting, currency_unit, mass_unit, power_unit, length_unit,
-        passenger_unit, freight_unit,
+        model,
+        ecs,
+        load_shifting,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Force YLoadShifting to 1 if LoadShifting is larger than 0
     _con_y_load_shifting(
-        model, ecs, demands, load_shifting, mass_unit, power_unit, length_unit,
-        passenger_unit, freight_unit,
+        model,
+        ecs,
+        demands,
+        load_shifting,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
 
 
@@ -412,8 +455,15 @@ def _build_cost(
     )
     # [CON] Load shifting CAPEX cost
     _con_load_shifting_cost_capex(
-        model, ecs, load_shifting, currency_unit, mass_unit, power_unit, length_unit,
-        passenger_unit, freight_unit,
+        model,
+        ecs,
+        load_shifting,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Load shifting energy cost, i.e. time integral over all
     #       absolute load shifting power above and below the demand curve
@@ -424,8 +474,16 @@ def _build_cost(
     )
     # [CON] Load shifting energy cost
     _con_load_shifting_cost_energy(
-        model, ecs, load_shifting, times, currency_unit, mass_unit, power_unit,
-        length_unit, passenger_unit, freight_unit,
+        model,
+        ecs,
+        load_shifting,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Load shifting peak cost, i.e., cost for highest shifts on time
     #       horizon
@@ -436,8 +494,15 @@ def _build_cost(
     )
     # [CON] Load shifting peak cost
     _con_load_shifting_cost_peak(
-        model, ecs, load_shifting, currency_unit, mass_unit, power_unit, length_unit,
-        passenger_unit, freight_unit,
+        model,
+        ecs,
+        load_shifting,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Load shifting fix cost, i.e.; costs occuring any time load shifting
     #       is used at all
@@ -448,9 +513,25 @@ def _build_cost(
     )
     # [CON] Load shifting fix cost
     _con_load_shifting_cost_fix(
-        model, ecs, load_shifting, times, currency_unit, mass_unit, power_unit,
-        length_unit, passenger_unit, freight_unit,
+        model,
+        ecs,
+        load_shifting,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
+    # [VAR] Load shifting cost per stage
+    setattr(
+        model,
+        VAR_LOADSHIFTINGCOSTPERSTAGE,
+        Var(getattr(model, SET_STAGE), domain=Reals),
+    )
+    # [CON] Load shifting cost per stage
+    _con_load_shifting_cost_per_stage(model)
     # [VAR] Total load shifting cost
     setattr(model, VAR_LOADSHIFTINGCOSTTOTAL, Var(domain=Reals))
     # [CON] Total load shedding cost
@@ -1105,19 +1186,41 @@ def _con_load_shifting_cost_fix(
     )
 
 
-def _con_load_shifting_cost_total(model: Model) -> None:
-    def __rule_load_shifting_cost_total(model):
-        # Calculate total load shifting cost
-        load_shifting_cost_total = sum(
+def _con_load_shifting_cost_per_stage(model: Model) -> None:
+    def __rule_load_shifting_cost_per_stage(model, s):
+        # Calculate the load shifting cost of this stage
+        load_shifting_cost_per_stage = sum(
             getattr(model, VAR_LOADSHIFTINGCOSTCAPEX)[ls, s, h, e]
             + getattr(model, VAR_LOADSHIFTINGCOSTENERGY)[ls, s, h, e]
             + getattr(model, VAR_LOADSHIFTINGCOSTPEAK)[ls, s, h, e]
-            for (ls, s, h, e) in getattr(model, SET_LOADSHIFTINGWITHTUPLES)
+            for (ls, s_, h, e) in getattr(model, SET_LOADSHIFTINGWITHTUPLES)
+            if s == s_
         )
         # Add fix costs
-        load_shifting_cost_total += sum(
+        load_shifting_cost_per_stage += sum(
             getattr(model, VAR_LOADSHIFTINGCOSTFIX)[ls, s, h, e]
-            for (ls, s, h, e) in getattr(model, SET_LOADSHIFTINGWITHTUPLESFIX)
+            for (ls, s_, h, e) in getattr(model, SET_LOADSHIFTINGWITHTUPLESFIX)
+            if s == s_
+        )
+        # Set constraint
+        return (
+            getattr(model, VAR_LOADSHIFTINGCOSTPERSTAGE)[s]
+            == load_shifting_cost_per_stage
+        )
+
+    setattr(
+        model,
+        CON_LOADSHIFTINGCOSTPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_load_shifting_cost_per_stage),
+    )
+
+
+def _con_load_shifting_cost_total(model: Model) -> None:
+    def __rule_load_shifting_cost_total(model):
+        # Calculate total load shifting cost by summing up the stages
+        load_shifting_cost_total = sum(
+            getattr(model, VAR_LOADSHIFTINGCOSTPERSTAGE)[s]
+            for s in getattr(model, SET_STAGE)
         )
         # Set constraint
         return getattr(model, VAR_LOADSHIFTINGCOSTTOTAL) == load_shifting_cost_total

@@ -47,6 +47,10 @@ Stage model
 
 This module introduces an index set :math:`\mathcal{S}_{Stage}` of stages. They consist of unique string labels (e.g.; :math:`S1`).
 
+.. _stage_weight:
+
+Each stage additionally carries a **stage weight** :math:`stage\_weight[s] \ge 0` from :ref:`stages.yaml<stages_yaml>`, which denotes how much the costs of stage :math:`s` count in the cost objective. It defaults to :math:`1` for every :math:`s`. The stage weights must not all be :math:`0` at the same time, but individual stages may well be weighted :math:`0`. Unlike the time step :ref:`weight <weight>`, the stage weight is a free "importance" factor: it appears **only** in the definition of :math:`\mathcal{V}_{SystemCost}` in the :ref:`energy system model<energy_system_model>` and nowhere else, so it rescales the objective without ever changing the feasible region. A stage weighted :math:`0` therefore still has to fulfil all of its constraints, such as its demands and its :math:`co2\_min` and :math:`co2\_max` bounds, while its costs are excluded from the optimization. This allows a system to be optimized for the costs of one stage while it is at the same time forced to cope with the conditions of all other stages. Note that the stage weight currently affects the cost objective only, see the :ref:`energy system model<energy_system_model>`.
+
 
 
 .. _hub_model:
@@ -109,7 +113,7 @@ Similarily, imports might come with CO2 emissions. These are quantified using th
 Information about costs and CO2 for imports are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variables for convenience:
 
 :raw-math:`\begin{align*}
-\mathcal{V}_{ImpCostTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ImpCostTotal} &= \sum_{(s, h, e) \in \mathcal{S}_{ImpTuple}} \mathcal{V}_{ImpCost}[s, h, e] \\ \mathcal{V}_{ImpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ImpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ImpTuple} \\ s'=s}} \mathcal{V}_{ImpCo2}[s', h, e]
+\mathcal{V}_{ImpCostPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ImpCostPerStage}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ImpTuple} \\ s'=s}} \mathcal{V}_{ImpCost}[s', h, e] \\ \mathcal{V}_{ImpCostTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ImpCostTotal} &= \sum_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{ImpCostPerStage}[s] \\ \mathcal{V}_{ImpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ImpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ImpTuple} \\ s'=s}} \mathcal{V}_{ImpCo2}[s', h, e]
 \end{align*}`
 
 
@@ -143,7 +147,7 @@ Similarily, exports might come with reductions in CO2 emissions. These are quant
 Information about profits and CO2 for exports are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variables for convenience:
 
 :raw-math:`\begin{align*}
-\mathcal{V}_{ExpProfitTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ExpProfitTotal} &= \sum_{(s, h, e) \in \mathcal{S}_{ExpTuple}} \mathcal{V}_{ExpProfit}[s, h, e] \\ \mathcal{V}_{ExpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ExpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ExpTuple} \\ s'=s}} \mathcal{V}_{ExpCo2}[s', h, e]
+\mathcal{V}_{ExpProfitPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ExpProfitPerStage}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ExpTuple} \\ s'=s}} \mathcal{V}_{ExpProfit}[s', h, e] \\ \mathcal{V}_{ExpProfitTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{ExpProfitTotal} &= \sum_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{ExpProfitPerStage}[s] \\ \mathcal{V}_{ExpCo2Total}: \mathcal{S}_{Stage} &\to \mathbb{R}, \quad &\mathcal{V}_{ExpCo2Total}[s] &= \sum_{\substack{(s', h, e) \in \mathcal{S}_{ExpTuple} \\ s'=s}} \mathcal{V}_{ExpCo2}[s', h, e]
 \end{align*}`
 
 
@@ -228,7 +232,7 @@ Shedding loads is associated with certain costs. These are measure by the fixed 
 
 Here, :math:`energy\_cost` is a parameter from :ref:`demands.yaml<demands_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value. Information about these costs are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variable for convenience:
 
-:raw-math:`$$ \mathcal{V}_{LoadSheddingCostTotal} \in \mathbb R^+_0, \quad \mathcal{V}_{LoadSheddingCostTotal} = \sum\limits_{(s, h, e) \in \mathcal{S}_{LoadSheddingTuple}} \mathcal{V}_{LoadSheddingCost}[s, h, e] $$`
+:raw-math:`\begin{align*} \mathcal{V}_{LoadSheddingCostPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}^+_0, \quad &\mathcal{V}_{LoadSheddingCostPerStage}[s] &= \sum\limits_{\substack{(s', h, e) \in \mathcal{S}_{LoadSheddingTuple} \\ s'=s}} \mathcal{V}_{LoadSheddingCost}[s', h, e] \\ \mathcal{V}_{LoadSheddingCostTotal} &\in \mathbb{R}^+_0, \quad &\mathcal{V}_{LoadSheddingCostTotal} &= \sum\limits_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{LoadSheddingCostPerStage}[s] \end{align*}`
 
 
 
@@ -350,7 +354,9 @@ With the above constraint, :math:`\mathcal{V}_{YLoadShifting}` will always be 1 
 
 Since all costs must enter the :ref:`energy system model<energy_system_model>`, we create a single variable that holds the entire load shifting costs of the model:
 
-:raw-math:`\begin{align*} \mathcal{V}_{LoadShiftingCostTotal} \in \mathbb{R}, \quad &\mathcal{V}_{LoadShiftingCostTotal} = \\ \sum\limits_{(s, h, e) \in \mathcal{S}_{LoadShiftingTuple}} \Big( &\mathcal{V}_{LoadShiftingCostCapex}[s, h, e] + \mathcal{V}_{LoadShiftingCostEnergy}[s, h, e] \\ &+ \mathcal{V}_{LoadShiftingCostPeak}[s, h, e] + \mathcal{V}_{LoadShiftingCostFix}[s, h, e] \Big) \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{LoadShiftingCostPerStage}: \mathcal{S}_{Stage} \to \mathbb{R}, \quad &\mathcal{V}_{LoadShiftingCostPerStage}[s] = \\ \sum\limits_{\substack{(s', h, e) \in \mathcal{S}_{LoadShiftingTuple} \\ s'=s}} \Big( &\mathcal{V}_{LoadShiftingCostCapex}[s', h, e] + \mathcal{V}_{LoadShiftingCostEnergy}[s', h, e] \\ &+ \mathcal{V}_{LoadShiftingCostPeak}[s', h, e] + \mathcal{V}_{LoadShiftingCostFix}[s', h, e] \Big) \end{align*}`
+
+:raw-math:`\begin{align*} \mathcal{V}_{LoadShiftingCostTotal} \in \mathbb{R}, \quad \mathcal{V}_{LoadShiftingCostTotal} = \sum\limits_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{LoadShiftingCostPerStage}[s] \end{align*}`
 
 .. _tech_model:
 
@@ -475,7 +481,7 @@ In addition to these installation-related CAPEX costs, operating and maintaining
 
 As can be seen, both costs have a part that arises per amount of installed capacity while another enters any time any amount of technology is installed or used at all. Adding up these costs gives us the following fixed variable:
 
-:raw-math:`\begin{align*} \mathcal{V}_{TechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{TechCostTotal} &= \sum\limits_{(s, h, x) \in \mathcal{S}_{TechTuple}} \big( \mathcal{V}_{TechCostCapex}[s, h, x] + \mathcal{V}_{TechCostOpexCap}[s, h, x] \big) \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{TechCostPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{TechCostPerStage}[s] &= \sum\limits_{\substack{(s', h, x) \in \mathcal{S}_{TechTuple} \\ s'=s}} \big( \mathcal{V}_{TechCostCapex}[s', h, x] + \mathcal{V}_{TechCostOpexCap}[s', h, x] \big) \\ \mathcal{V}_{TechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{TechCostTotal} &= \sum\limits_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{TechCostPerStage}[s] \end{align*}`
 
 Similar to the costs associated with tech installation, certain CO2-embodied emissions are associated with this process as well. We collect these in the variable
 
@@ -543,7 +549,7 @@ Lastly, the conversion technology model has its own cost concept in addition to 
 
 Finally, all costs in the conversion model (i.e.; only the energy-related OPEX costs above) are bundled into a single variable for convenient use outside of the conversion module:
 
-:raw-math:`\begin{align*} \mathcal{V}_{ConvTechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{ConvTechCostTotal} &= \sum\limits_{(s, h, x) \in \mathcal{S}_{ConvTechTuple}} \mathcal{V}_{ConvTechCostOpexOut}[s, h, x] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{ConvTechCostPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{ConvTechCostPerStage}[s] &= \sum\limits_{\substack{(s', h, x) \in \mathcal{S}_{ConvTechTuple} \\ s'=s}} \mathcal{V}_{ConvTechCostOpexOut}[s', h, x] \\ \mathcal{V}_{ConvTechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{ConvTechCostTotal} &= \sum\limits_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{ConvTechCostPerStage}[s] \end{align*}`
 
 .. _solar_model:
 
@@ -641,7 +647,7 @@ Like the conversion technology model, the storage technology model has its own c
 
 Note that these costs are charged on the storage technology's outflow only, mirroring the way the :ref:`conversion model<conversion_model>` charges the output of its main output carrier. All costs in the storage model (i.e.; only the energy-related OPEX costs above) are bundled into a single variable for convenient use outside of the storage module:
 
-:raw-math:`\begin{align*} \mathcal{V}_{StorTechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{StorTechCostTotal} &= \sum\limits_{(s, h, x) \in \mathcal{S}_{StorTechTuple}} \mathcal{V}_{StorTechCostOpexOut}[s, h, x] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechCostPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{StorTechCostPerStage}[s] &= \sum\limits_{\substack{(s', h, x) \in \mathcal{S}_{StorTechTuple} \\ s'=s}} \mathcal{V}_{StorTechCostOpexOut}[s', h, x] \\ \mathcal{V}_{StorTechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{StorTechCostTotal} &= \sum\limits_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{StorTechCostPerStage}[s] \end{align*}`
 
 It has to be mentioned at this point that the chosen storage formulation would allow for simultaneous inflow and outflow from the storage technology (i.e.; :math:`mathcal{V}_{StorTechInflow}[s, h, x, t] > 0` and :math:`mathcal{V}_{StorTechOutflow}[s, h, x, t] > 0`). It is generally possible to avoid this by introducing a time-dependent binary variable which monitors whether a charging or discharing process is taking place at the current time step. However, this drastically increases the complexity of the resulting MILP problem which is why ehubX decides to avoid this. Instead, we rely on the fact that if certain costs are associated with the flow variables, an optimal solution will always try to avoid situations where both variables take nonzero values simulteneously. For example, take the case of :math:`\mathcal{V}_{StorTechOutflow} - \mathcal{V}_{StorTechInflow} = 3` which could be comprised of the following two value pairs for the sub-variables:
 
@@ -1084,7 +1090,7 @@ As can be seen, both costs have a part that arises per amount of installed capac
 
 Adding up these costs gives us the following fixed variable:
 
-:raw-math:`\begin{align*} \mathcal{V}_{NetTechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{NetTechCostTotal} &= \sum\limits_{(s, \ell, n) \in \mathcal{S}_{NetTechTuple}} \big( \mathcal{V}_{NetTechCostCapex}[s, \ell, n] + \mathcal{V}_{NetTechCostOpexCap}[s, \ell, n] + \mathcal{V}_{NetTechCostOpexTrans}[s, \ell, n] \big) \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{NetTechCostPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{NetTechCostPerStage}[s] &= \sum\limits_{\substack{(s', \ell, n) \in \mathcal{S}_{NetTechTuple} \\ s'=s}} \big( \mathcal{V}_{NetTechCostCapex}[s', \ell, n] + \mathcal{V}_{NetTechCostOpexCap}[s', \ell, n] + \mathcal{V}_{NetTechCostOpexTrans}[s', \ell, n] \big) \\ \mathcal{V}_{NetTechCostTotal} &\in \mathbb{R}, \\ \mathcal{V}_{NetTechCostTotal} &= \sum\limits_{s \in \mathcal{S}_{Stage}} \mathcal{V}_{NetTechCostPerStage}[s] \end{align*}`
 
 Similar to the costs associated with network technologies, certain CO2-embodied emissions are associated with this process as well. We collect these in the variable
 
@@ -1319,9 +1325,11 @@ In addition to energy balancing, the energy system model has the job of defining
 
 :raw-math:`\begin{align*} \mathcal{V}_{SystemCo2}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{SystemCo2}[s] &= \mathcal{V}_{TechCo2Total}[s] + \mathcal{V}_{ImpCo2Total}[s] - \mathcal{V}_{ExpCo2Total}[s] + \mathcal{V}_{NetTechCo2Total}[s] \end{align*}`
 
-Every stage has the potential to include CO2 penalization costs via the optional parameter :math:`co2\_price` from :ref:`stages.yaml<stages_yaml>` which are defined as:
+Every stage has the potential to include CO2 penalization costs via the optional parameter :math:`co2\_price` from :ref:`stages.yaml<stages_yaml>`. These are first determined per stage and then gathered across all stages:
 
-:raw-math:`\begin{align*} \mathcal{V}_{SystemCostCo2Penalty} \in \mathbb{R}, \quad \mathcal{V}_{SystemCostCo2Penalty} = \sum\limits_{s \in \mathcal{S}{Stage}} co2\_price[s] \cdot \mathcal{V}_{SystemCo2}[s] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SystemCostCo2PenaltyPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{SystemCostCo2PenaltyPerStage}[s] &= co2\_price[s] \cdot \mathcal{V}_{SystemCo2}[s] \end{align*}`
+
+:raw-math:`\begin{align*} \mathcal{V}_{SystemCostCo2Penalty} \in \mathbb{R}, \quad \mathcal{V}_{SystemCostCo2Penalty} = \sum\limits_{s \in \mathcal{S}{Stage}} \mathcal{V}_{SystemCostCo2PenaltyPerStage}[s] \end{align*}`
 
 In addition, :ref:`stages.yaml<stages_yaml>` contains the parameters :math:`co2\_min` and :math:`co2\_max` which result in the following straightforward constraints for the CO2 emission amounts:
 
@@ -1331,11 +1339,23 @@ Finally, when CO2 emissions are to be chosen as an objective function, they need
 
 :raw-math:`\begin{align*} \mathcal{V}_{SystemCo2Total} \in \mathbb{R}, \quad \mathcal{V}_{SystemCo2Total} = \sum\limits_{s \in \mathcal{S}{Stage}} \mathcal{V}_{SystemCo2}[s] \end{align*}`
 
-Moving from system CO2 emissions to system costs, these are collected in a similar global variable
+Moving from system CO2 emissions to system costs, these are first collected per stage. Every submodule provides its own per-stage cost variable, and the CO2 penalty of the stage is added on top:
 
-:raw-math:`\begin{align*} \mathcal{V}_{SystemCost} \in~ &\mathbb{R}, \\ \mathcal{V}_{SystemCost} =~ &\mathcal{V}_{TechCostTotal} + \mathcal{V}_{ConvTechCostTotal} + \mathcal{V}_{StorTechCostTotal} + \mathcal{V}_{ImpCostTotal} - \mathcal{V}_{ExpProfitTotal} \\ &~ + \mathcal{V}_{LoadSheddingCostTotal} + \mathcal{V}_{LoadShiftingCostTotal} + \mathcal{V}_{NetTechCostTotal} + \mathcal{V}_{SystemCostCo2Penalty} \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SystemCostPerStage}: \mathcal{S}_{Stage} &\to \mathbb{R}, \\ \mathcal{V}_{SystemCostPerStage}[s] =~ &\mathcal{V}_{TechCostPerStage}[s] + \mathcal{V}_{ConvTechCostPerStage}[s] + \mathcal{V}_{StorTechCostPerStage}[s] + \mathcal{V}_{ImpCostPerStage}[s] - \mathcal{V}_{ExpProfitPerStage}[s] \\ &~ + \mathcal{V}_{LoadSheddingCostPerStage}[s] + \mathcal{V}_{LoadShiftingCostPerStage}[s] + \mathcal{V}_{NetTechCostPerStage}[s] + \mathcal{V}_{SystemCostCo2PenaltyPerStage}[s] \end{align*}`
+
+These are the actual costs that a stage incurs. The total cost variables of the submodules, such as :math:`\mathcal{V}_{TechCostTotal}`, are the sums of their respective per-stage variables over all stages and are likewise unweighted actual costs.
+
+The per-stage costs are then combined into the overall system cost using the parameter :math:`stage\_weight` from the :ref:`stage model<stage_model>`:
+
+:raw-math:`\begin{align*} \mathcal{V}_{SystemCost} \in \mathbb{R}, \quad \left( \sum\limits_{s \in \mathcal{S}{Stage}} stage\_weight[s] \right) \cdot \mathcal{V}_{SystemCost} = \sum\limits_{s \in \mathcal{S}{Stage}} stage\_weight[s] \cdot \mathcal{V}_{SystemCostPerStage}[s] \end{align*}`
+
+The system cost is therefore the *weighted average* of the per-stage costs rather than their sum. Since all costs in ehubX are annualized, this keeps the system cost an annual cost that is independent of how many stages a model has: two identical stages produce the same system cost as a single one. Dividing by the sum of the stage weights also means that only the ratios between them matter, not their magnitude. With the default weights, the system cost is the plain average over all stages. Note that the weight of a stage applies to all of its costs alike, including its CO2 penalty, which is therefore weighted independently of the value of :math:`co2\_price`.
 
 This variable is a possible objective function of the system alongside the CO2 total emissions.
+
+.. warning::
+
+   The stage weights currently only affect the **cost** objective. When CO2 emissions are optimized, the objective is :math:`\mathcal{V}_{SystemCo2Total}`, which is the unweighted *sum* over the stages. When self-sufficiency is optimized, the objective is a single system-wide ratio computed from imports that are summed over all stages. In both cases the stage weights are ignored. This also affects multi-objective optimizations that combine cost with one of the other objectives, where only the cost part of the problem is weighted.
 
 .. only:: latex
 

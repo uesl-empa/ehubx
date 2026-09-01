@@ -1,0 +1,11 @@
+# Fuel is cheap in S1 and very expensive in S2. Which technology is optimal
+# therefore depends on which stage the objective actually counts
+- stages: S1
+  hubs: H1
+  ec: EFuel
+  price: 0.1 CHF/kWh
+
+- stages: S2
+  hubs: H1
+  ec: EFuel
+  price: 50 CHF/kWh

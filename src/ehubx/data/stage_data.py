@@ -41,6 +41,10 @@ class ExceptionKey(Enum):
     CO2MINMAX_VAL = "validating 'co2_min' against 'co2_max' of Stages"
     AUTALLOWUNMETDEMAND_GET = "getting autonomy_allow_demand from Stages"
     AUTALLOWUNMETDEMAND_SET = "setting autonomy_allow_demand of Stages"
+    STAGEWEIGHT_SET = "setting 'stage_weight' of Stages"
+    STAGEWEIGHT_GET = "getting 'stage_weight' from Stages"
+    STAGEWEIGHT_VAL = "validating 'stage_weight' of Stages"
+    STAGEWEIGHTSUM_VAL = "validating the sum of 'stage_weight' across all Stages"
 
 
 # -------- #
@@ -57,6 +61,9 @@ DEF_CO2_MIN: float = -float("inf")
 
 DEF_CO2_MAX: float = float("inf")
 """Default value for parameter 'co2_max' in the stage data module"""
+
+DEF_STAGE_WEIGHT: float = 1
+"""Default value for parameter 'stage_weight' in the stage data module"""
 
 
 class Stages:
@@ -259,7 +266,6 @@ class Stages:
     # ------------------------------------- #
     # Property: autonomy_allow_unmet_demand #
     # ------------------------------------- #
-
     def get_allow_unmet_demand(self, s: StageId) -> Optional[bool]:
         self._check_id(s, ExceptionKey.AUTALLOWUNMETDEMAND_GET)
         return self._autonomy_allow_unmet_demand.get(s, None)
@@ -267,6 +273,38 @@ class Stages:
     def set_allow_unmet_demand(self, s: StageId, val: bool) -> None:
         self._check_id(s, ExceptionKey.AUTALLOWUNMETDEMAND_SET)
         self._autonomy_allow_unmet_demand[s] = bool(val)
+
+    # ---------------------- #
+    # Property: stage_weight #
+    # ---------------------- #
+    def get_stage_weight(self, s: StageId) -> float:
+        """
+        Get the parameter 'stage_weight' which denotes the relative weight of
+        a stage's contribution to the objective function. This is an optional,
+        dimensionless parameter with a default value of 1.
+
+        :param s: Stage id
+        :type s: StageId
+        :return: Stage weight
+        :rtype: float
+        """
+        self._check_id(s, ExceptionKey.STAGEWEIGHT_GET)
+        return self._stage_weight.get(s, DEF_STAGE_WEIGHT)
+
+    def set_stage_weight(self, s: StageId, stage_weight: float) -> None:
+        """
+        Set the parameter 'stage_weight' which denotes the relative weight of
+        a stage's contribution to the objective function. This is an optional,
+        dimensionless parameter with a default value of 1. Stage weights must
+        be nonnegative and must not be 0 for all stages simultaneously.
+
+        :param s: Stage id
+        :type s: StageId
+        :param stage_weight: Stage weight
+        :type stage_weight: float
+        """
+        self._check_id(s, ExceptionKey.STAGEWEIGHT_SET)
+        self._stage_weight[s] = stage_weight
 
     # -------------------- #
     # Secondary properties #
@@ -301,6 +339,7 @@ class Stages:
         self._co2_min: Dict[StageId, Value] = {}
         self._co2_max: Dict[StageId, Value] = {}
         self._autonomy_allow_unmet_demand: Dict[StageId, Optional[bool]] = {}
+        self._stage_weight: Dict[StageId, float] = {}
 
     # ---------- #
     # Validation #
@@ -315,6 +354,8 @@ class Stages:
         self._validate_co2_max()
         self._validate_co2_minmax()
         self._validate_co2_price()
+        self._validate_stage_weight()
+        self._validate_stage_weight_sum()
 
     def _validate_start_years(self) -> None:
         # Search for duplicate start years
@@ -356,6 +397,33 @@ class Stages:
             if co2_max.is_negative:
                 msg = f"{co2_max} = co2_max[{s}] < 0"
                 logging.log_warning(msg, module=LOG_MODULE_STR)
+
+    def _validate_stage_weight(self) -> None:
+        for s, stage_weight in self._stage_weight.items():
+            # Negative stage weights make no physical sense
+            if stage_weight < 0:
+                msg = f"{stage_weight} = stage_weight[{s}] < 0"
+                raise exceptions.DataException(
+                    ExceptionKey.STAGEWEIGHT_VAL.value, [s], msg, module=LOG_MODULE_STR
+                )
+
+    def _validate_stage_weight_sum(self) -> None:
+        # An all-zero stage weighting leaves the objective undefined
+        if len(self._ids) == 0:
+            return
+        stage_weight_sum = sum(self.get_stage_weight(s) for s in self._ids)
+        if stage_weight_sum == 0:
+            msg = (
+                "The sum of all stage weights is currently 0, you must set "
+                "the stage_weight of at least one stage to a non-zero "
+                "(positive) value"
+            )
+            raise exceptions.DataException(
+                ExceptionKey.STAGEWEIGHTSUM_VAL.value,
+                list(self._ids),
+                msg,
+                module=LOG_MODULE_STR,
+            )
 
     def _validate_co2_minmax(self) -> None:
         for s in self.ids:

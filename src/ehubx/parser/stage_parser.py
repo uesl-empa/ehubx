@@ -15,6 +15,7 @@ YAMLKEY_CO2PRICE = "co2_price"
 YAMLKEY_CO2MIN = "co2_min"
 YAMLKEY_CO2MAX = "co2_max"
 YAMLKEY_AUTALLOWUNMETDEMAND = "autonomy_allow_unmet_demand"
+YAMLKEY_STAGEWEIGHT = "stage_weight"
 
 # Literals
 LOG_MODULE_STR: str = "parse/stage"
@@ -72,6 +73,12 @@ def _parse_stage(stage_node: yaml_parser.YamlDictNode, stages: Stages) -> None:
     )
     if co2_max is not None:
         stages.set_co2_max(stage_id, co2_max)
+    # stage_weight
+    stage_weight = yaml_parser.parse_optional_float_from_dict_node(
+        stage_node, YAMLKEY_STAGEWEIGHT
+    )
+    if stage_weight is not None:
+        stages.set_stage_weight(stage_id, stage_weight)
 
     # autonomy unmet demand
     autonomy_allow_unmet_demand = yaml_parser.parse_optional_bool_from_dict_node(

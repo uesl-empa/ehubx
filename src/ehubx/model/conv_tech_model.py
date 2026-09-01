@@ -50,7 +50,15 @@ VAR_CONVTECHOUT: str = "V_ConvTechOut"
 """Name of variable for conversion tech outputs"""
 
 VAR_CONVTECHCOSTOPEXOUT: str = "V_ConvTechCostOpexOut"
-"""Name of variable for cost of OPEX for conversion tech outputs"""
+"""Name of variable for OPEX from the energy output of one conversion tech
+in one stage-hub-tech tuple (s, h, x), i.e.; summed over the time steps of
+the stage. The only cost type in the conversion tech module. Building block
+of V_ConvTechCostPerStage"""
+
+VAR_CONVTECHCOSTPERSTAGE: str = "V_ConvTechCostPerStage"
+"""Name of variable for the cost of the conversion tech module in one stage
+s, i.e.; V_ConvTechCostOpexOut summed over all hubs h and techs x of the
+stage. Building block of V_ConvTechCostTotal"""
 
 VAR_CONVTECHCO2OPER: str = "V_ConvTechCo2Oper"
 """Name of variable for operational CO2 from tech input"""
@@ -59,8 +67,8 @@ VAR_CONVTECHCO2OPERTOTAL: str = "V_ConvTechCo2OperTotal"
 """Name of variable for the total operational CO2 from tech input"""
 
 VAR_CONVTECHCOSTTOTAL: str = "V_ConvTechCostTotal"
-"""Name of variable for total cost in conversion tech module (equals OPEX for "
-conversion outputs)"""
+"""Name of variable for the total cost of the conversion tech module, i.e.;
+V_ConvTechCostPerStage summed over all stages s (unweighted)"""
 
 CON_CONVTECHINPART: str = "C_ConvTechInPart"
 """Name of constraint calculating the input composition of a conversion
@@ -91,6 +99,9 @@ CON_CONVTECHCO2OPER: str = "C_ConvTechCo2Oper"
 
 CON_CONVTECHCO2OPERTOTAL: str = "C_ConvTechCo2OperTotal"
 """Name of constraint calculation the total operational CO2 emissions"""
+
+CON_CONVTECHCOSTPERSTAGE: str = "C_ConvTechCostPerStage"
+"""Name of constraint calculating the conversion tech costs per stage"""
 
 CON_CONVTECHCOSTTOTAL: str = "C_ConvTechCostTotal"
 """Name of constraint calculation the total conversion costs (equals OPEX for "
@@ -305,9 +316,15 @@ def _build_cost(
         passenger_unit,
         freight_unit,
     )
+    # [VAR] Cost per stage
+    setattr(
+        model, VAR_CONVTECHCOSTPERSTAGE, Var(getattr(model, SET_STAGE), domain=Reals)
+    )
+    # [CON] Cost per stage
+    _con_conv_tech_cost_per_stage(model)
     # [VAR] Total cost
     setattr(model, VAR_CONVTECHCOSTTOTAL, Var(domain=Reals))
-    # [OBJ] Total cost
+    # [CON] Total cost
     _con_conv_tech_cost_total(model)
 
 
@@ -686,12 +703,30 @@ def _con_conv_tech_co2_oper_total(model: Model) -> None:
     )
 
 
+def _con_conv_tech_cost_per_stage(model: Model) -> None:
+    def __rule_conv_tech_cost_per_stage(model, s):
+        # Calculate the conversion tech cost of this stage
+        conv_tech_cost_per_stage = sum(
+            getattr(model, VAR_CONVTECHCOSTOPEXOUT)[s, h, x]
+            for (s_, h, x) in getattr(model, SET_CONVTECHTUPLE)
+            if s == s_
+        )
+        # Set the constraint
+        return getattr(model, VAR_CONVTECHCOSTPERSTAGE)[s] == conv_tech_cost_per_stage
+
+    setattr(
+        model,
+        CON_CONVTECHCOSTPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_conv_tech_cost_per_stage),
+    )
+
+
 def _con_conv_tech_cost_total(model: Model) -> None:
     def __rule_conv_tech_cost_total(model):
-        # Calculate the total conversion tech cost
+        # Calculate the total conversion tech cost by summing up the stages
         conv_tech_cost_total = sum(
-            getattr(model, VAR_CONVTECHCOSTOPEXOUT)[s, h, x]
-            for (s, h, x) in getattr(model, SET_CONVTECHTUPLE)
+            getattr(model, VAR_CONVTECHCOSTPERSTAGE)[s]
+            for s in getattr(model, SET_STAGE)
         )
         # Set the constraint
         return getattr(model, VAR_CONVTECHCOSTTOTAL) == conv_tech_cost_total

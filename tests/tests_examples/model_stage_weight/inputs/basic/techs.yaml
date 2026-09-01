@@ -1,0 +1,40 @@
+techs:
+
+# Efficient but expensive to install: pays off only if the fuel it saves is
+# counted in the objective
+- tech_id: XEff
+  type: conversion
+  tech_params:
+    lifetime: 10 a
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate: 0.1
+    capex_per_cap: 200 CHF/kW
+  conversion_params:
+    in_ecs:
+    - in_id: EFuel
+      in_part: 1 kWh
+    main_in_ec:
+    out_ecs:
+    - ec_id: E0
+      out_eff: 0.9 kWh/kWh
+
+# Cheap to install but fuel-hungry
+- tech_id: XCheap
+  type: conversion
+  tech_params:
+    lifetime: 10 a
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate: 0.1
+    capex_per_cap: 10 CHF/kW
+  conversion_params:
+    in_ecs:
+    - in_id: EFuel
+      in_part: 1 kWh
+    main_in_ec:
+    out_ecs:
+    - ec_id: E0
+      out_eff: 0.3 kWh/kWh

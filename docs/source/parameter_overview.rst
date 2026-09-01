@@ -1309,6 +1309,15 @@ Parameter table
       - :code:`stages[ID]/start_year`
       - :ref:`stages.yaml<stages_yaml>`
 
+    * - **Stage weight** (stage)
+      - ✖
+      - 1
+      - [-]
+      - ✖
+      - ✖
+      - :code:`stages[ID]/stage_weight`
+      - :ref:`stages.yaml<stages_yaml>`
+
     * - **Standby loss** (ebm)
       - ✖
       - 0

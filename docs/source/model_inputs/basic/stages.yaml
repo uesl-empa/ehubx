@@ -17,9 +17,11 @@ stages:
   co2_price: 0.08 CHF/kg
   co2_min: 0 kg
   co2_max: 100 kg
+  stage_weight: 1
 
 - stage_id: S2
   start_year: 2025
   co2_price: 0.15 CHF/kg
   co2_min: 0 kg
   co2_max: 20 kg
+  stage_weight: 0.5

@@ -39,10 +39,18 @@ VAR_EXP: str = "V_Exp"
 """Name of variable for exports"""
 
 VAR_EXPPROFIT: str = "V_ExpProfit"
-"""Name of variable for export profits (per export tuple)"""
+"""Name of variable for export profits of one stage-hub-ec export tuple
+(s, h, e), i.e.; summed over the time steps of the stage. Building block of
+V_ExpProfitPerStage"""
+
+VAR_EXPPROFITPERSTAGE: str = "V_ExpProfitPerStage"
+"""Name of variable for the export profits in one stage s, i.e.;
+V_ExpProfit summed over all hubs h and ecs e of the stage. Building block
+of V_ExpProfitTotal"""
 
 VAR_EXPPROFITTOTAL: str = "V_ExpProfitTotal"
-"""Name of variable for total export profits"""
+"""Name of variable for total export profits, i.e.; V_ExpProfitPerStage
+summed over all stages s (unweighted)"""
 
 VAR_EXPCO2: str = "V_ExpCo2"
 """Name of variable for export-related CO2 emission reductions (per export
@@ -65,6 +73,9 @@ CON_EXPSUMMAX: str = "C_ExpSumMax"
 
 CON_EXPPROFIT: str = "C_ExpProfit"
 """Name of constraint setting the export profits (per export tuple)"""
+
+CON_EXPPROFITPERSTAGE: str = "C_ExpProfitPerStage"
+"""Name of constraint setting the export profits per stage"""
 
 CON_EXPPROFITTOTAL: str = "C_ExpProfitTotal"
 """Name of constraint setting the total export profits"""
@@ -101,15 +112,37 @@ def build(model: Model, system: EnergySystem) -> None:
     start = datetime.now()
     # Build
     _build_base(
-        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        model,
+        ecs,
+        exports,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
         freight_unit,
     )
     _build_profit(
-        model, ecs, exports, times, currency_unit, mass_unit, power_unit, length_unit,
-        passenger_unit, freight_unit,
+        model,
+        ecs,
+        exports,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     _build_co2(
-        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        model,
+        ecs,
+        exports,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
         freight_unit,
     )
     # Logging
@@ -155,12 +188,25 @@ def _build_base(
     )
     # [CON] Enforce minimal and maximal exports
     _con_exp_minmax(
-        model, ecs, exports, mass_unit, power_unit, length_unit, passenger_unit,
+        model,
+        ecs,
+        exports,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
         freight_unit,
     )
     # [CON] Enforce minima and maxima for summed-up exports
     _con_exp_sum_minmax(
-        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        model,
+        ecs,
+        exports,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
         freight_unit,
     )
 
@@ -181,9 +227,21 @@ def _build_profit(
     setattr(model, VAR_EXPPROFIT, Var(getattr(model, SET_EXPTUPLE), domain=Reals))
     # [CON] Export profit
     _con_exp_profit(
-        model, ecs, exports, times, currency_unit, mass_unit, power_unit, length_unit,
-        passenger_unit, freight_unit,
+        model,
+        ecs,
+        exports,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
+    # [VAR] Export profit per stage
+    setattr(model, VAR_EXPPROFITPERSTAGE, Var(getattr(model, SET_STAGE), domain=Reals))
+    # [CON] Export profit per stage
+    _con_exp_profit_per_stage(model)
     # [VAR] Total export profit
     setattr(model, VAR_EXPPROFITTOTAL, Var(domain=Reals))
     # [CON] Total export profit
@@ -207,7 +265,14 @@ def _build_co2(
     )
     # [CON] Set CO2 emissions for exports
     _con_exp_co2(
-        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        model,
+        ecs,
+        exports,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
         freight_unit,
     )
     # [VAR] Total CO2 emissions from exports
@@ -389,12 +454,29 @@ def _con_exp_profit(
     )
 
 
+def _con_exp_profit_per_stage(model: Model) -> None:
+    def __rule_exp_profit_per_stage(model, s):
+        # Calculate the export profit of this stage
+        exp_profit_per_stage = sum(
+            getattr(model, VAR_EXPPROFIT)[s, h, e]
+            for (s_, h, e) in getattr(model, SET_EXPTUPLE)
+            if s == s_
+        )
+        # Set the constraint
+        return getattr(model, VAR_EXPPROFITPERSTAGE)[s] == exp_profit_per_stage
+
+    setattr(
+        model,
+        CON_EXPPROFITPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_exp_profit_per_stage),
+    )
+
+
 def _con_exp_profit_total(model: Model) -> None:
     def __rule_exp_profit_total(model):
-        # Calculate the total export profit
+        # Calculate the total export profit by summing up the stages
         exp_profit_total = sum(
-            getattr(model, VAR_EXPPROFIT)[s, h, e]
-            for (s, h, e) in getattr(model, SET_EXPTUPLE)
+            getattr(model, VAR_EXPPROFITPERSTAGE)[s] for s in getattr(model, SET_STAGE)
         )
         # Set the constraint
         return getattr(model, VAR_EXPPROFITTOTAL) == exp_profit_total

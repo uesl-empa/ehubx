@@ -104,6 +104,74 @@ def test_validate_duplicate_start_years_raises():
     assert excinfo.value.key == ExceptionKey.STARTYEAR_SET.value
 
 
+def test_stage_weight_default_and_set_get():
+    stages = Stages()
+    s = StageId("s6")
+    stages.add_id(s)
+
+    # default weight is 1
+    assert stages.get_stage_weight(s) == 1
+
+    stages.set_stage_weight(s, 0.3)
+    assert stages.get_stage_weight(s) == 0.3
+
+
+def test_stage_weight_unknown_id_raises_unknownid():
+    stages = Stages()
+    s = StageId("unknown")
+
+    with pytest.raises(exceptions.UnknownIdException) as excinfo_get:
+        stages.get_stage_weight(s)
+    assert excinfo_get.value.key == ExceptionKey.STAGEWEIGHT_GET.value
+
+    with pytest.raises(exceptions.UnknownIdException) as excinfo_set:
+        stages.set_stage_weight(s, 1.0)
+    assert excinfo_set.value.key == ExceptionKey.STAGEWEIGHT_SET.value
+
+
+def test_validate_negative_stage_weight_raises():
+    stages = Stages()
+    s = StageId("s7")
+    stages.add_id(s)
+    stages.set_start_year(s, 2020)
+    stages.set_stage_weight(s, -0.5)
+
+    with pytest.raises(exceptions.DataException) as excinfo:
+        stages.validate()
+    assert excinfo.value.key == ExceptionKey.STAGEWEIGHT_VAL.value
+
+
+def test_validate_all_zero_stage_weights_raises():
+    stages = Stages()
+    s1 = StageId("z1")
+    s2 = StageId("z2")
+    stages.add_id(s1)
+    stages.add_id(s2)
+    stages.set_start_year(s1, 2020)
+    stages.set_start_year(s2, 2030)
+    stages.set_stage_weight(s1, 0)
+    stages.set_stage_weight(s2, 0)
+
+    with pytest.raises(exceptions.DataException) as excinfo:
+        stages.validate()
+    assert excinfo.value.key == ExceptionKey.STAGEWEIGHTSUM_VAL.value
+
+
+def test_validate_zero_stage_weight_allowed_when_sum_positive():
+    stages = Stages()
+    s1 = StageId("w1")
+    s2 = StageId("w2")
+    stages.add_id(s1)
+    stages.add_id(s2)
+    stages.set_start_year(s1, 2020)
+    stages.set_start_year(s2, 2030)
+    stages.set_stage_weight(s1, 1)
+    stages.set_stage_weight(s2, 0)
+
+    # A single zero weight is fine as long as the sum is positive
+    stages.validate()
+
+
 def test_validate_co2_min_greater_than_max_raises():
     stages = Stages()
     s = StageId("s5")

@@ -11,6 +11,7 @@ from ehubx.data.stage_data import (
     Stages,
     DEF_CO2_MIN,
     DEF_CO2_MAX,
+    DEF_STAGE_WEIGHT,
 )
 from ehubx.data.unit import CurrencyUnit, MassUnit
 from ehubx.data.value import Value
@@ -212,6 +213,61 @@ def test_parse_optional_fields_default_when_blank(tmp_path):
     assert stages.get_co2_price(s1) == Value(0, CurrencyUnit.CHF / MassUnit.KG)
     assert stages.get_co2_min(s1) == Value(DEF_CO2_MIN, MassUnit.KG)
     assert stages.get_co2_max(s1) == Value(DEF_CO2_MAX, MassUnit.KG)
+
+
+def test_parse_stage_weight(tmp_path):
+    _write_yaml(
+        tmp_path,
+        "stages.yaml",
+        """stages:
+  - stage_id: s1
+    start_year: 2020
+    stage_weight: 1
+  - stage_id: s2
+    start_year: 2030
+    stage_weight: 0.3
+  - stage_id: s3
+    start_year: 2040
+""",
+    )
+
+    stages, _ = stage_parser.parse(str(tmp_path))
+
+    assert stages.get_stage_weight(StageId("s1")) == 1
+    assert stages.get_stage_weight(StageId("s2")) == 0.3
+    # Unset stage_weight falls back to the default
+    assert stages.get_stage_weight(StageId("s3")) == DEF_STAGE_WEIGHT
+
+
+def test_parse_stage_weight_default_when_blank(tmp_path):
+    _write_yaml(
+        tmp_path,
+        "stages.yaml",
+        """stages:
+  - stage_id: s1
+    start_year: 2020
+    stage_weight:
+""",
+    )
+
+    stages, _ = stage_parser.parse(str(tmp_path))
+
+    assert stages.get_stage_weight(StageId("s1")) == DEF_STAGE_WEIGHT
+
+
+def test_parse_stage_weight_not_a_number_raises_exception(tmp_path):
+    _write_yaml(
+        tmp_path,
+        "stages.yaml",
+        """stages:
+  - stage_id: s1
+    start_year: 2020
+    stage_weight: heavy
+""",
+    )
+
+    with pytest.raises(exceptions.InvalidParamTypeException):
+        stage_parser.parse(str(tmp_path))
 
 
 def test_parse_invalid_co2_price_unit_raises_exception(tmp_path):

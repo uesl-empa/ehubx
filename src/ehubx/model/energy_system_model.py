@@ -58,11 +58,25 @@ from ehubx.model import (
 LOG_MODULE_STR: str = "mod/system"
 """String identifying the energy system model for logging purposes"""
 
+VAR_SYSTEMCOSTCO2PENALTYPERSTAGE: str = "V_SystemCostCo2PenaltyPerStage"
+"""Name of variable for the system-wide CO2 penalty costs of one stage s,
+i.e.; co2_price[s] times V_SystemCo2[s]. Building block of
+V_SystemCostCo2Penalty and of V_SystemCostPerStage"""
+
 VAR_SYSTEMCOSTCO2PENALTY: str = "V_SystemCostCo2Penalty"
-"""Name of variable for system-wide CO2 penalty costs"""
+"""Name of variable for the system-wide CO2 penalty costs, i.e.;
+V_SystemCostCo2PenaltyPerStage summed over all stages s (unweighted)"""
+
+VAR_SYSTEMCOSTPERSTAGE: str = "V_SystemCostPerStage"
+"""Name of variable for the system-wide costs of one stage s, i.e.; the
+per-stage costs of all submodules plus the CO2 penalty of that stage. These
+are actual (unweighted) costs, unlike V_SystemCost"""
 
 VAR_SYSTEMCOST: str = "V_SystemCost"
-"""Name of variable for system-wide costs"""
+"""Name of variable for the system-wide costs that are optimized, i.e.; the
+average of V_SystemCostPerStage weighted by the parameter stage_weight from
+stages.yaml. With the default stage weights, this is the plain average over
+the stages"""
 
 VAR_SYSTEMCO2: str = "V_SystemCo2"
 """Name of variable for system-wide CO2 emissions (per stage)"""
@@ -75,9 +89,14 @@ VAR_SYSTEMSELFSUFFICIENCY: str = "V_SystemSelfSufficiency"
 
 VAR_SYSTEMAUTONOMY: str = "V_SystemAutonomy"
 """Name of variable for system-wide autonomy"""
+CON_SYSTEMCO2PENALTYPERSTAGE: str = "C_SystemCostCo2PenaltyPerStage"
+"""Name of constraint fixing the system-wide CO2 penalty variable per stage"""
 
 CON_SYSTEMCO2PENALTY: str = "C_SystemCostCo2Penalty"
 """Name of constraint fixing the system-wide CO2 penalty variable"""
+
+CON_SYSTEMCOSTPERSTAGE: str = "C_SystemCostPerStage"
+"""Name of constraint fixing the system costs per stage"""
 
 CON_SYSTEMCOSTTOTAL: str = "C_SystemCostTotal"
 """Name of constraint fixing the total system costs"""
@@ -197,14 +216,30 @@ def _build_self(model: Model, energy_system: EnergySystem) -> None:
 def _build_self_cost(
     model: Model, stages: Stages, currency_unit: CurrencyUnit, mass_unit: MassUnit
 ) -> None:
+    # [VAR] System CO2 penalty cost per stage
+    setattr(
+        model,
+        VAR_SYSTEMCOSTCO2PENALTYPERSTAGE,
+        Var(getattr(model, stage_model.SET_STAGE), domain=Reals),
+    )
+    # [CON] System CO2 penalty cost per stage
+    _con_system_cost_co2_penalty_per_stage(model, stages, currency_unit, mass_unit)
     # [VAR] System CO2 penalty cost
     setattr(model, VAR_SYSTEMCOSTCO2PENALTY, Var(domain=Reals))
     # [CON] System CO2 penalty cost
-    _con_system_cost_co2_penalty(model, stages, currency_unit, mass_unit)
+    _con_system_cost_co2_penalty(model)
+    # [VAR] System cost per stage
+    setattr(
+        model,
+        VAR_SYSTEMCOSTPERSTAGE,
+        Var(getattr(model, stage_model.SET_STAGE), domain=Reals),
+    )
+    # [CON] System cost per stage
+    _con_system_cost_per_stage(model)
     # [VAR] System cost
     setattr(model, VAR_SYSTEMCOST, Var(domain=Reals))
     # [CON] System cost
-    _con_system_cost(model)
+    _con_system_cost(model, stages)
     # [OBJ] System cost
     _obj_system_cost(model)
 
@@ -274,18 +309,36 @@ def _build_self_demand_supply_profile(
     )
 
 
-def _con_system_cost_co2_penalty(
+def _con_system_cost_co2_penalty_per_stage(
     model: Model, stages: Stages, currency_unit: CurrencyUnit, mass_unit: MassUnit
 ) -> None:
+    def __rule_system_cost_co2_penalty_per_stage(model, s):
+        # Calculate the CO2 penalty value of this stage
+        system_cost_co2_penalty_per_stage = (
+            stages.get_co2_price(StageId(s)).to_float(unit=currency_unit / mass_unit)
+            * getattr(model, VAR_SYSTEMCO2)[s]
+        )
+        # Set the constraint
+        return (
+            getattr(model, VAR_SYSTEMCOSTCO2PENALTYPERSTAGE)[s]
+            == system_cost_co2_penalty_per_stage
+        )
+
+    setattr(
+        model,
+        CON_SYSTEMCO2PENALTYPERSTAGE,
+        Constraint(
+            getattr(model, stage_model.SET_STAGE),
+            rule=__rule_system_cost_co2_penalty_per_stage,
+        ),
+    )
+
+
+def _con_system_cost_co2_penalty(model: Model) -> None:
     def __rule_system_cost_co2_penalty(model):
-        # Calculate the CO2 penalty value
+        # Calculate the CO2 penalty value by summing up the stages
         system_cost_co2_penalty = sum(
-            (
-                stages.get_co2_price(StageId(s)).to_float(
-                    unit=currency_unit / mass_unit
-                )
-                * getattr(model, VAR_SYSTEMCO2)[s]
-            )
+            getattr(model, VAR_SYSTEMCOSTCO2PENALTYPERSTAGE)[s]
             for s in getattr(model, stage_model.SET_STAGE)
         )
         # Set the constraint
@@ -296,38 +349,75 @@ def _con_system_cost_co2_penalty(
     )
 
 
-def _con_system_cost(model: Model) -> None:
-    def __rule_system_cost_total_var(model):
-        system_cost_total = 0
+def _con_system_cost_per_stage(model: Model) -> None:
+    def __rule_system_cost_per_stage(model, s):
+        system_cost_per_stage = 0
         # Tech cost (CAPEX and OPEX from installation)
-        system_cost_total += getattr(model, tech_model.VAR_TECHCOSTTOTAL)
+        system_cost_per_stage += getattr(model, tech_model.VAR_TECHCOSTPERSTAGE)[s]
         # Conversion tech cost (OPEX from energy output)
-        system_cost_total += getattr(model, conv_tech_model.VAR_CONVTECHCOSTTOTAL)
+        system_cost_per_stage += getattr(
+            model, conv_tech_model.VAR_CONVTECHCOSTPERSTAGE
+        )[s]
         # Storage tech cost (OPEX from storage outflow)
-        system_cost_total += getattr(model, stor_tech_model.VAR_STORTECHCOSTTOTAL)
+        system_cost_per_stage += getattr(
+            model, stor_tech_model.VAR_STORTECHCOSTPERSTAGE
+        )[s]
         # Import cost
-        system_cost_total += getattr(model, import_model.VAR_IMPCOSTTOTAL)
+        system_cost_per_stage += getattr(model, import_model.VAR_IMPCOSTPERSTAGE)[s]
         # Export profit
-        system_cost_total -= getattr(model, export_model.VAR_EXPPROFITTOTAL)
+        system_cost_per_stage -= getattr(model, export_model.VAR_EXPPROFITPERSTAGE)[s]
         # Load shedding cost
-        system_cost_total += getattr(
-            model, load_shedding_model.VAR_LOADHSHEDDINGCOSTTOTAL
-        )
+        system_cost_per_stage += getattr(
+            model, load_shedding_model.VAR_LOADSHEDDINGCOSTPERSTAGE
+        )[s]
         # Load shifting cost
-        system_cost_total += getattr(
-            model, load_shifting_model.VAR_LOADSHIFTINGCOSTTOTAL
-        )
+        system_cost_per_stage += getattr(
+            model, load_shifting_model.VAR_LOADSHIFTINGCOSTPERSTAGE
+        )[s]
         # Network tech cost (investment, CAPEX, OPEX from installation and
         #                    OPEX from transmission)
-        system_cost_total += getattr(model, network_model.VAR_NETTECHCOSTTOTAL)
+        system_cost_per_stage += getattr(
+            model, network_model.VAR_NETTECHCOSTPERSTAGE
+        )[s]
         # CO2 penalty cost
-        system_cost_total += getattr(model, VAR_SYSTEMCOSTCO2PENALTY)
+        system_cost_per_stage += getattr(model, VAR_SYSTEMCOSTCO2PENALTYPERSTAGE)[s]
+        # Set system cost of this stage
+        return getattr(model, VAR_SYSTEMCOSTPERSTAGE)[s] == system_cost_per_stage
+
+    setattr(
+        model,
+        CON_SYSTEMCOSTPERSTAGE,
+        Constraint(
+            getattr(model, stage_model.SET_STAGE), rule=__rule_system_cost_per_stage
+        ),
+    )
+
+
+def _con_system_cost(model: Model, stages: Stages) -> None:
+    def __rule_system_cost_total_var(model):
+        # Weight of each stage in the objective function
+        stage_weights = {
+            s: stages.get_stage_weight(StageId(s))
+            for s in getattr(model, stage_model.SET_STAGE)
+        }
+        # The stage data validation guarantees that this sum is positive
+        stage_weight_sum = sum(stage_weights.values())
+        # Weighted sum of the stages' system costs
+        system_cost_weighted = sum(
+            stage_weights[s] * getattr(model, VAR_SYSTEMCOSTPERSTAGE)[s]
+            for s in getattr(model, stage_model.SET_STAGE)
+        )
+        ## Autonomy-module costs are not yet decomposed per stage (added on github main
+        ## after the resilience_extension had branched out. They enter unweighted.
         # Unmet demand penalty cost
-        system_cost_total += getattr(model, demand_model.VAR_DEMANDUNMETCOSTTOTAL)
+        system_cost_weighted += getattr(model, demand_model.VAR_DEMANDUNMETCOSTTOTAL)
         # Storage fill cost (pre filled energy in non-cyclic storage)
-        system_cost_total += getattr(model, stor_tech_model.VAR_STORTECHFILLCOSTTOTAL)
-        # Set system cost
-        return getattr(model, VAR_SYSTEMCOST) == system_cost_total
+        system_cost_weighted += getattr(model, stor_tech_model.VAR_STORTECHFILLCOSTTOTAL)
+
+        # Set system cost as the weighted average over the stages. Dividing by
+        # the sum of the stage weights keeps the system cost an annual cost,
+        # independent of the number of stages and of the scale of the weights
+        return stage_weight_sum * getattr(model, VAR_SYSTEMCOST) == system_cost_weighted
 
     setattr(model, CON_SYSTEMCOSTTOTAL, Constraint(rule=__rule_system_cost_total_var))
 

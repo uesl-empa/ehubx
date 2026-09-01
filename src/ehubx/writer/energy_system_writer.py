@@ -79,6 +79,9 @@ ENTRY_STAGECO2MIN: str = "Minimal CO2 emissions"
 ENTRY_STAGECO2MAX: str = "Maximal CO2 emissions"
 """Entry name for the maximal CO2 emissions in result files"""
 
+ENTRY_STAGEWEIGHT: str = "Stage weight"
+"""Entry name for the stage weight in result files"""
+
 ENTRY_SELFSUFFCALCULATIONMETHOD: str = "Self-sufficiency calculation method"
 """Entry name for the self-sufficiency calculation method in result files"""
 
@@ -101,8 +104,18 @@ ENTRY_SYSTEMCO2TOTAL: str = (
 )
 """Entry name for the total CO2 emissions variable in result files"""
 
-ENTRY_SYSTEMCOST: str = f"Cost ({energy_system_model.VAR_SYSTEMCOST})"
-"""Entry name for the cost variable in result files"""
+ENTRY_SYSTEMCOSTPERSTAGE: str = (
+    f"Cost per stage, before stage_weight "
+    f"({energy_system_model.VAR_SYSTEMCOSTPERSTAGE})"
+)
+"""Entry name for the per-stage cost variable in result files. These are the
+actual costs of a stage, i.e.; the stage weights are not applied to them"""
+
+ENTRY_SYSTEMCOST: str = (
+    f"Cost, stage-weighted average ({energy_system_model.VAR_SYSTEMCOST})"
+)
+"""Entry name for the cost variable in result files. This is the optimized
+quantity, i.e.; the average of the per-stage costs weighted by stage_weight"""
 
 ENTRY_SYSTEMAUTONOMY: str = f"Cost ({energy_system_model.VAR_SYSTEMAUTONOMY})"
 """Entry name for the autonomy variable in result files"""
@@ -298,6 +311,18 @@ def _format_all_system(
             in_res="input",
         )
 
+    # Stage weight
+    for s in energy_system.stages.ids_in_order:
+        stage_weight = Value(energy_system.stages.get_stage_weight(s))
+        df_st_builder.add_row(
+            ENTRY_STAGEWEIGHT,
+            stage_weight,
+            unit=DimlessUnit(),
+            stage=s.key,
+            source=SOURCE_STAGES,
+            in_res="input",
+        )
+
     # Self-sufficiency calculation method
     aut_calc_method = energy_system.self_sufficiency.calculation_method
     df_st_builder.add_row(
@@ -340,7 +365,21 @@ def _format_all_system(
             in_res="result",
         )
 
-    # System cost
+    # System cost per stage (without the stage weights applied)
+    var = getattr(model, energy_system_model.VAR_SYSTEMCOSTPERSTAGE)
+    for s in energy_system.stages.ids_in_order:
+        cost_per_stage = value(var[s.key], exception=False)
+        if cost_per_stage is not None:
+            df_st_builder.add_row(
+                ENTRY_SYSTEMCOSTPERSTAGE,
+                cost_per_stage,
+                unit=energy_system.currency_unit,
+                stage=s.key,
+                source=SOURCE,
+                in_res="result",
+            )
+
+    # System cost (weighted average of the per-stage costs)
     var = getattr(model, energy_system_model.VAR_SYSTEMCOST)
     cost = value(var, exception=False)
     df_st_builder.add_row(

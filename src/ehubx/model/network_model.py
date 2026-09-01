@@ -116,8 +116,15 @@ VAR_NETTECHCOSTOPEXTRANS: str = "V_NetTechCostOpexTrans"
 """Name of variable for OPEX costs for network technologies based on
 transmission amounts"""
 
+VAR_NETTECHCOSTPERSTAGE: str = "V_NetTechCostPerStage"
+"""Name of variable for the network tech costs in one stage s, i.e.; the
+CAPEX, capacity-based OPEX and transmission OPEX variables summed over all
+links l and network techs n of the stage. Building block of
+V_NetTechCostTotal"""
+
 VAR_NETTECHCOSTTOTAL: str = "V_NetTechCostTotal"
-"""Name of variable for total network tech costs"""
+"""Name of variable for total network tech costs, i.e.;
+V_NetTechCostPerStage summed over all stages s (unweighted)"""
 
 VAR_NETTECHCO2INSTL: str = "V_NetTechCo2Instl"
 """Name of variable for embodied CO2 emissions from network technology
@@ -188,6 +195,9 @@ capacity"""
 CON_NETTECHCOSTOPEXTRANS: str = "C_NetTechCostOpexTrans"
 """Name of constraint setting OPEX costs for network technology based on
 transmission amounts"""
+
+CON_NETTECHCOSTPERSTAGE: str = "C_NetTechCostPerStage"
+"""Name of constraint setting the costs for network techs per stage"""
 
 CON_NETTECHCOSTTOTAL: str = "C_NetTechCostTotal"
 """Name of constraint setting total costs for network techs"""
@@ -697,6 +707,12 @@ def _build_cost(
         passenger_unit,
         freight_unit,
     )
+    # [VAR] Cost per stage
+    setattr(
+        model, VAR_NETTECHCOSTPERSTAGE, Var(getattr(model, SET_STAGE), domain=Reals)
+    )
+    # [CON] Cost per stage
+    _con_net_tech_cost_per_stage(model)
     # [VAR] Total cost
     setattr(model, VAR_NETTECHCOSTTOTAL, Var(domain=Reals))
     # [CON] Total cost
@@ -1437,14 +1453,32 @@ def _con_net_tech_cost_opex_trans(
     )
 
 
-def _con_net_tech_cost_total(model: Model) -> None:
-    def __rule_net_tech_cost_total(model):
-        # Calculate the total network tech cost
-        net_tech_cost_total = sum(
+def _con_net_tech_cost_per_stage(model: Model) -> None:
+    def __rule_net_tech_cost_per_stage(model, s):
+        # Calculate the network tech cost of this stage
+        net_tech_cost_per_stage = sum(
             getattr(model, VAR_NETTECHCOSTCAPEX)[s, li, n]
             + getattr(model, VAR_NETTECHCOSTOPEXCAP)[s, li, n]
             + getattr(model, VAR_NETTECHCOSTOPEXTRANS)[s, li, n]
-            for (s, li, n) in getattr(model, SET_NETTECHTUPLE)
+            for (s_, li, n) in getattr(model, SET_NETTECHTUPLE)
+            if s == s_
+        )
+        # Set the constraint
+        return getattr(model, VAR_NETTECHCOSTPERSTAGE)[s] == net_tech_cost_per_stage
+
+    setattr(
+        model,
+        CON_NETTECHCOSTPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_net_tech_cost_per_stage),
+    )
+
+
+def _con_net_tech_cost_total(model: Model) -> None:
+    def __rule_net_tech_cost_total(model):
+        # Calculate the total network tech cost by summing up the stages
+        net_tech_cost_total = sum(
+            getattr(model, VAR_NETTECHCOSTPERSTAGE)[s]
+            for s in getattr(model, SET_STAGE)
         )
         # Set the constraint
         return getattr(model, VAR_NETTECHCOSTTOTAL) == net_tech_cost_total

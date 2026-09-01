@@ -38,10 +38,18 @@ VAR_IMP: str = "V_Imp"
 """Name of variable for imports"""
 
 VAR_IMPCOST: str = "V_ImpCost"
-"""Name of variable for import costs (per import tuple)"""
+"""Name of variable for import costs of one stage-hub-ec import tuple
+(s, h, e), i.e.; summed over the time steps of the stage. Building block of
+V_ImpCostPerStage"""
+
+VAR_IMPCOSTPERSTAGE: str = "V_ImpCostPerStage"
+"""Name of variable for the import costs in one stage s, i.e.; V_ImpCost
+summed over all hubs h and ecs e of the stage. Building block of
+V_ImpCostTotal"""
 
 VAR_IMPCOSTTOTAL: str = "V_ImpCostTotal"
-"""Name of variable for total import costs"""
+"""Name of variable for total import costs, i.e.; V_ImpCostPerStage summed
+over all stages s (unweighted)"""
 
 VAR_IMPCO2: str = "V_ImpCo2"
 """Name of variable for import-related CO2 emissions (per import tuple)"""
@@ -57,6 +65,9 @@ CON_IMPSUMMAX: str = "C_ImpSumMax"
 
 CON_IMPCOST: str = "C_ImpCost"
 """Name of constraint setting import costs (per import tuple)"""
+
+CON_IMPCOSTPERSTAGE: str = "C_ImpCostPerStage"
+"""Name of constraint setting import costs per stage"""
 
 CON_IMPCOSTTOTAL: str = "C_ImpCostTotal"
 """Name of constraint setting total import costs"""
@@ -204,6 +215,10 @@ def _build_cost(
         passenger_unit,
         freight_unit,
     )
+    # [VAR] Import cost per stage
+    setattr(model, VAR_IMPCOSTPERSTAGE, Var(getattr(model, SET_STAGE), domain=Reals))
+    # [CON] Import cost per stage
+    _con_imp_cost_per_stage(model)
     # [VAR] Total import cost
     setattr(model, VAR_IMPCOSTTOTAL, Var(domain=Reals))
     # [CON] Total import cost
@@ -346,12 +361,29 @@ def _con_imp_cost(
     )
 
 
+def _con_imp_cost_per_stage(model: Model) -> None:
+    def __rule_imp_cost_per_stage(model, s):
+        # Calculate the import cost of this stage
+        imp_cost_per_stage = sum(
+            getattr(model, VAR_IMPCOST)[s, h, e]
+            for (s_, h, e) in getattr(model, SET_IMPTUPLE)
+            if s == s_
+        )
+        # Set the constraint
+        return getattr(model, VAR_IMPCOSTPERSTAGE)[s] == imp_cost_per_stage
+
+    setattr(
+        model,
+        CON_IMPCOSTPERSTAGE,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_imp_cost_per_stage),
+    )
+
+
 def _con_imp_cost_total(model: Model) -> None:
     def __rule_imp_cost_total(model):
-        # Calculate the total import cost
+        # Calculate the total import cost by summing up the stages
         imp_cost_total = sum(
-            getattr(model, VAR_IMPCOST)[s, h, e]
-            for (s, h, e) in getattr(model, SET_IMPTUPLE)
+            getattr(model, VAR_IMPCOSTPERSTAGE)[s] for s in getattr(model, SET_STAGE)
         )
         # Set the constraint
         return getattr(model, VAR_IMPCOSTTOTAL) == imp_cost_total

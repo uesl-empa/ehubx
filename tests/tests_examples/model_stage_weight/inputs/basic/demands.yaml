@@ -1,0 +1,10 @@
+demand_sums:
+- stages: S1
+  hubs: H1
+  ec: E0
+  demand_sum: 100 kWh
+
+- stages: S2
+  hubs: H1
+  ec: E0
+  demand_sum: 100 kWh
