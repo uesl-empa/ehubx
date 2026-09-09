@@ -367,8 +367,8 @@ class Stages:
         }
         if len(dupes) > 0:
             dupe_dict = {
-                dupe_year: [s for s in self._ids if dupes[s] == dupe_year]
-                for dupe_year in set(dupes.values())
+                dupe_year: [s for s in dupes if dupes[s] == dupe_year]
+                for dupe_year in sorted(set(dupes.values()))
             }
             msg = f"Duplicate start_years: {dupe_dict}"
             raise exceptions.DataException(

@@ -104,6 +104,62 @@ def test_validate_duplicate_start_years_raises():
     assert excinfo.value.key == ExceptionKey.STARTYEAR_SET.value
 
 
+def test_validate_duplicate_start_years_with_unique_stage_raises():
+    # Regression: with at least one stage outside the duplicate group, the
+    # message-building comprehension used to index the dupes-only dict with
+    # every known id, raising KeyError instead of the intended DataException
+    stages = Stages()
+    dup1 = StageId("dup1")
+    dup2 = StageId("dup2")
+    unique = StageId("unique")
+    for sid in (dup1, dup2, unique):
+        stages.add_id(sid)
+    stages.set_start_year(dup1, 2020)
+    stages.set_start_year(dup2, 2020)
+    stages.set_start_year(unique, 2030)
+
+    with pytest.raises(exceptions.DataException) as excinfo:
+        stages.validate()
+    assert excinfo.value.key == ExceptionKey.STARTYEAR_SET.value
+    # only the duplicated stages are reported, not the unique one
+    assert set(excinfo.value.indices) == {dup1, dup2}
+    assert "2020" in str(excinfo.value)
+    assert "2030" not in str(excinfo.value)
+
+
+def test_validate_two_duplicate_groups_raises():
+    stages = Stages()
+    a1 = StageId("a1")
+    a2 = StageId("a2")
+    b1 = StageId("b1")
+    b2 = StageId("b2")
+    unique = StageId("unique")
+    for sid in (a1, a2, b1, b2, unique):
+        stages.add_id(sid)
+    stages.set_start_year(a1, 2020)
+    stages.set_start_year(a2, 2020)
+    stages.set_start_year(b1, 2030)
+    stages.set_start_year(b2, 2030)
+    stages.set_start_year(unique, 2040)
+
+    with pytest.raises(exceptions.DataException) as excinfo:
+        stages.validate()
+    assert set(excinfo.value.indices) == {a1, a2, b1, b2}
+    # both duplicate groups are named in the message
+    assert "2020" in str(excinfo.value)
+    assert "2030" in str(excinfo.value)
+
+
+def test_validate_unique_start_years_does_not_raise():
+    stages = Stages()
+    for key, year in (("s1", 2020), ("s2", 2030), ("s3", 2040)):
+        sid = StageId(key)
+        stages.add_id(sid)
+        stages.set_start_year(sid, year)
+
+    stages.validate()
+
+
 def test_stage_weight_default_and_set_get():
     stages = Stages()
     s = StageId("s6")
