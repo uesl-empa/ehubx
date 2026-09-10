@@ -497,12 +497,19 @@ demands.yaml
 
 **Demand parameters**
 
-* **demands** (*optional, default={}*): Identifiable list of demands that contain data for the :ref:`demand model <demand_model>`. Each demand encompasses a set of (stage, hub, EC) tuples for which demand values are defined. If such a tuple occurs in multiple demands, the values are summed up to calculate the actual demand that is used in the model.
-* **demand_id** (*mandatory*): Demand id.
-* **profile_path** (*mandatory, file*): File path (relative to demands.yaml) of a time series file with time-specific data for the demand values. It has to contain the following headers:
+* **demand_profiles** (*optional, default=[]*): List of demand-profile files that contain profile data for the :ref:`demand model <demand_model>`. These are demands which have to be given for each time step in the model, to be met by the supply (if no load shedding or load shifting occurs). Each demand-profile in each of the files encompasses a set of (stage, hub, EC) tuples for which demand values are defined. If such a tuple occurs in multiple files, the values are summed up to calculate the actual demand profile that is used in the model.
+* **Entries of demand_profiles** (*file*): File path (relative to demands.yaml) of a time series file containing demand-profiles. It has to contain the following headers:
+
   * *stage_id*: Stage id.
   * *hub_id*: Hub id.
   * *ec_id*: EC id.
+  * *unit*: Unit of the demand values, which has to be of type [ec/h] (e.g., kW for an EC with unit kWh). Unlike in other csv files, this row cannot be omitted.
+
+* **demand_sums** (*optional, default=[]*): List of demand-sums that contain a demand for the sum of supply across the entire time horizon. The (stage, hub, EC) tuples below may not occur in any of the above demand_profiles. Only the summed-up supply is prescribed, so the optimizer is free to choose how it is distributed over the time steps. Load shedding and load shifting cannot be applied to these tuples: a load shedding or load shifting entry that contains such a tuple causes an error when the model is built, even if the entry is disabled.
+* **stages** (*mandatory*): List of stage ids for which demand-sums are defined. Can also be a single stage id.
+* **hubs** (*mandatory*): List of hub ids for which demand-sums are defined. Can also be a single hub id.
+* **ec** (*mandatory*): EC id for which demand-sums are defined.
+* **demand_sum** (*mandatory, [ec]*): Total demand for the sum of supply across the entire time horizon for the above stages, hubs and EC.
 
 .. literalinclude:: model_inputs/basic/profiles/demand_profiles.csv
     :language: ruby
