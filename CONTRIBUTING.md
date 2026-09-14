@@ -1,4 +1,4 @@
-# Contributing to ehubX
+# Contributing to ehubX [DRAFT - to be aligned with UESL/Empa team]
 
 Thank you for your interest in contributing to ehubX! This document outlines how you can contribute to the project.
 
@@ -6,7 +6,7 @@ Thank you for your interest in contributing to ehubX! This document outlines how
 
 **Important:** This project was originally hosted on GitLab but has now migrated to GitHub. 
 
-- **GitHub repository (this one):** https://github.com/uesl-empa/ehubx — **Primary/Canonical**
+- **GitHub repository (the one under UESL-Empa):** https://github.com/uesl-empa/ehubx — **Primary/Canonical**
 - **GitLab repository:** Legacy/archival only — **do not submit new contributions there**
 
 All new contributions, issues, and discussions should be directed to the **GitHub repository**.
