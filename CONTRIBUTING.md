@@ -11,6 +11,38 @@ Thank you for your interest in contributing to ehubX! This document outlines how
 
 All new contributions, issues, and discussions should be directed to the **GitHub repository**.
 
+## Migrating Changes from GitLab to GitHub
+
+If you have local changes or branches based on the GitLab repository, follow these steps to migrate your work to GitHub:
+
+1. **Add GitHub as a remote** to your existing local repository:
+   ```bash
+   git remote add github https://github.com/uesl-empa/ehubx.git
+   git fetch github
+   ```
+
+2. **Check your current branch** and ensure it's up to date with GitLab's main:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+3. **Rebase your work** onto GitHub's main branch:
+   ```bash
+   git checkout your-feature-branch
+   git rebase main
+   ```
+   If there are conflicts, resolve them, then continue the rebase with `git rebase --continue`.
+
+4. **Push your branch to GitHub**:
+   ```bash
+   git push github your-feature-branch
+   ```
+
+5. **Open a pull request** on GitHub from your branch to `main`.
+
+**Note:** If your GitLab fork has diverged significantly, it may be easier to manually cherry-pick your commits to a fresh clone of the GitHub repository.
+
 ## Ways to Contribute
 
 - **Reporting bugs:** Open an issue on GitHub with a clear description and steps to reproduce
