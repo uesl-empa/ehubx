@@ -1,0 +1,17 @@
+tech_lists:
+- tech_list_id: TL1
+  techs: [XConv, XBat]
+
+hubs:
+# H1: demand profile with a daily peak, supplied by a fuel-fired conversion
+# tech and a battery. The battery has no cap_max on purpose, so that its
+# capacity bound comes from the heuristic limits
+- hub_id: H1
+  allowed_tech_lists: TL1
+  techs:
+  - tech_id: XConv
+    tech_params:
+      cap_max: 1000 kW
+
+# H2: demand given as an annual demand_sum, supplied by direct imports
+- hub_id: H2

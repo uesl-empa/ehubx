@@ -11,7 +11,7 @@ from pyomo.core import Model, Objective, value
 import ehubx.data.exceptions as data_exceptions
 from ehubx.core import exceptions, logging
 from ehubx.data.energy_system_data import EnergySystem
-from ehubx.data.unit import DimlessUnit
+from ehubx.data.unit import DimlessUnit, TimeUnit
 from ehubx.data.value import Value
 from ehubx.model import energy_system_model, self_sufficiency_model
 from ehubx.writer import (
@@ -66,6 +66,15 @@ ENTRY_NUMTIMESHORIZON: str = "Number of horizon timesteps"
 
 ENTRY_NUMTIMESCLUSTERED: str = "Number of clustered timesteps"
 """Entry name for the number of clustered timesteps in result files"""
+
+ENTRY_ANNUALIZEHORIZON: str = "Annualize horizon"
+"""Entry name for the annualize_horizon setting in result files"""
+
+ENTRY_HOURSREPRESENTED: str = "Hours represented by the time horizon"
+"""Entry name for the number of hours that the time horizon represents in
+result files, i.e.; the sum of the time step weights of a stage. This equals
+the number of horizon timesteps unless the horizon is annualized, in which
+case it equals the number of hours in a year"""
 
 ENTRY_STAGESTARTYEAR: str = "Stage start year"
 """Entry name for the stage start year in result files"""
@@ -235,8 +244,9 @@ def _format_all_system(
         in_res="input",
     )
 
-    # Number of horizon timesteps
-    num_ts_hor = energy_system.num_times_horizon
+    # Number of horizon timesteps (taken from the time data, which reflects a
+    # horizon shortened by reduced-order modeling)
+    num_ts_hor = energy_system.times.num_horizon_ts
     df_st_builder.add_row(
         ENTRY_NUMTIMESHORIZON, str(num_ts_hor), source=SOURCE, in_res="input"
     )
@@ -249,6 +259,28 @@ def _format_all_system(
             str(num_ts_cl),
             source=SOURCE,
             in_res="result",
+        )
+
+    # Annualization of the time horizon
+    df_st_builder.add_row(
+        ENTRY_ANNUALIZEHORIZON,
+        energy_system.annualize_horizon,
+        source=SOURCE,
+        in_res="input",
+    )
+
+    # Hours represented by the time horizon (sum of the time step weights)
+    for s in energy_system.stages.ids_in_order:
+        hours_represented = Value(
+            energy_system.times.get_weight_sum(s), unit=TimeUnit.H
+        )
+        df_st_builder.add_row(
+            ENTRY_HOURSREPRESENTED,
+            hours_represented,
+            unit=TimeUnit.H,
+            stage=s.key,
+            source=SOURCE,
+            in_res="input",
         )
 
     # Stage start year

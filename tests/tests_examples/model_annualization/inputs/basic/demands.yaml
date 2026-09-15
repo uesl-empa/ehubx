@@ -1,0 +1,10 @@
+demand_profiles:
+- profiles/demands.csv
+
+# With annualize_horizon set, the demand_sum is an annual demand: over the
+# 48-hour horizon the model has to supply 87600 kWh * 48 / 8760 = 480 kWh
+demand_sums:
+- stages: S1
+  hubs: H2
+  ec: E0
+  demand_sum: 87600 kWh

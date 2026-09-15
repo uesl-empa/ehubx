@@ -6,6 +6,7 @@ from collections import Counter
 from enum import Enum, EnumMeta
 from typing import Any, Dict, List, Tuple
 
+from ehubx.core import common
 from ehubx.data import exceptions
 
 
@@ -618,7 +619,7 @@ _CONV_FACTORS_FOR_BASIC_UNITS: Dict[type, Dict[BasicUnit, float]] = {
         TimeUnit.MIN: 1.0 / 60.0,
         TimeUnit.H: 1.0,
         TimeUnit.D: 24.0,
-        TimeUnit.A: 8760.0,
+        TimeUnit.A: common.HOURS_PER_YEAR,
     },
     LengthUnit: {
         LengthUnit.M: 1.0,

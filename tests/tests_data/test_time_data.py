@@ -1,6 +1,13 @@
 import pytest
 
-from ehubx.data.time_data import TimeId, Times, ExceptionKey, DEF_WEIGHT
+from ehubx.core.common import HOURS_PER_YEAR
+from ehubx.data.time_data import (
+    DEF_ANNUALIZE_HORIZON,
+    DEF_WEIGHT,
+    ExceptionKey,
+    TimeId,
+    Times,
+)
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data import exceptions as data_exceptions
 
@@ -134,3 +141,90 @@ def test_validate_cluster_ts_fails_for_unknown_stage():
     assert excinfo.value.key == ExceptionKey.CLUSTERTS_VAL.value
     assert s in excinfo.value.indices
     assert t_hor in excinfo.value.indices
+
+
+def _times_with_ids(num_ids: int) -> Times:
+    times = Times()
+    for i in range(1, num_ids + 1):
+        times.add_id(TimeId(i))
+    return times
+
+
+def test_annualize_horizon_is_off_by_default_and_keeps_raw_weights():
+    times = _times_with_ids(4)
+    s = StageId("s1")
+
+    assert DEF_ANNUALIZE_HORIZON is False
+    assert times.annualize_horizon is False
+    assert times.annualization_factor == 1.0
+
+    times.set_weight(s, TimeId(1), 2.0)
+    assert times.get_weight(s, TimeId(1)) == 2.0
+    # 2 + 1 + 1 + 1: the raw weights sum up to the horizon length
+    assert times.get_weight_sum(s) == pytest.approx(5.0)
+
+
+def test_annualize_horizon_scales_weights_to_hours_per_year():
+    times = _times_with_ids(4)
+    s = StageId("s1")
+    times.annualize_horizon = True
+
+    assert times.annualization_factor == pytest.approx(HOURS_PER_YEAR / 4)
+    assert times.get_weight(s, TimeId(1)) == pytest.approx(HOURS_PER_YEAR / 4)
+    assert times.get_weight_sum(s) == pytest.approx(HOURS_PER_YEAR)
+
+    # A raw weight set by hand is scaled as well
+    times.set_weight(s, TimeId(1), 2.0)
+    assert times.get_weight(s, TimeId(1)) == pytest.approx(2 * HOURS_PER_YEAR / 4)
+
+    # Switching off restores the raw weights
+    times.annualize_horizon = False
+    assert times.get_weight(s, TimeId(1)) == 2.0
+
+
+def test_annualize_horizon_is_a_no_op_for_a_full_year_horizon():
+    times = _times_with_ids(int(HOURS_PER_YEAR))
+    s = StageId("s1")
+    times.annualize_horizon = True
+
+    assert times.annualization_factor == pytest.approx(1.0)
+    assert times.get_weight(s, TimeId(1)) == DEF_WEIGHT
+    assert times.get_weight_sum(s) == pytest.approx(HOURS_PER_YEAR)
+
+
+def test_annualize_horizon_with_clustered_weights_sums_to_hours_per_year():
+    # 4 horizon ids clustered into 2 ids with cluster sizes 3 and 1
+    times = Times()
+    s = StageId("s1")
+    for i in range(1, 5):
+        times.add_horizon_id(TimeId(i))
+    times.add_id(TimeId(1))
+    times.add_id(TimeId(2))
+    times.set_weight(s, TimeId(1), 3.0)
+    times.set_weight(s, TimeId(2), 1.0)
+    assert times.is_clustered
+    assert times.get_weight_sum(s) == pytest.approx(4.0)
+
+    times.annualize_horizon = True
+    assert times.get_weight(s, TimeId(1)) == pytest.approx(3 * HOURS_PER_YEAR / 4)
+    assert times.get_weight(s, TimeId(2)) == pytest.approx(HOURS_PER_YEAR / 4)
+    assert times.get_weight_sum(s) == pytest.approx(HOURS_PER_YEAR)
+
+
+def test_annualization_factor_follows_horizon_changes():
+    # Mimics the cut-time ROM: horizon ids are cleared and fewer ids re-added
+    times = Times()
+    s = StageId("s1")
+    times.annualize_horizon = True
+    # No ids yet: no division by zero
+    assert times.annualization_factor == 1.0
+
+    for i in range(1, 5):
+        times.add_id(TimeId(i))
+    assert times.annualization_factor == pytest.approx(HOURS_PER_YEAR / 4)
+
+    times.clear_horizon_ids()
+    times.add_id(TimeId(1))
+    times.add_id(TimeId(2))
+    assert times.annualization_factor == pytest.approx(HOURS_PER_YEAR / 2)
+    assert times.get_weight_sum(s) == pytest.approx(HOURS_PER_YEAR)

@@ -1,0 +1,40 @@
+techs:
+
+# Expensive to install, so that shaving the daily peak with the battery pays
+- tech_id: XConv
+  type: conversion
+  tech_params:
+    lifetime: 20 a
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate: 0.05
+    capex_per_cap: 2000 CHF/kW
+  conversion_params:
+    in_ecs:
+    - in_id: EFuel
+      in_part: 1 kWh
+    main_in_ec:
+    out_ecs:
+    - ec_id: E0
+      out_eff: 0.9 kWh/kWh
+
+# Cheap lossless battery
+- tech_id: XBat
+  type: storage
+  tech_params:
+    lifetime: 10 a
+    trl:
+    unit_cap_min:
+  costs:
+    interest_rate: 0.05
+    capex_per_cap: 10 CHF/kWh
+  storage_params:
+    ec: E0
+    charge_max: 1 1/h
+    discharge_max: 1 1/h
+    in_eff: 1
+    out_eff: 1
+    soc_min: 0
+    soc_max: 1
+    standby_loss: 0 1/h

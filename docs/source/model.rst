@@ -76,7 +76,21 @@ This module introduces two index sets :math:`\mathcal{S}_{TimeHorizon}` and :mat
 
 .. _weight:
 
-Each time step additionally carries a **weight** :math:`weight[s, t] \ge 0`, which denotes how many horizon time steps of stage :math:`s` the time step :math:`t` represents. It defaults to :math:`1` for every :math:`(s, t)` and is only set to other values by the TSAM :ref:`clustering <rom_tsam>` procedure, where it equals the size of the cluster represented by :math:`t`. The :ref:`cutting <rom_cut>` method leaves all weights at :math:`1`. The weight appears in every sum over :math:`\mathcal{S}_{Time}` that is meant to reconstruct a full-horizon quantity (costs, CO2, energy sums), so that a clustered model reproduces the totals of the full-order model. Note that it is therefore **not** a free "importance" factor: lowering a weight also rescales summed-up energy limits and the :ref:`heuristic limits <heur_limits>` described below, which can change the feasible region rather than just the objective.
+Each time step additionally carries a **weight** :math:`weight[s, t] \ge 0`, which denotes how many hours the time step :math:`t` represents in stage :math:`s`. It is the product of two independent factors:
+
+:raw-math:`\begin{align*} weight[s, t] = cluster\_size[s, t] \cdot f_{ann}, \qquad f_{ann} = \left \{ \begin{array}{rl} 8760 ~/~ |\mathcal{S}_{TimeHorizon}|, &\text{if } annualize\_horizon \\ 1, &\text{else} \end{array} \right . \end{align*}`
+
+The *cluster size* :math:`cluster\_size[s, t]` is the number of horizon time steps of stage :math:`s` that are represented by :math:`t`. It defaults to :math:`1` for every :math:`(s, t)` and is only set to other values by the TSAM :ref:`clustering <rom_tsam>` procedure, where it equals the size of the cluster represented by :math:`t`; the :ref:`cutting <rom_cut>` method leaves it at :math:`1`. The cluster sizes of a stage always sum up to the number of horizon time steps :math:`|\mathcal{S}_{TimeHorizon}|`, so that a clustered model reproduces the totals of the full-order model.
+
+.. _annualize_horizon:
+
+The *annualization factor* :math:`f_{ann}` is controlled by the parameter :math:`annualize\_horizon` from :ref:`stages.yaml<stages_yaml>`. If set, it scales the weights of every stage so that they sum up to the :math:`8760` hours of a year regardless of the length of the time horizon. The reason is that ehubX combines two kinds of quantities. Capacity-related costs and emissions (the CAPEX annuities, the capacity-related OPEX and one-time OPEX, and the embodied CO2 of installations) always refer to a full year. Every quantity that is summed over :math:`\mathcal{S}_{Time}` with the weights (operating costs, operational CO2, energy sums and their summed-up limits such as :math:`demand\_sum`, :math:`sum\_min`, :math:`sum\_max`, :math:`out\_sum\_min` and :math:`out\_sum\_max`, as well as :math:`co2\_min` and :math:`co2\_max`) refers instead to the number of hours that the weights add up to, which we denote by
+
+:raw-math:`\begin{align*} \mathcal{H}[s] = \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \end{align*}`
+
+Without annualization, :math:`\mathcal{H}[s] = |\mathcal{S}_{TimeHorizon}|`: a horizon of one week therefore compares a full year of capacity costs with a single week of operation, which biases the optimal design towards operation-intensive solutions, and all summed-up inputs refer to that week. ehubX logs a warning when the horizon is not a full year in this case. With annualization, :math:`\mathcal{H}[s] = 8760`: the week of operation is scaled up to a year and all summed-up inputs are interpreted as annual values. On a horizon that spans exactly one year, :math:`f_{ann} = 1` and the setting has no effect.
+
+The two factors are independent and can be combined: clustering a short horizon with TSAM yields cluster sizes that sum up to the horizon length, and the annualization factor then scales them to a year. The factor is derived from the horizon length when the model is built, so it also follows a horizon that has been shortened by the :ref:`cutting <rom_cut>` method. Note that the weight is therefore **not** a free "importance" factor: it appears in every sum over :math:`\mathcal{S}_{Time}` that reconstructs a full-horizon quantity, including the summed-up energy limits, the :ref:`heuristic limits <heur_limits>` described below and the big-M values derived from :math:`\mathcal{H}[s]`, so changing a weight can change the feasible region rather than just the objective.
 
 
 
@@ -182,7 +196,7 @@ Additionally, certain formulations in other modules require a so-called *big-M* 
   :raw-math:`$$ BigM_{DemandProfileSum}[s, h, e] = C_{BigMSum} \cdot \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot demand\_profile[s, h, e, t] $$`
   with a similar logic than above. Since these values tend to be much larger than the per-timestep values above, we tend to use a smaller multiplier of :math:`C_{BigMSum} \approx \mathcal{O}(1)` to keep the system relatively well-scaled. Larger values are equally admissible; the value actually used by the implementation is the constant :code:`MULT_HEUR_SUM_LIMIT_FROM_DEMAND` in :code:`core/common.py`, currently set to :math:`100`.
 
-Note the underlying assumption in this approach that the demand series will be able to quantify the general dimensionality of the system. Especially in systems with small demand profiles (but also in general), it might be prudent to explicitly set values for certain parameters so that the generic big-M parameter does not have to be used. Tailored warning messages are routinely logged for this reason, notifying the user which parameters are missing to calculate a specific big-M parameter (the most common candidate for this is :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>` and :ref:`network_links.yaml<network_links_yaml>`). Additionally, if no demand-profile exists for a specific carrier, a fallback option is required. In this case, the largest heuristic limit derived from the demand-profiles of other carriers with the same unit type is used. If there are no such carriers, the parameters *heur_max* and *heur_sum_max* from :ref:`ecs.yaml<ecs_yaml>` are used instead, where a missing *heur_sum_max* is replaced by *heur_max* multiplied by the number of horizon time steps. If a heuristic limit is required but none of these values is available, an error is raised when the model is built. Note that demand-sums do not contribute to the heuristic limits: a carrier whose demand is only given as a demand-sum is treated like a carrier without a demand-profile.
+Note the underlying assumption in this approach that the demand series will be able to quantify the general dimensionality of the system. Especially in systems with small demand profiles (but also in general), it might be prudent to explicitly set values for certain parameters so that the generic big-M parameter does not have to be used. Tailored warning messages are routinely logged for this reason, notifying the user which parameters are missing to calculate a specific big-M parameter (the most common candidate for this is :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>` and :ref:`network_links.yaml<network_links_yaml>`). Additionally, if no demand-profile exists for a specific carrier, a fallback option is required. In this case, the largest heuristic limit derived from the demand-profiles of other carriers with the same unit type is used. If there are no such carriers, the parameters *heur_max* and *heur_sum_max* from :ref:`ecs.yaml<ecs_yaml>` are used instead, where a missing *heur_sum_max* is replaced by *heur_max* multiplied by the number of hours :math:`\mathcal{H}[s]` represented by the time horizon (see the :ref:`weight <weight>` definition). If a heuristic limit is required but none of these values is available, an error is raised when the model is built. Note that demand-sums do not contribute to the heuristic limits: a carrier whose demand is only given as a demand-sum is treated like a carrier without a demand-profile.
 
 These heuristic limits are not only used as big-M parameters, but also as **actual bounds** of the capacity variable :math:`\mathcal{V}_{TechCap}` whenever *cap_max* is not set in :ref:`hubs.yaml<hubs_yaml>`: conversion and heat pump technologies are bounded by the per-time-step limit, storage technologies by the summed-up limit. Since the summed-up limit contains the time step :ref:`weights <weight>`, the weights influence not only cost and energy sums but also the maximal installable storage capacity. Setting *cap_max* explicitly removes this coupling.
 
@@ -523,7 +537,7 @@ From the :ref:`tech model<tech_model>`, we still have to define a constraint tha
 
 Here, :math:`weight` is a clustering parameter from :ref:`reduced-order modeling<rom>` and :math:`BigM_{ConvMainOutSum}[s, h, x]` is a big-M parameter which has to provide an upper bound to the summed-up output of the conversion technology's main output ec over the time horizon. It is chosen as
 
-:raw-math:`\begin{align*} BigM_{ConvMainOutSum}[s, h, x] = \left \{ \begin{array}{rl} out\_sum\_max[s, h, x], &\text{if } out\_sum\_max[s, h, x] < \infty \\ cap\_max[s, h, x] \cdot |\mathcal{S}_{TimeHorizon}| + 10^{-5}, &\text{elif } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
+:raw-math:`\begin{align*} BigM_{ConvMainOutSum}[s, h, x] = \left \{ \begin{array}{rl} out\_sum\_max[s, h, x], &\text{if } out\_sum\_max[s, h, x] < \infty \\ cap\_max[s, h, x] \cdot \mathcal{H}[s] + 10^{-5}, &\text{elif } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
 
 We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`. Furthermore, :math:`out\_sum\_max` and `:math:`cap\_max` are parameters from :ref:`hubs.yaml<hubs_yaml>`.
 
@@ -609,7 +623,7 @@ The charging and discharging amounts can also be used to determine whether a sto
 
 Ideally, we would like to make use of the :math:`charge\_max` and :math:`discharge\_max` parameters for :math:`BigM_{StorTotalFlow}[s, h, x]` and therefore choose the following form:
 
-:raw-math:`\begin{align*} BigM_{StorTotalFlow}[s, h, x] = \left \{ \begin{array}{rl} 10^{-5} + cap\_max[s, h, x] \cdot \big( \min(charge\_max[s, x], ~1) + &\\ \min(discharge\_max[s, x], ~1) \big) \cdot |\mathcal{S}_{TimeHorizon}|, &\text{if } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
+:raw-math:`\begin{align*} BigM_{StorTotalFlow}[s, h, x] = \left \{ \begin{array}{rl} 10^{-5} + cap\_max[s, h, x] \cdot \big( \min(charge\_max[s, x], ~1) + &\\ \min(discharge\_max[s, x], ~1) \big) \cdot \mathcal{H}[s], &\text{if } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
 
 Next, we introduce a *storage energy* variable to the model which keeps track of how much energy is currently stored in a storage technology:
 
@@ -686,7 +700,7 @@ The charging and discharging amounts can also be used to determine whether an EB
 
 Due to the constraints above this, the big-M parameter can be chosen as
 
-:raw-math:`\begin{align*} BigM_{EbmTotalFlow}[s, h, x] = &10^{-5} +  num\_vehicles[s, h, x] \cdot \Big( \min(charge\_max[s, x], storage\_cap[s, x])  \\ &+ \min(discharge\_max[s, x], storage\_cap[s, x]) \Big) \cdot |\mathcal{S}_{TimeHorizon}| \end{align*}`
+:raw-math:`\begin{align*} BigM_{EbmTotalFlow}[s, h, x] = &10^{-5} +  num\_vehicles[s, h, x] \cdot \Big( \min(charge\_max[s, x], storage\_cap[s, x])  \\ &+ \min(discharge\_max[s, x], storage\_cap[s, x]) \Big) \cdot \mathcal{H}[s] \end{align*}`
 
 To avoid the case where :math:`charge\_max` or :math:`discharge\_max` are infinite, we have made additional use of the fact that an electric vehicle can never charge or discharge more than its storage capacity :math:`storage\_cap` in a single timestep due to model limitations.
 
@@ -900,7 +914,7 @@ Finally, detecting heat pump usage is also formulated using the condenser power:
 
 Here, :math:`weight` is a :ref:`clustering<rom>` value and :math:`BigM_{HpCondSum}[s, h, x]` is a big-M parameter which has to provide an upper bound to the summed-up power of the heat pump condenser over the time horizon. It is chosen as
 
-:raw-math:`\begin{align*} BigM_{HpTechCap}[s, h, x] = \left \{ \begin{array}{rl} cap\_max[s, h, x] \cdot |\mathcal{S}_{TimeHorizon}| + 10^{-5}, &\text{if } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
+:raw-math:`\begin{align*} BigM_{HpTechCap}[s, h, x] = \left \{ \begin{array}{rl} cap\_max[s, h, x] \cdot \mathcal{H}[s] + 10^{-5}, &\text{if } cap\_max[s, h, x] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right . \end{align*}`
 
 We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`. Furthermore, :math:`cap\_max` is a parameter from :ref:`hubs.yaml<hubs_yaml>`.
 
@@ -1048,7 +1062,7 @@ This relationship is enforced by the a big-M constraint
 
 Here, the big-M parameter :math:`BigM_{NetTechLinkIn}[s, \ell, n]` is a tight upper limit to the maximal amount of network input that is possible, given by
 
-:raw-math:`\begin{align*} BigM_{NetTechLinkIn}[s, \ell, n] = \left \{ \begin{array}{rl} 10^{-5} + cap\_max[s, \ell, e] \cdot |\mathcal{S}_{TimeHorizon}|, &\text{if } cap\_max[s, \ell, e] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right .\end{align*}`
+:raw-math:`\begin{align*} BigM_{NetTechLinkIn}[s, \ell, n] = \left \{ \begin{array}{rl} 10^{-5} + cap\_max[s, \ell, e] \cdot \mathcal{H}[s], &\text{if } cap\_max[s, \ell, e] < \infty \\ \mathcal{P}_{BigMGeneric}, &\text{else} \end{array} \right .\end{align*}`
 
 :math:`cap\_max` is the maximal capacity parameter from :ref:`network_links.yaml<network_links_yaml>` and :math:`\mathcal{P}_{BigMGeneric}` is the demand-based default big-M parameter introduced in the :ref:`demand model<demand_model>`.
 

@@ -57,6 +57,15 @@ Parameter table
       - Node path(s)
       - File
 
+    * - **Annualize horizon** (system)
+      - ✖
+      - False
+      - [-]
+      - ✖
+      - ✖
+      - :code:`system_params/annualize_horizon`
+      - :ref:`stages.yaml<stages_yaml>`
+
     * - **Autonomy unmet demand allowed** (autonomy)
       - ✖
       - False

@@ -318,7 +318,7 @@ def _con_stor_tech_used(model: Model, system: EnergySystem) -> None:
         discharge_max = stor_techs.get_discharge_max(StageId(s), TechId(x)).to_float()
         inflow_max = cap_max * min(charge_max, 1)
         outflow_max = cap_max * min(discharge_max, 1)
-        bigm_cap = (inflow_max + outflow_max) * times.num_horizon_ts
+        bigm_cap = (inflow_max + outflow_max) * times.get_weight_sum(StageId(s))
         bigm = bigm_cap
         # b) bigM by heuristic limits
         max_sum_in = system.get_heur_limit_max_sum_in(
