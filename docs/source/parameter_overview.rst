@@ -64,6 +64,14 @@ Parameter table
       - ✖
       - ✖
       - :code:`stages[ID]/autonomy_allow_unmet_demand`
+
+    * - **Annualize horizon** (system)
+      - ✖
+      - False
+      - [-]
+      - ✖
+      - ✖
+      - :code:`system_params/annualize_horizon`
       - :ref:`stages.yaml<stages_yaml>`
 
     * - **Availability** (ates)

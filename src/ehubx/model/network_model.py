@@ -1027,9 +1027,9 @@ def _con_net_tech_used(model: Model, system: EnergySystem) -> None:
             )
         bigm_summax = trans_sum_max.to_float(unit=ec_unit)
         bigm = bigm_summax
-        # b) bigM by network tech capacity times horizon length
+        # b) bigM by network tech capacity times hours represented by the horizon
         cap_max = getattr(model, VAR_NETTECHCAP)[s, li, n].ub
-        bigm_cap = cap_max * times.num_horizon_ts
+        bigm_cap = cap_max * times.get_weight_sum(StageId(s))
         bigm = min(bigm, bigm_cap)
         # c) bigm by heuristic limit
         heur_limit = sum(

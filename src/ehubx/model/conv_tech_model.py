@@ -466,10 +466,10 @@ def _con_conv_tech_used(model: Model, system: EnergySystem) -> None:
             StageId(s), HubId(h), TechId(x)
         ).to_float(unit=e_out_main_unit)
         bigm = bigm_summax
-        # b) bigM by capacity times horizon length
+        # b) bigM by capacity times hours represented by the horizon
         if TechId(x) not in system.solar_techs.ids:
             cap_max = getattr(model, VAR_TECHCAP)[s, h, x].ub
-            bigm_cap = cap_max * system.times.num_horizon_ts
+            bigm_cap = cap_max * times.get_weight_sum(StageId(s))
             bigm = min(bigm, bigm_cap)
         # c) bigM by heuristic limit
         bigm_heur = system.get_heur_limit_max_sum_out(

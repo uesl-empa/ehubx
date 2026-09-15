@@ -868,9 +868,9 @@ def _calc_imp_sum_max(
         sum_max_2 = float("inf")
         imp_max_def = imp_max.def_value
         if imp_max_def is not None:
-            sum_max_2 = (
-                imp_max_def.to_float(unit=(ec_unit / TimeUnit.H)) * times.num_horizon_ts
-            )
+            sum_max_2 = imp_max_def.to_float(
+                unit=(ec_unit / TimeUnit.H)
+            ) * times.get_weight_sum(s)
     # Return the tighter of the two thresholds
     sum_max = min(sum_max_1, sum_max_2)
     return sum_max

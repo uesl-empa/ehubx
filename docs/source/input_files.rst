@@ -63,7 +63,8 @@ stages.yaml
 * **system_params** (*mandatory*): Dictionary of system-wide parameters
 * **interest_rate_def** (*mandatory, [-]*): Default interest rate used across the system when no other rate is specified.
 * **trl_threshold** (*optional, default=0, [-]*): Technology readiness level (TRL) threshold value above which technologies can be installed and used.
-* **num_times_horizon** (*mandatory, [-]*): Number of time steps in the time horizon.
+* **num_times_horizon** (*mandatory, [-]*): Number of time steps in the time horizon. One time step corresponds to one hour.
+* **annualize_horizon** (*optional, default=False, [-]*): Whether the time horizon is :ref:`annualized <annualize_horizon>`. If True, every quantity that is aggregated over the time horizon (operating costs, CO2 emissions, energy sums and the summed-up inputs such as *demand_sum*, *sum_min*, *sum_max*, *out_sum_min* and *out_sum_max*) is scaled to represent a full year of 8760 hours, so that it is consistent with the capacity costs, which always refer to a full year. If False, the time horizon is taken as is: all quantities aggregated over it apply to the modelled horizon, whatever its length, and are added unscaled to the annual capacity costs. ehubX logs a warning if the horizon is not a full year and this setting is off. The setting has no effect on a horizon of 8760 time steps.
 * **self_sufficiency_calculation_method** (*optional, default="none"*): Method how the system's self-sufficiency value should be calculated. Can be "none" (self-sufficiency is not calculated), "quadratic" (self-sufficiency value is calculated using its quadratic definition), or "linearized" (self-sufficiency value is calculated using a triangulation-based discretization of the expected domain for internal imports and cross-imports).
 * **self_sufficiency_min** (*optional, [-], default=0*): Minimal value for the overall system self-sufficiency.
 * **self_sufficiency_max** (*optional, [-], default=1*): Maximal value for the overall system self-sufficiency.
@@ -78,8 +79,8 @@ stages.yaml
 * **stage_id** (*mandatory*): Stage id
 * **start_year** (*mandatory, [-]*): First year of the stage. This year is used to interpolate year-dependent parameters (see :ref:`parameter types <parameter_types>`). Among the stages, each start year must be unique. The stages do not have to be defined in order of their start year.
 * **co2_price** (*optional, default=0, [CHF/kg]*): Price for CO2 emissions.
-* **co2_min** (*optional, default=* -:math:`\infty`, *, [kg]*): Minimal amount of CO2 emissions in this stage.
-* **co2_max** (*optional*, *default=* :math:`\infty`, *[kg]*): Maximal amount of CO2 emissions in this stage.
+* **co2_min** (*optional, default=* -:math:`\infty`, *[kg]*): Minimal amount of CO2 emissions in this stage, i.e., over the time horizon (or over a full year if the horizon is :ref:`annualized <annualize_horizon>`).
+* **co2_max** (*optional, default=* :math:`\infty`, *[kg]*): Maximal amount of CO2 emissions in this stage, i.e., over the time horizon (or over a full year if the horizon is :ref:`annualized <annualize_horizon>`).
 * **autonomy_allow_unmet_demand** (*optional, default=False*): Specifies whether unmet demand is allowed in autonomy optimization for this stage. If ``False`` (default), unmet demand is strictly forbidden. If ``True``, unmet demand may occur after autonomy failure when the autonomy objective is active.
 * **stage_weight** (*optional, default=1, [-]*): Weight with which this stage's costs enter the cost objective, see :ref:`stage weights <stage_weight>`. A stage weighted 0 still has to fulfil all of its constraints, but its costs are not optimized. Stage weights must not be negative, and they must not all be 0 at the same time. Note that this parameter currently only affects the cost objective.
 
@@ -131,8 +132,8 @@ hubs.yaml
 **Hub-specific conversion technology parameters**:
 
 * **conversion_params** (*optional, default={}*): Dictionary with parameters for the :ref:`conversion model<conversion_model>`.
-* **out_sum_min** (*optional, default=0, [ec_out_main], per-year*): Minimal value for the summed-up output of the conversion technology's main output carrier across the time horizon.
-* **out_sum_max** (*optional*, *default=* :math:`\infty`, *[ec_out_main], per-year*): Maximal value for the summed-up output of the conversion technology's main output carrier across the time horizon.
+* **out_sum_min** (*optional, default=0, [ec_out_main], per-year*): Minimal value for the summed-up output of the conversion technology's main output carrier across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`).
+* **out_sum_max** (*optional*, *default=* :math:`\infty`, *[ec_out_main], per-year*): Maximal value for the summed-up output of the conversion technology's main output carrier across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`).
 * **availability** (*optional, default=1, [-], per-ts*): Multiplier for the conversion technology's availability to output energy. An availability of 1 means that the technology is able to operate at full capacity, an availability of 0 means that it is not able to produce any output.
 * **profile_path** (*optional, default=None, file*): File path (relative to hubs.yaml) of a time series file with time-specific data for the time-dependent conversion parameters above. It has to contain the following headers:
     * *stage_id*: Stage id
@@ -254,10 +255,10 @@ network_links.yaml
 * **ec_id** (*mandatory*): Id of EC. Must be part of this link's *ec_ids*.
 * **cap_min** (*optional, default=0, [ec/h], per-year*): Minimal amount of cummulative capacity on this link of network techs that can transport this EC.
 * **cap_max** (*optional*, *default=* :math:`\infty`, *[ec/h], per-year*): Maximal amount of cummulative capacity on this link of network techs that can transport this EC.
-* **sum_min_forward** (*optional, default=0, [ec], per-year*): Minimal amount of energy for this EC that is transported along this link from the start hub to the end hub.
-* **sum_min_backward** (*optional, default=0, [ec], per-year*): Minimal amount of energy for this EC that is transported along this link from the end hub to the start hub. This parameter is only taken into consideration if the link is *bidirectional*.
-* **sum_max_forward** (*optional*, *default=* :math:`\infty`, *[ec], per-year*): Maximal amount of energy for this EC that is transported along this link from the start hub to the end hub.
-* **sum_max_backward** (*optional*, *default=* :math:`\infty`, *[ec], per-year*): Maximal amount of energy for this EC that is transported along this link from the end hub to the start hub. This parameter is only taken into consideration if the link is *bidirectional*.
+* **sum_min_forward** (*optional, default=0, [ec], per-year*): Minimal amount of energy for this EC that is transported along this link from the start hub to the end hub across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`).
+* **sum_min_backward** (*optional, default=0, [ec], per-year*): Minimal amount of energy for this EC that is transported along this link from the end hub to the start hub across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`). This parameter is only taken into consideration if the link is *bidirectional*.
+* **sum_max_forward** (*optional*, *default=* :math:`\infty`, *[ec], per-year*): Maximal amount of energy for this EC that is transported along this link from the start hub to the end hub across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`).
+* **sum_max_backward** (*optional*, *default=* :math:`\infty`, *[ec], per-year*): Maximal amount of energy for this EC that is transported along this link from the end hub to the start hub across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`). This parameter is only taken into consideration if the link is *bidirectional*.
 * **availability** (*optional, default=1, [-], per-ts*): Multiplier for all network technology's ability on this link to transmit energy. An availability of 1 means that each technology is able to operate at full capacity, an availability of 0 means that none is not able to transmit anything.
 * **profile_path** (*optional, default=None, file*): File path (relative to network_links.yaml) of a time series file with time-specific data for the time-dependent network link parameters above. It has to contain the following headers:
   * *stage_id*: Stage id, only the currently active stage id is parsed.
@@ -446,7 +447,7 @@ ecs.yaml
 * **is_energy** (*optional, default=True*): Whether or not this is a "real" energy carrier, i.e.; measured in energy and power units. This parameter is relevant for the :ref:`self-sufficiency model<self_sufficiency_model>`.
 * **imp_exp_type** (*optional, default=none*): Specification whether import and export of this ec works as as cross-border, internal, or whether it remains unspecified. This setting is relevant for the :ref:`self-sufficiency model<self_sufficiency_model>`. Acceptable values are "cross" (cross-border), "internal" (internal) or "none" (unspecified).
 * **heur_max** (*optional, default=None, [ec/h]*): Heuristic maximum value per timestep for all streams flowing into or out of a balancing node for this ec. This limit will only be applied if no other, more specific limits are available.
-* **heur_sum_max** (*optional, default=None, [ec]*): Heuristic maximum value for all streams (summed over all timesteps) flowing into or out of a balancing node for this ec. This limit will only be applied if no other, more specific limits are available.
+* **heur_sum_max** (*optional, default=None, [ec]*): Heuristic maximum value for all streams (summed over all timesteps, i.e.; over the time horizon or over a full year if the horizon is :ref:`annualized <annualize_horizon>`) flowing into or out of a balancing node for this ec. This limit will only be applied if no other, more specific limits are available.
 
 
 .. _imports_yaml:
@@ -467,8 +468,8 @@ This file contains parameters for the :ref:`import model <import_model>`.
 * **min** (*optional, default=0, [ec/h], per-ts*): Minimal amount of imported energy per timestep.
 * **max** (*optional*, *default=* :math:`\infty`, *[ec/h], per-ts*): Maximal amount of imported energy per timestep.
 * **co2** (*optional, default=0, [kg/ec], per-ts*): Embodied CO2 that arises per amount of imported energy per timestep.
-* **sum_min** (*optional, default=0, [ec]*): Minimal value for the summed-up imports across the time horizon.
-* **sum_max** (*optional*, *default=* :math:`\infty`, *[ec]*): Maximal value for the summed-up imports across the time horizon.
+* **sum_min** (*optional, default=0, [ec]*): Minimal value for the summed-up imports across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`).
+* **sum_max** (*optional*, *default=* :math:`\infty`, *[ec]*): Maximal value for the summed-up imports across the time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`).
 * **profile_path** (*optional, default=None, file*): File path (relative to imports.yaml) of a time series file with time-specific data for the time-dependent import parameters above. It has to contain the following headers:
   * *stage_id*: Stage id, only the currently active stage id is parsed.
   * *hub_id*: Hub id, only the currently active hub id is parsed.
@@ -511,7 +512,7 @@ demands.yaml
 * **stages** (*mandatory*): List of stage ids for which demand-sums are defined. Can also be a single stage id.
 * **hubs** (*mandatory*): List of hub ids for which demand-sums are defined. Can also be a single hub id.
 * **ec** (*mandatory*): EC id for which demand-sums are defined.
-* **demand_sum** (*mandatory, [ec]*): Total demand for the sum of supply across the entire time horizon for the above stages, hubs and EC.
+* **demand_sum** (*mandatory, [ec]*): Total demand for the sum of supply across the entire time horizon (or across a full year if the horizon is :ref:`annualized <annualize_horizon>`) for the above stages, hubs and EC.
 
 .. literalinclude:: model_inputs/basic/profiles/demand_profiles.csv
     :language: ruby

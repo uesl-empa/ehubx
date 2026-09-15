@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from ehubx.core import logging
 from ehubx.core.common import (
+    HOURS_PER_YEAR,
     MULT_HEUR_LIMIT_FROM_DEMAND,
     MULT_HEUR_SUM_LIMIT_FROM_DEMAND,
     TimeSeriesKind,
@@ -213,6 +214,29 @@ class EnergySystem:
     @num_times_horizon.setter
     def num_times_horizon(self, num_times_horizon: int) -> None:
         self._num_times_horizon = num_times_horizon
+
+    # --------------------------- #
+    # Property: annualize_horizon #
+    # --------------------------- #
+    @property
+    def annualize_horizon(self) -> bool:
+        """Whether the time horizon is annualized. If True, every quantity that
+        is aggregated over the time horizon (inputs such as demand sums and
+        summed-up limits, outputs such as operating costs and CO2 emissions,
+        and the constraints between them) is scaled to represent a full year
+        of 8760 hours, regardless of the number of horizon time steps. This
+        makes them consistent with capacity costs and one-time OPEX, which
+        always apply to a full year. If False, the time horizon is taken as
+        is: all quantities aggregated over it apply to the modelled horizon,
+        whatever its length, and are added unscaled to the annual capacity
+        costs and one-time OPEX. This is an optional parameter which defaults
+        to False. The setting is stored in the time data class, which applies
+        it to the time step weights."""
+        return self.times.annualize_horizon
+
+    @annualize_horizon.setter
+    def annualize_horizon(self, annualize_horizon: bool) -> None:
+        self.times.annualize_horizon = annualize_horizon
 
     # ----------------------- #
     # Property: currency_unit #
@@ -504,7 +528,7 @@ class EnergySystem:
         if heur_sum_max is not None and heur_sum_max.is_finite:
             return heur_sum_max
         return self.ecs.get_heuristic_max(e) * Value(
-            self.times.num_horizon_ts, unit=TimeUnit.H
+            self.times.get_weight_sum(s), unit=TimeUnit.H
         )
 
     def _get_heur_limit_max_sum_out(self, s: StageId, h: HubId, e: EcId) -> Value:
@@ -525,7 +549,7 @@ class EnergySystem:
         if heur_sum_max is not None and heur_sum_max.is_finite:
             return heur_sum_max
         return self.ecs.get_heuristic_max(e) * Value(
-            self.times.num_horizon_ts, unit=TimeUnit.H
+            self.times.get_weight_sum(s), unit=TimeUnit.H
         )
 
     def _calc_heur_limits(self) -> None:
@@ -612,6 +636,7 @@ class EnergySystem:
         self._validate_trl_threshold()
         self._validate_interest_rate_def()
         self._validate_num_times_horizon()
+        self._validate_annualize_horizon()
 
     def _validate_trl_threshold(self) -> None:
         if self._trl_threshold is None:
@@ -637,6 +662,30 @@ class EnergySystem:
             raise exceptions.DataException(
                 ExceptionKey.NUMTIMESHORIZON_VAL.value, [], msg, module=LOG_MODULE_STR
             )
+
+    def _validate_annualize_horizon(self) -> None:
+        # Uses the time data's horizon (not num_times_horizon) because
+        # reduced-order modeling may have shortened it in the meantime
+        num_horizon_ts = self.times.num_horizon_ts
+        if num_horizon_ts == 0 or num_horizon_ts == HOURS_PER_YEAR:
+            return
+        if self.annualize_horizon:
+            msg = (
+                f"The time horizon of {num_horizon_ts} time steps is annualized: "
+                "quantities summed over the horizon are scaled by "
+                f"{self.times.annualization_factor:.4f} to represent a full year "
+                f"of {HOURS_PER_YEAR:.0f} hours"
+            )
+            logging.log(msg, module=LOG_MODULE_STR)
+            return
+        msg = (
+            f"The time horizon has {num_horizon_ts} time steps but "
+            "annualize_horizon is False: operating costs, CO2 emissions and "
+            f"energy sums cover {num_horizon_ts} hours while capacity costs "
+            "are annual. Set annualize_horizon to True in stages.yaml to scale "
+            "them to a full year"
+        )
+        logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_modules(self) -> None:
         self.stages.validate()

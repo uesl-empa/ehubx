@@ -1,0 +1,10 @@
+ecs:
+- ec_id: E0
+  unit: kWh
+  heur_max: 10000 kW
+  heur_sum_max: 10000000 kWh
+
+- ec_id: EFuel
+  unit: kWh
+  heur_max: 10000 kW
+  heur_sum_max: 10000000 kWh

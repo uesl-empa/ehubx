@@ -47,6 +47,7 @@ YAMLKEY_MASSUNIT = "mass_unit"
 YAMLKEY_POWERUNIT = "power_unit"
 YAMLKEY_PASSENGERUNIT = "passenger_unit"
 YAMLKEY_FREIGHTUNIT = "freight_unit"
+YAMLKEY_ANNUALIZEHORIZON = "annualize_horizon"
 
 # Literals
 LOG_MODULE_STR: str = "pars/system"
@@ -145,6 +146,12 @@ def _parse_self(input_path: str) -> EnergySystem:
     if freight_unit is not None:
         assert isinstance(freight_unit, FreightUnit)
         energy_system.freight_unit = freight_unit
+    # annualize_horizon
+    annualize_horizon = yaml_parser.parse_optional_bool_from_dict_node(
+        system_params_node, YAMLKEY_ANNUALIZEHORIZON
+    )
+    if annualize_horizon is not None:
+        energy_system.annualize_horizon = annualize_horizon
     # Log
     _log(energy_system)
     # Return
@@ -190,7 +197,9 @@ def _parse_modules(input_path: str, energy_system: EnergySystem) -> None:
     ates_parser.parse_secondary(hub_root_node, stages, ates_techs)
     stor_tech_parser.parse_secondary(hub_root_node, stor_techs)
     ebm_tech_parser.parse_secondary(hub_root_node, stages, ecs, ebm_techs)
-    times = time_parser.parse(energy_system.num_times_horizon)
+    times = time_parser.parse(
+        energy_system.num_times_horizon, energy_system.annualize_horizon
+    )
 
     # Pass data classes
     energy_system.stages = stages
@@ -221,7 +230,8 @@ def _log(energy_system: EnergySystem) -> None:
         (
             f"Parsed system settings: "
             f"TRL threshold = {energy_system.trl_threshold}, "
-            f"Time horizon length = {energy_system.num_times_horizon}"
+            f"Time horizon length = {energy_system.num_times_horizon}, "
+            f"Annualize horizon = {energy_system.annualize_horizon}"
         ),
         module=LOG_MODULE_STR,
     )

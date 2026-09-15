@@ -53,6 +53,9 @@ LOG_MODULE_STR: str = "data/times"
 DEF_WEIGHT: float = 1
 """Default value for parameter 'weight' in the time data module"""
 
+DEF_ANNUALIZE_HORIZON: bool = False
+"""Default value for the setting 'annualize_horizon' in the time data module"""
+
 
 class Times:
     """
@@ -182,28 +185,69 @@ class Times:
         ids_horizon = sorted(list(self.ids_horizon), key=lambda t: t.key_as_int)
         return ids_horizon[-1]
 
+    # --------------------------- #
+    # Property: annualize_horizon #
+    # --------------------------- #
+    @property
+    def annualize_horizon(self) -> bool:
+        """
+        Whether the time horizon is annualized. If True, the weight of every
+        time id is scaled by the annualization factor, so that the weights of a
+        stage sum up to the number of hours in a year regardless of the length
+        of the time horizon. Every quantity that is aggregated over the time
+        horizon (costs, CO2 emissions, energy sums and their limits) then
+        refers to a full year, consistent with capacity costs which always
+        apply to a full year. If False, the weights are the raw clustering
+        weights and sum up to the number of horizon time ids: the time horizon
+        is taken as is, and every quantity aggregated over it applies to the
+        modelled horizon, whatever its length.
+        """
+        return self._annualize_horizon
+
+    @annualize_horizon.setter
+    def annualize_horizon(self, annualize_horizon: bool) -> None:
+        self._annualize_horizon = annualize_horizon
+
+    @property
+    def annualization_factor(self) -> float:
+        """
+        Factor by which the raw clustering weights are scaled, i.e.; the number
+        of hours in a year divided by the number of horizon time ids. Equals 1
+        if the time horizon is not annualized or if it spans exactly one year.
+        Evaluated on the fly, so it follows any later change of the horizon
+        (e.g.; by reduced-order modeling).
+        """
+        if not self._annualize_horizon or self.num_horizon_ts == 0:
+            return 1.0
+        return common.HOURS_PER_YEAR / self.num_horizon_ts
+
     # ---------------- #
     # Property: weight #
     # ---------------- #
     def get_weight(self, s: StageId, t: TimeId) -> float:
         """
-        Get the clustering weight of a time id. This coincides with the number
-        of horizon time ids that are part of the input time id's cluster.
+        Get the weight of a time id, i.e.; the number of hours that the time id
+        represents in the model. Without annualization, this is the clustering
+        weight which coincides with the number of horizon time ids that are
+        part of the input time id's cluster. With annualization, the clustering
+        weight is additionally scaled by the annualization factor, so that the
+        weights of a stage sum up to the number of hours in a year.
 
         :param s: Stage id
         :type s: StageId
         :param t: Time id
         :type t: TimeId
-        :return: Clustering weight of the time id
+        :return: Weight of the time id
         :rtype: float
         """
         self._check_id(t, ExceptionKey.WEIGHT_GET)
-        return self._weight.get((s, t), DEF_WEIGHT)
+        return self._weight.get((s, t), DEF_WEIGHT) * self.annualization_factor
 
     def set_weight(self, s: StageId, t: TimeId, weight: float) -> None:
         """
         Set the clustering weight of a time id. This coincides with the number
-        of horizon time ids that are part of the input time id's cluster.
+        of horizon time ids that are part of the input time id's cluster. Note
+        that this is the raw weight before annualization, see get_weight.
 
         :param s: Stage id
         :type s: StageId
@@ -214,6 +258,20 @@ class Times:
         """
         self._check_id(t, ExceptionKey.WEIGHT_SET)
         self._weight[s, t] = weight
+
+    def get_weight_sum(self, s: StageId) -> float:
+        """
+        Get the sum of the weights of all time ids of a stage, i.e.; the number
+        of hours that the time horizon represents in the model for this stage.
+        Without annualization and clustering, this is the number of horizon
+        time ids. With annualization, this is the number of hours in a year.
+
+        :param s: Stage id
+        :type s: StageId
+        :return: Sum of the weights of all time ids
+        :rtype: float
+        """
+        return sum(self.get_weight(s, t) for t in self._ids)
 
     # -------------------- #
     # Property: cluster_ts #
@@ -265,6 +323,7 @@ class Times:
         self._ids_horizon: Set[TimeId] = set()
         self._weight: Dict[Tuple[StageId, TimeId], float] = {}
         self._cluster_ts: Dict[Tuple[StageId, TimeId], TimeId] = {}
+        self._annualize_horizon = DEF_ANNUALIZE_HORIZON
 
     # --------- #
     # Validation #

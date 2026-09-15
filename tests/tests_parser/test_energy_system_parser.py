@@ -7,7 +7,7 @@ from ehubx.data.value import Value
 from ehubx.parser import energy_system_parser, exceptions, yaml_parser
 
 
-def _make_stage_root_node():
+def _make_stage_root_node(annualize_horizon=None):
     raw = {
         "system_params": {
             "interest_rate_def": "0.05",
@@ -19,6 +19,9 @@ def _make_stage_root_node():
             "power_unit": "MW",
         }
     }
+    # The key is optional: only add it when a test asks for it
+    if annualize_horizon is not None:
+        raw["system_params"]["annualize_horizon"] = annualize_horizon
     node = yaml_parser.create_node(raw, "system.yaml")
     node.set_node_path([])
     return node
@@ -47,7 +50,7 @@ def test_parse_calls_subparsers(monkeypatch):
 
 
 def test_parse_self_success(monkeypatch):
-    root_node = _make_stage_root_node()
+    root_node = _make_stage_root_node(annualize_horizon=True)
 
     monkeypatch.setattr(yaml_parser, "check_file_exists", lambda *_: None)
     monkeypatch.setattr(yaml_parser, "parse", lambda *_: root_node)
@@ -62,6 +65,75 @@ def test_parse_self_success(monkeypatch):
     assert energy_system.length_unit == LengthUnit.KM
     assert energy_system.mass_unit == MassUnit.T
     assert energy_system.power_unit == PowerUnit.MW
+    assert energy_system.annualize_horizon is True
+
+
+def test_parse_self_annualize_horizon_is_optional_and_defaults_to_false(monkeypatch):
+    root_node = _make_stage_root_node()
+
+    monkeypatch.setattr(yaml_parser, "check_file_exists", lambda *_: None)
+    monkeypatch.setattr(yaml_parser, "parse", lambda *_: root_node)
+    monkeypatch.setattr(energy_system_parser.logging, "log_file", lambda *_, **__: None)
+
+    energy_system = energy_system_parser._parse_self("/tmp/input")
+
+    assert energy_system.annualize_horizon is False
+
+
+def test_parse_modules_passes_annualize_horizon_to_time_parser(monkeypatch):
+    # The flag is parsed in _parse_self onto the initial time data object; the
+    # time data object created in _parse_modules has to receive it as well
+    energy_system = EnergySystem()
+    energy_system.num_times_horizon = 3
+    energy_system.annualize_horizon = True
+    received = {}
+
+    def fake_time_parse(num_times_horizon, annualize_horizon):
+        received["num_times_horizon"] = num_times_horizon
+        received["annualize_horizon"] = annualize_horizon
+        return energy_system.times
+
+    monkeypatch.setattr(energy_system_parser.time_parser, "parse", fake_time_parse)
+    for module, name in [
+        (energy_system_parser.stage_parser, "parse"),
+        (energy_system_parser.hub_parser, "parse_primary"),
+        (energy_system_parser.ec_parser, "parse"),
+        (energy_system_parser.net_link_parser, "parse"),
+        (energy_system_parser.demand_parser, "parse"),
+        (energy_system_parser.tech_parser, "parse_initial"),
+    ]:
+        monkeypatch.setattr(module, name, lambda *_: (object(), object()))
+    for module, name in [
+        (energy_system_parser.import_export_parser, "parse_imports"),
+        (energy_system_parser.import_export_parser, "parse_exports"),
+        (energy_system_parser.load_shedding_parser, "parse"),
+        (energy_system_parser.load_shifting_parser, "parse"),
+        (energy_system_parser.conv_tech_parser, "preprocess_in_ec_groups"),
+        (energy_system_parser.stor_tech_parser, "parse_primary"),
+        (energy_system_parser.conv_tech_parser, "parse_primary"),
+        (energy_system_parser.solar_parser, "parse_techs"),
+        (energy_system_parser.hp_tech_parser, "parse_primary"),
+        (energy_system_parser.ates_parser, "parse_primary"),
+        (energy_system_parser.ebm_tech_parser, "parse_primary"),
+        (energy_system_parser.tech_parser, "parse_primary"),
+        (energy_system_parser.net_tech_parser, "parse_primary"),
+        (energy_system_parser.ates_parser, "parse_data"),
+        (energy_system_parser.solar_parser, "parse_data"),
+        (energy_system_parser.self_sufficiency_parser, "parse"),
+        (energy_system_parser.tech_parser, "parse_secondary"),
+        (energy_system_parser.net_tech_parser, "parse_secondary"),
+        (energy_system_parser.conv_tech_parser, "parse_secondary"),
+        (energy_system_parser.hp_tech_parser, "parse_secondary"),
+        (energy_system_parser.ates_parser, "parse_secondary"),
+        (energy_system_parser.stor_tech_parser, "parse_secondary"),
+        (energy_system_parser.ebm_tech_parser, "parse_secondary"),
+    ]:
+        monkeypatch.setattr(module, name, lambda *_: object())
+
+    energy_system_parser._parse_modules("/tmp/input", energy_system)
+
+    assert received == {"num_times_horizon": 3, "annualize_horizon": True}
+    assert energy_system.annualize_horizon is True
 
 
 def test_parse_self_missing_stage_file(monkeypatch, tmp_path):

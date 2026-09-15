@@ -2,6 +2,7 @@ system_params:
   interest_rate_def: 0.01
   trl_threshold: 4
   num_times_horizon: 3
+  annualize_horizon: false
   self_sufficiency_calculation_method: quadratic
   self_sufficiency_min: 0.1
   self_sufficiency_max: 0.9
