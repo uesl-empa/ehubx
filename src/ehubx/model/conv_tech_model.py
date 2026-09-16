@@ -606,11 +606,10 @@ def _con_conv_tech_cost_opex_out(
         opex_per_energy = conv_techs.get_opex_per_energy(
             StageId(s), TechId(x)
         ).to_float(unit=(currency_unit / ec_unit))
-        # Calculate summed-up output for all output ECs
+        # Calculate summed-up output for the main output EC
         out_sum = sum(
             times.get_weight(StageId(s), TimeId(t))
-            * getattr(model, VAR_CONVTECHOUT)[s, h, x, e.key, t]
-            for e in conv_techs.get_out_ecs(TechId(x))
+            * getattr(model, VAR_CONVTECHOUT)[s, h, x, out_ec_main.key, t]
             for t in getattr(model, SET_TIME)
         )
         # Calulate OPEX per output energy cost
