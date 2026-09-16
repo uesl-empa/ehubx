@@ -756,7 +756,7 @@ def _format_file_granularity(
                     if source == SOURCE:
                         filename_ts_cl = f"{SOURCE}_{x}-TSCL"
                     if source != SOURCE:
-                        filename_ts_hor = f"{SOURCE}_{x}_{source}-TSCL"
+                        filename_ts_cl = f"{SOURCE}_{x}_{source}-TSCL"
                 filename_ts_cl = os.path.join(dir_path, f"{filename_ts_cl}.csv")
                 df_ts_cl_cur = df_ts_cl.xs(
                     (x, source),
