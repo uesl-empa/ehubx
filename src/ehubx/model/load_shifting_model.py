@@ -20,7 +20,15 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.load_shifting_data import LoadShiftId, LoadShifting
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
 from ehubx.model.hub_model import SET_HUB
 from ehubx.model.stage_model import SET_STAGE
@@ -177,13 +185,37 @@ def build(model: Model, system: EnergySystem) -> None:
     currency_unit: CurrencyUnit = system.currency_unit
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     # Start measuring build time
     start = datetime.now()
     # Build
     _build_base(
-        model, ecs, demands, load_shifting, times, currency_unit, mass_unit, power_unit
+        model,
+        ecs,
+        demands,
+        load_shifting,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
-    _build_cost(model, ecs, load_shifting, times, currency_unit, mass_unit, power_unit)
+    _build_cost(
+        model,
+        ecs,
+        load_shifting,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
@@ -201,6 +233,9 @@ def _build_base(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [SET] Load shifting ids
     setattr(
@@ -295,7 +330,8 @@ def _build_base(
     # [CON] Respect absolute and relative maximal values for above and below
     #       shifts
     _con_load_shifting_max_abovebelow(
-        model, ecs, demands, load_shifting, mass_unit, power_unit
+        model, ecs, demands, load_shifting, mass_unit, power_unit, length_unit,
+        passenger_unit, freight_unit,
     )
     # [VAR] Load shifting capacity, maximal load shifting amount per interval
     setattr(
@@ -316,9 +352,15 @@ def _build_base(
         ),
     )
     # [CON] Define LoadShiftingCap as the sum of initial and installed capacity
-    _con_load_shifting_cap(model, ecs, load_shifting, mass_unit, power_unit)
+    _con_load_shifting_cap(
+        model, ecs, load_shifting, mass_unit, power_unit, length_unit, passenger_unit,
+        freight_unit,
+    )
     # [CON] Respect cap_min and cap_max for load shifting capacity
-    _con_load_shifting_cap_minmax(model, ecs, load_shifting, mass_unit, power_unit)
+    _con_load_shifting_cap_minmax(
+        model, ecs, load_shifting, mass_unit, power_unit, length_unit, passenger_unit,
+        freight_unit,
+    )
     # [CON] Respect interval capacity, i.e. time integral over total amount of
     #       above-shifts on each load interval
     _con_load_shifting_interval_cap(model, load_shifting, times)
@@ -340,10 +382,14 @@ def _build_base(
     # [VAR] Binary variable to monitor load shifting occurences. Only defend
     #       for tuples with fix costs
     _var_y_load_shifting(
-        model, ecs, load_shifting, currency_unit, mass_unit, power_unit
+        model, ecs, load_shifting, currency_unit, mass_unit, power_unit, length_unit,
+        passenger_unit, freight_unit,
     )
     # [VAR] Force YLoadShifting to 1 if LoadShifting is larger than 0
-    _con_y_load_shifting(model, ecs, demands, load_shifting, mass_unit, power_unit)
+    _con_y_load_shifting(
+        model, ecs, demands, load_shifting, mass_unit, power_unit, length_unit,
+        passenger_unit, freight_unit,
+    )
 
 
 def _build_cost(
@@ -354,6 +400,9 @@ def _build_cost(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] Load shifting CAPEX cost, i.e., costs for installed capacity
     setattr(
@@ -363,7 +412,8 @@ def _build_cost(
     )
     # [CON] Load shifting CAPEX cost
     _con_load_shifting_cost_capex(
-        model, ecs, load_shifting, currency_unit, mass_unit, power_unit
+        model, ecs, load_shifting, currency_unit, mass_unit, power_unit, length_unit,
+        passenger_unit, freight_unit,
     )
     # [VAR] Load shifting energy cost, i.e. time integral over all
     #       absolute load shifting power above and below the demand curve
@@ -374,7 +424,8 @@ def _build_cost(
     )
     # [CON] Load shifting energy cost
     _con_load_shifting_cost_energy(
-        model, ecs, load_shifting, times, currency_unit, mass_unit, power_unit
+        model, ecs, load_shifting, times, currency_unit, mass_unit, power_unit,
+        length_unit, passenger_unit, freight_unit,
     )
     # [VAR] Load shifting peak cost, i.e., cost for highest shifts on time
     #       horizon
@@ -385,7 +436,8 @@ def _build_cost(
     )
     # [CON] Load shifting peak cost
     _con_load_shifting_cost_peak(
-        model, ecs, load_shifting, currency_unit, mass_unit, power_unit
+        model, ecs, load_shifting, currency_unit, mass_unit, power_unit, length_unit,
+        passenger_unit, freight_unit,
     )
     # [VAR] Load shifting fix cost, i.e.; costs occuring any time load shifting
     #       is used at all
@@ -396,7 +448,8 @@ def _build_cost(
     )
     # [CON] Load shifting fix cost
     _con_load_shifting_cost_fix(
-        model, ecs, load_shifting, times, currency_unit, mass_unit, power_unit
+        model, ecs, load_shifting, times, currency_unit, mass_unit, power_unit,
+        length_unit, passenger_unit, freight_unit,
     )
     # [VAR] Total load shifting cost
     setattr(model, VAR_LOADSHIFTINGCOSTTOTAL, Var(domain=Reals))
@@ -512,10 +565,20 @@ def _con_load_shifting_max_abovebelow(
     load_shifting: LoadShifting,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shifting_max_above(model, ls, s, h, e, t):
         # Parameters
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         max_above_abs = (
             load_shifting.get_max_above_abs(LoadShiftId(ls))
             .get_value(TimeId(t))
@@ -541,7 +604,14 @@ def _con_load_shifting_max_abovebelow(
 
     def __rule_load_shifting_max_below(model, ls, s, h, e, t):
         # Parameters
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         max_below_abs = (
             load_shifting.get_max_below_abs(LoadShiftId(ls))
             .get_value(TimeId(t))
@@ -591,11 +661,21 @@ def _con_load_shifting_cap(
     load_shifting: LoadShifting,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shifting_cap(model, ls, s, h, e):
         var_cap = getattr(model, VAR_LOADSHIFTINGCAP)[ls, s, h, e]
         var_cap_instl = getattr(model, VAR_LOADSHIFTINGCAPINSTL)[ls, s, h, e]
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         cap_init = load_shifting.get_cap_init(LoadShiftId(ls)).to_float(unit=ec_unit)
         return var_cap == cap_init + var_cap_instl
 
@@ -615,14 +695,31 @@ def _con_load_shifting_cap_minmax(
     load_shifting: LoadShifting,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shifting_cap_min(model, ls, s, h, e):
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         cap_min = load_shifting.get_cap_min(LoadShiftId(ls)).to_float(unit=ec_unit)
         return getattr(model, VAR_LOADSHIFTINGCAP)[ls, s, h, e] >= cap_min
 
     def __rule_load_shifting_cap_max(model, ls, s, h, e):
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         cap_max = load_shifting.get_cap_max(LoadShiftId(ls)).to_float(unit=ec_unit)
         return getattr(model, VAR_LOADSHIFTINGCAP)[ls, s, h, e] <= cap_max
 
@@ -723,6 +820,9 @@ def _var_y_load_shifting(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [SET] Initialize tuple set for tuples with fix costs
     setattr(
@@ -764,10 +864,20 @@ def _con_y_load_shifting(
     load_shifting: LoadShifting,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_y_load_shifting(model, ls, s, h, e, t):
         # Parameters
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         max_above_abs = (
             load_shifting.get_max_above_abs(LoadShiftId(ls))
             .get_value(TimeId(t))
@@ -831,12 +941,22 @@ def _con_load_shifting_cost_capex(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shifting_cost_capex(model, ls, s, h, e):
         # Get parameters
         var_cap_instl = getattr(model, VAR_LOADSHIFTINGCAPINSTL)[ls, s, h, e]
         var_cap_cost = getattr(model, VAR_LOADSHIFTINGCOSTCAPEX)[ls, s, h, e]
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         capex_per_cap = load_shifting.get_capex_per_cap(LoadShiftId(ls)).to_float(
             unit=(currency_unit / ec_unit)
         )
@@ -861,13 +981,23 @@ def _con_load_shifting_cost_energy(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shifting_cost_energy(model, ls, s, h, e):
         # Parameters
         energy_cost_above = load_shifting.get_energy_cost_above(LoadShiftId(ls))
         energy_cost_below = load_shifting.get_energy_cost_below(LoadShiftId(ls))
         # Calculate load shifting energy cost
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         cost = sum(
             times.get_weight(StageId(s), TimeId(t))
             * (
@@ -902,10 +1032,20 @@ def _con_load_shifting_cost_peak(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shifting_cost_peak(model, ls, s, h, e):
         # Parameters
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         peak_cost_above = load_shifting.get_peak_cost_above(LoadShiftId(ls)).to_float(
             unit=(currency_unit * TimeUnit.H / ec_unit)
         )
@@ -938,6 +1078,9 @@ def _con_load_shifting_cost_fix(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shifting_cost_fix(model, ls, s, h, e):
         # Parameters

@@ -121,6 +121,9 @@ def _format_tech(
         energy_system.ecs.get_unit(ec),
         energy_system.mass_unit,
         energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
     df_st_builder.add_row(ENTRY_EC, ec.key, tech=x.key, source=SOURCE, in_res="input")
 
@@ -238,7 +241,7 @@ def _format_tech(
             continue
         soc_init = energy_system.ebm_techs.get_soc_init(h, x)
         df_st_builder.add_row(
-            ENTRY_SOCMAX,
+            ENTRY_SOCINIT,
             soc_init,
             unit=DimlessUnit(),
             hub=h.key,
@@ -540,6 +543,9 @@ def write_data_time_series(energy_system: EnergySystem, dir_path: str) -> None:
             energy_system.ecs.get_unit(e),
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.length_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         if kind == TimeSeriesKind.EBMTECHAVAIL:
             data[

@@ -12,7 +12,14 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.tech_data import TechId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+)
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
 from ehubx.model.stage_model import SET_STAGE
 from ehubx.model.tech_model import (
@@ -107,11 +114,25 @@ def build(model: Model, system: EnergySystem) -> None:
     currency_unit = system.currency_unit
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    length_unit = system.length_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
     # Start measuring build time
     start = datetime.now()
     # Build
     _build_base(model, system)
-    _build_cost(model, ecs, conv_techs, times, currency_unit, mass_unit, power_unit)
+    _build_cost(
+        model,
+        ecs,
+        conv_techs,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # Log
     elapsed = datetime.now() - start
     logging.log_file(
@@ -127,6 +148,9 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     times = system.times
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    length_unit = system.length_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
     # [SET] Conversion tech tuples
     setattr(
         model,
@@ -206,16 +230,44 @@ def _build_base(model: Model, system: EnergySystem) -> None:
         ),
     )
     # [CON] Input composition
-    _con_conv_tech_in_part(model, ecs, conv_techs, mass_unit, power_unit)
+    _con_conv_tech_in_part(
+        model,
+        ecs,
+        conv_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [CON] Output efficiency
-    _con_conv_tech_out_eff(model, ecs, conv_techs, mass_unit, power_unit)
+    _con_conv_tech_out_eff(
+        model,
+        ecs,
+        conv_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [CON] Tech usage (monitored over summed-up output of main output EC)
     _con_conv_tech_used(model, system)
     # [CON] Respect conversion tech capacity (pertains to main output) and
     #       availability for the system output
     _con_conv_tech_cap_and_availability(model, conv_techs)
     # [CON] Enforce minima and maxima for up outputs
-    _con_conv_tech_out_sum_minmax(model, ecs, conv_techs, times, mass_unit, power_unit)
+    _con_conv_tech_out_sum_minmax(
+        model,
+        ecs,
+        conv_techs,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [CON] Operational CO2 emissions
     _con_conv_tech_co2_oper(model, times, conv_techs, mass_unit)
     # [CON] Total Operational CO2 emissions
@@ -230,6 +282,9 @@ def _build_cost(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] OPEX (operation & maintenance) cost from conversion output
     setattr(
@@ -239,7 +294,16 @@ def _build_cost(
     )
     # [CON] OPEX (operation & maintenance) cost from conversion output
     _con_conv_tech_cost_opex_out(
-        model, ecs, conv_techs, times, currency_unit, mass_unit, power_unit
+        model,
+        ecs,
+        conv_techs,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Total cost
     setattr(model, VAR_CONVTECHCOSTTOTAL, Var(domain=Reals))
@@ -253,14 +317,31 @@ def _con_conv_tech_in_part(
     conv_techs: ConversionTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_conv_tech_in_part(model, s, h, x, e, t):
         # Get parameters
         e_in_main = conv_techs.get_in_ec_main(TechId(x))
         if EcId(e) == e_in_main:
             return Constraint.Skip
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
-        ec_unit_main = get_ec_model_unit(ecs.get_unit(e_in_main), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
+        ec_unit_main = get_ec_model_unit(
+            ecs.get_unit(e_in_main),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         in_part = conv_techs.get_in_part(StageId(s), TechId(x), EcId(e)).to_float(
             unit=ec_unit
         )
@@ -296,13 +377,28 @@ def _con_conv_tech_out_eff(
     conv_techs: ConversionTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_conv_tech_out_eff(model, s, h, x, e, t):
         # Get parameters
         in_ec_main = conv_techs.get_in_ec_main(TechId(x))
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         in_ec_main_unit = get_ec_model_unit(
-            ecs.get_unit(in_ec_main), mass_unit, power_unit
+            ecs.get_unit(in_ec_main),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         # Get conversion efficiency
         efficiency = (
@@ -333,12 +429,20 @@ def _con_conv_tech_used(model: Model, system: EnergySystem) -> None:
     times = system.times
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    length_unit = system.length_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
 
     def __rule_conv_tech_used(model, s, h, x):
         # Get parameters
         e_out_main = conv_techs.get_out_ec_main(TechId(x))
         e_out_main_unit = get_ec_model_unit(
-            ecs.get_unit(e_out_main), mass_unit, power_unit
+            ecs.get_unit(e_out_main),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         # a) bigM by user-defined out_sum_max
         bigm_summax = conv_techs.get_out_sum_max(
@@ -406,11 +510,21 @@ def _con_conv_tech_out_sum_minmax(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_conv_tech_out_sum_min(model, s, h, x):
         # Get parameters
         out_ec_main = conv_techs.get_out_ec_main(TechId(x))
-        ec_unit = get_ec_model_unit(ecs.get_unit(out_ec_main), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(out_ec_main),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         out_sum_min = conv_techs.get_out_sum_min(
             StageId(s), HubId(h), TechId(x)
         ).to_float(unit=ec_unit)
@@ -428,7 +542,14 @@ def _con_conv_tech_out_sum_minmax(
     def __rule_conv_tech_out_sum_max(model, s, h, x):
         # Get parameters
         out_ec_main = conv_techs.get_out_ec_main(TechId(x))
-        ec_unit = get_ec_model_unit(ecs.get_unit(out_ec_main), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(out_ec_main),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         out_sum_max = conv_techs.get_out_sum_max(
             StageId(s), HubId(h), TechId(x)
         ).to_float(unit=ec_unit)
@@ -467,11 +588,21 @@ def _con_conv_tech_cost_opex_out(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_conv_tech_cost_opex_out(model, s, h, x):
         # Get parameters
         out_ec_main = conv_techs.get_out_ec_main(TechId(x))
-        ec_unit = get_ec_model_unit(ecs.get_unit(out_ec_main), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(out_ec_main),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         opex_per_energy = conv_techs.get_opex_per_energy(
             StageId(s), TechId(x)
         ).to_float(unit=(currency_unit / ec_unit))

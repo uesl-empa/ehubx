@@ -157,6 +157,9 @@ def _format_tuple(
             energy_system.ecs.get_unit(e),
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.length_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         / TimeUnit.H
     )
@@ -210,6 +213,9 @@ def _format_profile_tuple(
             energy_system.ecs.get_unit(e),
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.length_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         / TimeUnit.H
     )
@@ -252,7 +258,12 @@ def _format_sum_tuple(
     # demand
     demand_sum = energy_system.demands.get_demand_sum(s, h, e)
     demand_sum_unit = ec_model.get_ec_model_unit(
-        energy_system.ecs.get_unit(e), energy_system.mass_unit, energy_system.power_unit
+        energy_system.ecs.get_unit(e),
+        energy_system.mass_unit,
+        energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
     df_st_builder.add_row(
         ENTRY_DEMANDSUM,
@@ -477,6 +488,9 @@ def write_input_time_series(energy_system: EnergySystem, dir_path: str) -> None:
                 energy_system.ecs.get_unit(EcId(ids[1])),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             unit = ec_unit / TimeUnit.H
             data[stage.key, ids[0], ids[1], YAMLKEY_DEMANDPROFILES, str(unit)] = [

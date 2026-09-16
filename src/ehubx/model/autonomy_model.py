@@ -108,6 +108,9 @@ def build(model, system: EnergySystem) -> None:
         times=times,
         mass_unit=system.mass_unit,
         power_unit=system.power_unit,
+        length_unit=system.length_unit,
+        passenger_unit=system.passenger_unit,
+        freight_unit=system.freight_unit,
     )
     _con_aut_no_cross_export_while_alive(
         con_enabled,
@@ -117,6 +120,9 @@ def build(model, system: EnergySystem) -> None:
         times=times,
         mass_unit=system.mass_unit,
         power_unit=system.power_unit,
+        length_unit=system.length_unit,
+        passenger_unit=system.passenger_unit,
+        freight_unit=system.freight_unit,
     )
     _con_aut_unmet_demand_gated(
         con_enabled,
@@ -126,6 +132,9 @@ def build(model, system: EnergySystem) -> None:
         times=times,
         mass_unit=system.mass_unit,
         power_unit=system.power_unit,
+        length_unit=system.length_unit,
+        passenger_unit=system.passenger_unit,
+        freight_unit=system.freight_unit,
         s_time=s_time_hor,
     )
     _con_aut_hours_definition(con_enabled, model, s_stage, s_time_hor)
@@ -223,6 +232,9 @@ def _con_aut_unmet_demand_gated(
     times: Times,
     mass_unit,
     power_unit,
+    length_unit,
+    passenger_unit,
+    freight_unit,
     s_time,
 ) -> None:
     if not hasattr(model, VAR_DEMANDUNMET):
@@ -252,7 +264,14 @@ def _con_aut_unmet_demand_gated(
         # A) profile tuples -> actual demand(t)
         if (s, h, e) in profile_set:
             unit_pw = (
-                get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+                get_ec_model_unit(
+                    ecs.get_unit(EcId(e)),
+                    mass_unit,
+                    power_unit,
+                    length_unit,
+                    passenger_unit,
+                    freight_unit,
+                )
                 / TimeUnit.H
             )
             dv = demands.get_demand_profile(StageId(s), HubId(h), EcId(e)).get_value(
@@ -295,6 +314,9 @@ def _con_aut_no_cross_import_while_alive(
     times: Times,
     mass_unit,
     power_unit,
+    length_unit,
+    passenger_unit,
+    freight_unit,
 ) -> None:
     s_imp_tuple = getattr(model, SET_IMPTUPLE)
     s_time_hor = getattr(model, SET_TIMEHORIZON)
@@ -319,7 +341,14 @@ def _con_aut_no_cross_import_while_alive(
         for t_cl in getattr(model, SET_TIME):
             t_cl_id = TimeId(t_cl)
             unit_pow = (
-                get_ec_model_unit(ecs.get_unit(e_id), mass_unit, power_unit)
+                get_ec_model_unit(
+                    ecs.get_unit(e_id),
+                    mass_unit,
+                    power_unit,
+                    length_unit,
+                    passenger_unit,
+                    freight_unit,
+                )
                 / TimeUnit.H
             )
 
@@ -333,7 +362,14 @@ def _con_aut_no_cross_import_while_alive(
 
             # (B) finite sum_max -> distribute across full horizon as average
             sm = imports.get_sum_max(s_id, h_id, e_id, ecs).to_float(
-                unit=get_ec_model_unit(ecs.get_unit(e_id), mass_unit, power_unit)
+                unit=get_ec_model_unit(
+                    ecs.get_unit(e_id),
+                    mass_unit,
+                    power_unit,
+                    length_unit,
+                    passenger_unit,
+                    freight_unit,
+                )
             )
             if sm != float("inf") and times.num_horizon_ts > 0:
                 M[(s, h, e_id, t_cl)] = max(0.0, sm / times.num_horizon_ts)
@@ -413,6 +449,9 @@ def _con_aut_no_cross_export_while_alive(
     times: Times,
     mass_unit,
     power_unit,
+    length_unit,
+    passenger_unit,
+    freight_unit,
 ) -> None:
     s_exp_tuple = getattr(model, SET_EXPTUPLE)
     s_time_hor = getattr(model, SET_TIMEHORIZON)
@@ -432,7 +471,14 @@ def _con_aut_no_cross_export_while_alive(
         for t_cl in getattr(model, SET_TIME):
             t_cl_id = TimeId(t_cl)
             unit_pow = (
-                get_ec_model_unit(ecs.get_unit(e_id), mass_unit, power_unit)
+                get_ec_model_unit(
+                    ecs.get_unit(e_id),
+                    mass_unit,
+                    power_unit,
+                    length_unit,
+                    passenger_unit,
+                    freight_unit,
+                )
                 / TimeUnit.H
             )
             # (A) time-dependent max if defined
@@ -444,7 +490,14 @@ def _con_aut_no_cross_export_while_alive(
                     continue
             # (B) finite sum_max -> distribute across full horizon as average
             sm = exports.get_sum_max(s_id, h_id, e_id, ecs).to_float(
-                unit=get_ec_model_unit(ecs.get_unit(e_id), mass_unit, power_unit)
+                unit=get_ec_model_unit(
+                    ecs.get_unit(e_id),
+                    mass_unit,
+                    power_unit,
+                    length_unit,
+                    passenger_unit,
+                    freight_unit,
+                )
             )
             if sm != float("inf") and times.num_horizon_ts > 0:
                 M[(s, h, e_id, t_cl)] = max(0.0, sm / times.num_horizon_ts)

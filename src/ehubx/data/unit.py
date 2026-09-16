@@ -463,6 +463,28 @@ class TemperatureUnit(BasicUnit):
     """Kelvin"""
 
 
+class PassengerUnit(BasicUnit):
+    """
+    Enum for passenger-transport units (passenger-kilometers)
+    """
+
+    PKM = "pkm"
+    """Passenger-kilometer"""
+    KPKM = "kpkm"
+    """Thousand passenger-kilometers"""
+
+
+class FreightUnit(BasicUnit):
+    """
+    Enum for freight-transport units (tonne-kilometers)
+    """
+
+    TKM = "tkm"
+    """Tonne-kilometer"""
+    KTKM = "ktkm"
+    """Thousand tonne-kilometers"""
+
+
 class DimlessUnit(Unit):
     """
     A unit representing a dimensionless quantity.
@@ -553,6 +575,8 @@ _DEF_UNITS: Dict[type, BasicUnit] = {
     TimeUnit: TimeUnit.H,
     LengthUnit: LengthUnit.M,
     TemperatureUnit: TemperatureUnit.K,
+    PassengerUnit: PassengerUnit.PKM,
+    FreightUnit: FreightUnit.TKM,
 }
 
 _CONV_FACTORS_FOR_BASIC_UNITS: Dict[type, Dict[BasicUnit, float]] = {
@@ -604,5 +628,13 @@ _CONV_FACTORS_FOR_BASIC_UNITS: Dict[type, Dict[BasicUnit, float]] = {
     },
     TemperatureUnit: {
         TemperatureUnit.K: 1.0,
+    },
+    PassengerUnit: {
+        PassengerUnit.PKM: 1.0,
+        PassengerUnit.KPKM: 1e3,
+    },
+    FreightUnit: {
+        FreightUnit.TKM: 1.0,
+        FreightUnit.KTKM: 1e3,
     },
 }

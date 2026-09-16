@@ -206,6 +206,8 @@ def _format_tech(
         energy_system.length_unit,
         energy_system.mass_unit,
         energy_system.power_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
 
     # Allowed stages
@@ -448,6 +450,8 @@ def _format_tech(
             energy_system.length_unit,
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         df_st_builder.add_row(
             ENTRY_COUPLEDCAPFACTOR,

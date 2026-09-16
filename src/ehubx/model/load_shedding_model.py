@@ -12,7 +12,15 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.load_shedding_data import LoadShedding
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
 from ehubx.model.hub_model import SET_HUB
 from ehubx.model.stage_model import SET_STAGE
@@ -66,11 +74,35 @@ def build(model: Model, system: EnergySystem) -> None:
     currency_unit: CurrencyUnit = system.currency_unit
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     # Start measuring build time
     start = datetime.now()
     # Build
-    _build_base(model, ecs, demands, load_shedding, mass_unit, power_unit)
-    _build_cost(model, ecs, load_shedding, times, currency_unit, mass_unit, power_unit)
+    _build_base(
+        model,
+        ecs,
+        demands,
+        load_shedding,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
+    _build_cost(
+        model,
+        ecs,
+        load_shedding,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     start = datetime.now()
     elapsed = datetime.now() - start
     logging.log_file(
@@ -86,6 +118,9 @@ def _build_base(
     load_shedding: LoadShedding,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [SET] Load shedding tuples
     load_shedding_tuples = load_shedding.get_enabled_tuples()
@@ -112,7 +147,17 @@ def _build_base(
         ),
     )
     # [CON] Enforce minimal and maximal load shedding values
-    _con_load_shedding_max(model, ecs, demands, load_shedding, mass_unit, power_unit)
+    _con_load_shedding_max(
+        model,
+        ecs,
+        demands,
+        load_shedding,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
 
 
 def _build_cost(
@@ -123,6 +168,9 @@ def _build_cost(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] Load shedding cost
     setattr(
@@ -132,7 +180,16 @@ def _build_cost(
     )
     # [CON] Load shedding cost
     _con_load_shedding_cost(
-        model, ecs, load_shedding, times, currency_unit, mass_unit, power_unit
+        model,
+        ecs,
+        load_shedding,
+        times,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Total load shedding cost
     setattr(model, VAR_LOADHSHEDDINGCOSTTOTAL, Var(domain=Reals))
@@ -148,12 +205,20 @@ def _con_load_shedding_cost(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shedding_cost(model, s, h, e):
         # Get parameters
         energy_cost = load_shedding.get_energy_cost(StageId(s), HubId(h), EcId(e))
         unit = currency_unit / get_ec_model_unit(
-            ecs.get_unit(EcId(e)), mass_unit, power_unit
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         # Calculate cost
         cost = sum(
@@ -198,10 +263,20 @@ def _con_load_shedding_max(
     load_shedding: LoadShedding,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_load_shedding_max(model, s, h, e, t):
         # Get parameters
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         demand = (
             demands.get_demand_profile(StageId(s), HubId(h), EcId(e))
             .get_value(TimeId(t))

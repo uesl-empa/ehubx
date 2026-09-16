@@ -10,7 +10,15 @@ from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
 from ehubx.model.hub_model import SET_HUB
 from ehubx.model.stage_model import SET_STAGE
@@ -74,13 +82,29 @@ def build(model: Model, system: EnergySystem) -> None:
     # Extract data from modules
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    length_unit = system.length_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
     currency_unit = system.currency_unit
     # Start measuring build time
     start = datetime.now()
     # Build
-    _build_base(model, system, mass_unit, power_unit)
-    _build_cost(model, system, currency_unit, mass_unit, power_unit)
-    _build_co2(model, system, mass_unit, power_unit)
+    _build_base(
+        model, system, mass_unit, power_unit, length_unit, passenger_unit, freight_unit
+    )
+    _build_cost(
+        model,
+        system,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
+    _build_co2(
+        model, system, mass_unit, power_unit, length_unit, passenger_unit, freight_unit
+    )
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
@@ -94,6 +118,9 @@ def _build_base(
     system: EnergySystem,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     imports = system.imports
     ecs = system.ecs
@@ -116,7 +143,15 @@ def _build_base(
         imp_min: float = 0.0
         imp_max: float
         imp_unit = (
-            get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit) / TimeUnit.H
+            get_ec_model_unit(
+                ecs.get_unit(EcId(e)),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
+            / TimeUnit.H
         )
         imp_min_ts = imports.get_min(StageId(s), HubId(h), EcId(e))
         imp_max_ts = imports.get_max(StageId(s), HubId(h), EcId(e))
@@ -141,7 +176,9 @@ def _build_base(
         ),
     )
     # [CON] Enforce minima and maxima for summed-up imports
-    _con_imp_sum_minmax(model, system, mass_unit, power_unit)
+    _con_imp_sum_minmax(
+        model, system, mass_unit, power_unit, length_unit, passenger_unit, freight_unit
+    )
 
 
 def _build_cost(
@@ -150,11 +187,23 @@ def _build_cost(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] Import cost
     setattr(model, VAR_IMPCOST, Var(getattr(model, SET_IMPTUPLE), domain=Reals))
     # [CON] Import cost
-    _con_imp_cost(model, system, currency_unit, mass_unit, power_unit)
+    _con_imp_cost(
+        model,
+        system,
+        currency_unit,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [VAR] Total import cost
     setattr(model, VAR_IMPCOSTTOTAL, Var(domain=Reals))
     # [CON] Total import cost
@@ -166,13 +215,18 @@ def _build_co2(
     system: EnergySystem,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] CO2 emissions from imports
     setattr(
         model, VAR_IMPCO2, Var(getattr(model, SET_IMPTUPLE), domain=NonNegativeReals)
     )
     # [CON] Set CO2 emissions from imports
-    _con_imp_co2(model, system, mass_unit, power_unit)
+    _con_imp_co2(
+        model, system, mass_unit, power_unit, length_unit, passenger_unit, freight_unit
+    )
     # [VAR] Total CO2 emissions from imports
     setattr(
         model, VAR_IMPCO2TOTAL, Var(getattr(model, SET_STAGE), domain=NonNegativeReals)
@@ -186,6 +240,9 @@ def _con_imp_sum_minmax(
     system: EnergySystem,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     ecs = system.ecs
     imports = system.imports
@@ -193,7 +250,14 @@ def _con_imp_sum_minmax(
 
     def __rule_imp_sum_min(model, s, h, e):
         # Get minimum for summed-up import
-        unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         sum_min = imports.get_sum_min(StageId(s), HubId(h), EcId(e), ecs)
         if not sum_min.is_positive:
             return Constraint.Skip
@@ -208,7 +272,14 @@ def _con_imp_sum_minmax(
 
     def __rule_imp_sum_max(model, s, h, e):
         # Get minimum for summed-up import
-        unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         sum_max = imports.get_sum_max(StageId(s), HubId(h), EcId(e), ecs)
         if not sum_max.is_finite:
             return Constraint.Skip
@@ -239,6 +310,9 @@ def _con_imp_cost(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     imports = system.imports
     ecs = system.ecs
@@ -248,7 +322,12 @@ def _con_imp_cost(
         # Get parameters
         price = imports.get_price(StageId(s), HubId(h), EcId(e))
         unit = currency_unit / get_ec_model_unit(
-            ecs.get_unit(EcId(e)), mass_unit, power_unit
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         # Calculate cost
         cost = sum(
@@ -285,6 +364,9 @@ def _con_imp_co2(
     system: EnergySystem,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     imports = system.imports
     ecs = system.ecs
@@ -294,7 +376,12 @@ def _con_imp_co2(
         # Get parameters
         co2 = imports.get_co2(StageId(s), HubId(h), EcId(e))
         unit = mass_unit / get_ec_model_unit(
-            ecs.get_unit(EcId(e)), mass_unit, power_unit
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         # Calculate emissions
         imp_co2 = sum(

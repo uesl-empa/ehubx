@@ -12,8 +12,10 @@ from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.unit import (
     CurrencyUnit,
     DimlessUnit,
+    FreightUnit,
     LengthUnit,
     MassUnit,
+    PassengerUnit,
     PowerUnit,
     TimeUnit,
     Unit,
@@ -115,11 +117,26 @@ def build(model: Model, system: EnergySystem) -> None:
     length_unit: LengthUnit = system.length_unit
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     # Start measuring build time
     start = datetime.now()
     _build_base(model, system)
-    _build_cost(model, stages, techs, currency_unit, length_unit, mass_unit, power_unit)
-    _build_co2(model, stages, techs, length_unit, mass_unit, power_unit)
+    _build_cost(
+        model,
+        stages,
+        techs,
+        currency_unit,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
+        freight_unit,
+    )
+    _build_co2(
+        model, stages, techs, length_unit, mass_unit, power_unit, passenger_unit,
+        freight_unit,
+    )
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
@@ -135,6 +152,8 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     length_unit: LengthUnit = system.length_unit
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     # [SET] techs
     setattr(model, SET_TECH, Set(initialize=[x.key for x in system.techs.ids]))
     # [SET] Tuples of (stage, hub, tech) which are are allowed by TRL or
@@ -162,7 +181,12 @@ def _build_base(model: Model, system: EnergySystem) -> None:
         cap_min_fl: float = 0.0
         cap_max_fl: float
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         cap_min = techs.get_cap_min(StageId(s), HubId(h), TechId(x))
         cap_max = techs.get_cap_max(StageId(s), HubId(h), TechId(x))
@@ -225,16 +249,23 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     setattr(model, VAR_YTECHUSED, Var(getattr(model, SET_TECHTUPLE), domain=Binary))
     # [CON] Define TechCap as the sum of initial capacity and installed
     #       capacity from previous stages for which lifetime has not run out
-    _con_tech_cap(model, stages, techs, length_unit, mass_unit, power_unit)
+    _con_tech_cap(
+        model, stages, techs, length_unit, mass_unit, power_unit, passenger_unit,
+        freight_unit,
+    )
     # [CON] Force YTechCapInstl to 1 if TechCapInstl is nonzero
     _con_y_tech_instl(model)
     # [CON] Enforce the minimal unit capacity during installation
-    _con_tech_unit_cap_min(model, techs, length_unit, mass_unit, power_unit)
+    _con_tech_unit_cap_min(
+        model, techs, length_unit, mass_unit, power_unit, passenger_unit, freight_unit
+    )
     # [CON] Limit installation to allowed tuples
     _con_tech_instl_allowed(model, stages, techs)
     # [CON] Force capacity of coupled techs to the predefined
     #       fraction of the main tech's capacity
-    _con_tech_coupled_cap(model, techs, length_unit, mass_unit, power_unit)
+    _con_tech_coupled_cap(
+        model, techs, length_unit, mass_unit, power_unit, passenger_unit, freight_unit
+    )
 
 
 def _build_cost(
@@ -245,12 +276,22 @@ def _build_cost(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] CAPEX cost
     setattr(model, VAR_TECHCOSTCAPEX, Var(getattr(model, SET_TECHTUPLE), domain=Reals))
     # [CON] CAPEX cost
     _con_tech_cost_capex(
-        model, stages, techs, currency_unit, length_unit, mass_unit, power_unit
+        model,
+        stages,
+        techs,
+        currency_unit,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] OPEX (operation & maintenance) cost from capacity
     setattr(
@@ -258,7 +299,14 @@ def _build_cost(
     )
     # [CON] OPEX cost from capacity
     _con_tech_cost_opex_cap(
-        model, techs, currency_unit, length_unit, mass_unit, power_unit
+        model,
+        techs,
+        currency_unit,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Total cost
     setattr(model, VAR_TECHCOSTTOTAL, Var(domain=Reals))
@@ -273,11 +321,16 @@ def _build_co2(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] CO2 emissions from tech installation
     setattr(model, VAR_TECHCO2INSTL, Var(getattr(model, SET_TECHTUPLE), domain=Reals))
     # [CON] CO2 emissions from tech installation
-    _con_tech_co2_instl(model, stages, techs, length_unit, mass_unit, power_unit)
+    _con_tech_co2_instl(
+        model, stages, techs, length_unit, mass_unit, power_unit, passenger_unit,
+        freight_unit,
+    )
     # [VAR] Total CO2 emissions from techs
     setattr(model, VAR_TECHCO2TOTAL, Var(getattr(model, SET_STAGE), domain=Reals))
     # [CON] Total CO2 emissions from techs
@@ -294,6 +347,8 @@ def _con_tech_cap(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_tech_cap(model, s, h, x):
         # Parameters
@@ -301,7 +356,12 @@ def _con_tech_cap(
         tech_lifetime = techs.get_lifetime(TechId(x)).to_float(TimeUnit.A)
         age_init = techs.get_age_init(HubId(h), TechId(x)).to_float(TimeUnit.A)
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         cap_init = techs.get_cap_init(HubId(h), TechId(x)).to_float(unit=cap_unit)
         tech_cap = 0
@@ -360,10 +420,17 @@ def _con_tech_unit_cap_min(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_tech_unit_cap_min(model, s, h, x):
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         unit_cap_min = techs.get_unit_cap_min(StageId(s), TechId(x)).to_float(
             unit=cap_unit
@@ -406,6 +473,8 @@ def _con_tech_coupled_cap(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_tech_coupled_cap(model, s, h, x):
         # Only define constraint for sub techs
@@ -414,10 +483,20 @@ def _con_tech_coupled_cap(
         # Parameters
         x_main = techs.get_coupled_main_tech(TechId(x)).key
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         cap_unit_main = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x_main)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x_main)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         cap_factor = techs.get_coupled_cap_factor(TechId(x)).to_float(
             unit=(cap_unit / cap_unit_main)
@@ -443,6 +522,8 @@ def _con_tech_cost_capex(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_tech_cost_capex(model, s, h, x):
         # Parameters
@@ -464,7 +545,12 @@ def _con_tech_cost_capex(
                 continue
             # Installation-stage-dependent parameters
             cap_unit = get_model_cap_unit(
-                techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+                techs.get_cap_unit(TechId(x)),
+                length_unit,
+                mass_unit,
+                power_unit,
+                passenger_unit,
+                freight_unit,
             )
             capex_per_cap = techs.get_capex_per_cap(
                 StageId(s_instl), TechId(x)
@@ -498,11 +584,18 @@ def _con_tech_cost_opex_cap(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_tech_cost_opex_cap(model, s, h, x):
         # Parameters
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         opex_per_cap = techs.get_opex_per_cap(StageId(s), TechId(x)).to_float(
             unit=(currency_unit / cap_unit)
@@ -546,13 +639,20 @@ def _con_tech_co2_instl(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_tech_co2_instl(model, s, h, x):
         # Parameters
         current_year = stages.get_start_year(StageId(s))
         tech_lifetime = techs.get_lifetime(TechId(x)).to_float(TimeUnit.A)
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         co2_per_cap = techs.get_co2_per_cap(StageId(s), TechId(x)).to_float(
             unit=(mass_unit / cap_unit)
@@ -607,6 +707,8 @@ def get_model_cap_unit(
     model_length_unit: LengthUnit,
     model_mass_unit: MassUnit,
     model_power_unit: PowerUnit,
+    model_passenger_unit: PassengerUnit,
+    model_freight_unit: FreightUnit,
 ) -> Unit:
     """
     Get the unit of a tech capacity that will be used in the MILP model. This
@@ -621,6 +723,10 @@ def get_model_cap_unit(
     :type model_mass_unit: MassUnit
     :param model_power_unit: Power unit used in the model
     :type model_power_unit: PowerUnit
+    :param model_passenger_unit: Passenger unit used in the model
+    :type model_passenger_unit: PassengerUnit
+    :param model_freight_unit: Freight unit used in the model
+    :type model_freight_unit: FreightUnit
     :raises RuntimeError: If the cap_unit is not a valid unit for a tech capacity
     :return: The model unit corresponding to the cap_unit
     :rtype: Unit
@@ -637,6 +743,15 @@ def get_model_cap_unit(
     # Conversion-like techs (mass over time)
     elif cap_unit.same_type_as(model_mass_unit / TimeUnit.H):
         return model_mass_unit / TimeUnit.H
+    # Conversion-like techs (length over time, e.g. vehicle-km per hour)
+    elif cap_unit.same_type_as(model_length_unit / TimeUnit.H):
+        return model_length_unit / TimeUnit.H
+    # Conversion-like techs (passenger-km per hour)
+    elif cap_unit.same_type_as(model_passenger_unit / TimeUnit.H):
+        return model_passenger_unit / TimeUnit.H
+    # Conversion-like techs (freight tonne-km per hour)
+    elif cap_unit.same_type_as(model_freight_unit / TimeUnit.H):
+        return model_freight_unit / TimeUnit.H
     # Area-capacity techs
     elif cap_unit.same_type_as(model_length_unit**2):
         return model_length_unit**2
