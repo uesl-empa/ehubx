@@ -4,19 +4,22 @@ Wind data module
 Each wind group has a time-series of wind speed profiles for each stage.
 
 Wind speed profile -> (stage, wind_group) -> time series
-The wind speed profile represents wind at a reference level of 100 m based on Elenas wind data.
-Adjustments from the reference height to hub height use terrain-specific height and roughness values
+The wind speed profile represents wind at a reference level of 100 m based on Elenas
+wind data.
+Adjustments from the reference height to hub height use terrain-specific height and
+roughness values
 via the logarithmic wind profile model.
 Each wind group contains one or more terrain types (Alps, Jura, Plateau),
 each with its own reference height and roughness length.
-Turbulence intensity is derived from roughness length at model build time via TI ~= 1/ln(hub_height/z0).
+Turbulence intensity is derived from roughness length at model build time via TI ~=
+1/ln(hub_height/z0).
 
 """
 
 import math
 from enum import Enum
 from typing import Dict, List, Optional, Set, Tuple
-from ehubx.core import logging
+
 from ehubx.core.common import TimeSeriesKind
 from ehubx.data import exceptions
 from ehubx.data.hub_data import HubId, Hubs
@@ -43,7 +46,6 @@ class TerrainId(Index):
 
 
 class ExceptionKey(Enum):
-
     SPEED_GET = "getting 'speed' from WindData"
     SPEED_SET = "setting 'speed' of WindData"
     SPEED_DEFSET = "setting default 'speed' of WindData"
@@ -65,6 +67,7 @@ class ExceptionKey(Enum):
     TURBINT_GET = "getting 'turbulence_intensity' from WindData"
     TURBINT_SET = "setting 'turbulence_intensity' of WindData"
     TURBINT_VAL = "validating 'turbulence_intensity' of WindData"
+
 
 # -------- #
 # Literals #
@@ -88,6 +91,7 @@ Only assumptions -> need to be validated with real data for Switzerland.
 Austria: turbines above 1400 m have 8% higher costs than turbines below 1400 m.
 """
 
+
 def adjust_speed_for_height_roughness(
     speed_ms: float,
     ref_height_m: float,
@@ -95,11 +99,13 @@ def adjust_speed_for_height_roughness(
     target_height_m: float,
 ) -> float:
     """
-    Adjust wind speed for a given hub height and surface roughness using logarithmic wind profile model.
+    Adjust wind speed for a given hub height and surface roughness using logarithmic
+    wind profile model.
     Logarithmic wnid profile according to Laurenz:
     v(z) = v_ref * ln(z/z0) / ln(z_ref/z0)
 
-    NOTE: the unit needs to be consistent with expected unit of speed parameter (e.g. m/s).
+    NOTE: the unit needs to be consistent with expected unit of speed parameter (e.g.
+    m/s).
 
     :param speed_ms: Wind speed at reference height (m/s)
     :type speed_ms: float
@@ -124,7 +130,8 @@ def adjust_speed_for_height_roughness(
 class WindData:
     """
     Class for wind data.
-    Contains getters and setters for wind parameters and validation methods to control data integrity
+    Contains getters and setters for wind parameters and validation methods to control
+    data integrity
     """
 
     # --------------- #
@@ -317,9 +324,7 @@ class WindData:
         """
         self._terrain_areas[w, terrain] = frac
 
-    def get_terrain_area_frac(
-        self, w: WindGroupId, terrain: TerrainId
-    ) -> float:
+    def get_terrain_area_frac(self, w: WindGroupId, terrain: TerrainId) -> float:
         """
         Get the fractional area of a terrain type within a wind group.
         Returns 0.0 if not defined.
@@ -330,9 +335,7 @@ class WindData:
         """
         return self._terrain_areas.get((w, terrain), 0.0)
 
-    def get_terrain_fracs_for_group(
-        self, w: WindGroupId
-    ) -> Dict[TerrainId, float]:
+    def get_terrain_fracs_for_group(self, w: WindGroupId) -> Dict[TerrainId, float]:
         """
         Return a dict of {terrain: area_fraction} for all terrains with nonzero
         fraction in wind group w.
@@ -361,7 +364,8 @@ class WindData:
         self, w: WindGroupId, terrain: TerrainId, component: str, value: float
     ) -> None:
         """
-        Set a terrain cost multiplier for a (wind group, terrain) pair and cost component.
+        Set a terrain cost multiplier for a (wind group, terrain) pair and cost
+        component.
 
         :param w: Wind group id (e.g. W1, W2, W3)
         :param terrain: Terrain id (e.g. Alps, Jura, Plateau)
@@ -469,9 +473,7 @@ class WindData:
         # wind speed (per stage, wind_group - no height dimension)
         for (s, w), series in self._speed.items():
             if series.has_values:
-                all_series.append(
-                    (TimeSeriesKind.WINDSPEED, s, (w.key,), series)
-                )
+                all_series.append((TimeSeriesKind.WINDSPEED, s, (w.key,), series))
 
         for (s, w), series in self._turbulence_intensity.items():
             if series.has_values:
@@ -539,11 +541,13 @@ class WindData:
         self._terrain_roughness: Dict[TerrainId, Value] = {}
         # area fractions per (wind_group, terrain), summing to 1 per wind group
         self._terrain_areas: Dict[Tuple[WindGroupId, TerrainId], float] = {}
-        self._terrain_areas_loaded: bool = False
+        self._terrain_areas_loaded = False
         # cost multipliers per (wind_group, terrain) for terrain-adjusted costs;
         # effective per-group multiplier is the area-weighted average
-        self._terrain_multipliers: Dict[Tuple[WindGroupId, TerrainId], Dict[str, float]] = {}
-        self._terrain_multipliers_loaded: bool = False
+        self._terrain_multipliers: Dict[
+            Tuple[WindGroupId, TerrainId], Dict[str, float]
+        ] = {}
+        self._terrain_multipliers_loaded = False
 
     # ---------- #
     # Validation #
@@ -663,15 +667,11 @@ class WindData:
         for w, height in self._wind_group_heights.items():
             if w not in self._wind_groups:
                 msg = f"Unknown wind group {w} in profile height data"
-                raise exceptions.DataException(
-                    exc_key, [w], msg, module=LOG_MODULE_STR
-                )
+                raise exceptions.DataException(exc_key, [w], msg, module=LOG_MODULE_STR)
             h = height.to_float(LengthUnit.M)
             if h <= 0.0:
                 msg = f"{height} = reference height of wind group {w} must be > 0"
-                raise exceptions.DataException(
-                    exc_key, [w], msg, module=LOG_MODULE_STR
-                )
+                raise exceptions.DataException(exc_key, [w], msg, module=LOG_MODULE_STR)
 
     def _validate_wind_group_turbulence_intensity(self, stages: Stages) -> None:
         exc_key = ExceptionKey.TURBINT_VAL.value
@@ -705,4 +705,3 @@ class WindData:
                 raise exceptions.DataException(
                     exc_key, [terrain], msg, module=LOG_MODULE_STR
                 )
-

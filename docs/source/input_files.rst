@@ -39,6 +39,16 @@ File overview
         |-- renewables
             |-- solar_areas.csv
             |-- solar_irradiation.csv
+            |-- wind_areas.csv
+            |-- wind_groups.csv
+            |-- wind_speed.csv
+            |-- wind_turbulence_intensity_fixed.csv
+            |-- wind_turbulence_intensity_profile.csv
+            |-- wind_terrains.csv
+            |-- wind_terrain_areas.csv
+            |-- wind_terrain_multipliers.csv
+
+For wind-module-specific behavior and mapping to model objects, see :ref:`wind_module`.
 
 
 Parameter legend
@@ -80,7 +90,7 @@ stages.yaml
 * **co2_price** (*optional, default=0, [CHF/kg]*): Price for CO2 emissions.
 * **co2_min** (*optional, default=* -:math:`\infty`, *, [kg]*): Minimal amount of CO2 emissions in this stage.
 * **co2_max** (*optional*, *default=* :math:`\infty`, *[kg]*): Maximal amount of CO2 emissions in this stage.
-* **autonomy_allow_unmet_demand** (*optional, default=False*): Specifies whether unmet demand is allowed in autonomy optimization for this stage. If ``False`` (default), unmet demand is strictly forbidden. If ``True``, unmet demand may occur after autonomy failure when the autonomy objective is active.
+
 
 .. _hubs_yaml:
 
@@ -207,6 +217,12 @@ hubs.yaml
 * **phase_c2w_start_id** (*mandatory*): Time id of the start of the cold-to-warm pumping phase.
 * **phase_c2w_end_id** (*mandatory*): Time id of the end of the cold-to-warm pumping phase.
 
+**Hub-specific wind technology parameters**:
+
+* **wind_params** (*optional, default={}*): Dictionary with hub-level overrides for wind technology parameters (see :ref:`wind_tech_model`). When a parameter is specified both here and in :ref:`techs_yaml`, the more restrictive value is used and a log message is emitted.
+* **curtail_max_rel** (*optional, [-]*): Hub-specific upper bound on the curtailment fraction. If more restrictive (smaller) than the technology-level value from :ref:`techs_yaml`, it takes precedence.
+* **curtail_min_rel** (*optional, [-]*): Hub-specific lower bound on the curtailment fraction. If more restrictive (larger) than the technology-level value from :ref:`techs_yaml`, it takes precedence.
+
 .. _network_links_yaml:
 
 network_links.yaml
@@ -279,6 +295,7 @@ techs.yaml
     *  :code:`storage` (:ref:`storage model <storage_model>`),
     *  :code:`conversion` (:ref:`conversion model <conversion_model>`),
     *  :code:`solar` (:ref:`solar model <solar_model>`)
+    *  :code:`wind` (:ref:`wind_tech_model <wind_tech_model>`),
     *  :code:`ebm` (:ref:`EBM model <ebm_model>`),
     *  :code:`ates` (:ref:`ates model <ates_model>`) and
     *  :code:`heatpump` (:ref:`heatpump model <heatpump_model>`)..
@@ -338,6 +355,20 @@ techs.yaml
 
 * **solar_params** (*optional, default={}*): Dictionary with parameters for the :ref:`solar model <solar_model>`.
 * **curtail_max_rel** (*optional, default=1, [-], per-year*): Fraction of solar power that can be curtailed. A value of 0 means that all power has to be used while a value of 1 indicates that any part of the energy can be curtailed.
+
+**Wind parameters**
+
+* **wind_params** (*mandatory for wind techs*): Dictionary with parameters for the :ref:`wind_tech_model`. The capacity unit [CAP] for wind technologies is the **number of turbines**.
+* **ec** (*mandatory*): Id of the EC produced by the wind technology. Must be defined in :ref:`ecs_yaml`.
+* **rated_power** (*mandatory, [MW]*): Nameplate (rated) power of a single turbine. Must be given with the unit suffix ``MW``.
+* **v_in** (*mandatory, [m/s]*): Cut-in wind speed. Below this speed the turbine produces no power. Must be given with the unit suffix ``m/s``.
+* **v_out** (*mandatory, [m/s]*): Cut-out wind speed. At or above this speed the turbine shuts down for safety. Must be given with the unit suffix ``m/s``.
+* **rotor_diameter** (*mandatory, [m]*): Rotor diameter of the turbine. Used to compute the rotor swept area. Must be given with the unit suffix ``m``.
+* **power_coefficient** (*mandatory, [-]*): Power coefficient :math:`C_p`. Represents the fraction of kinetic wind energy converted to electrical power. Typical values are 0.35â€“0.50.
+* **area_per_turbine** (*mandatory, [km^2]*): Land area required per turbine. Used together with :ref:`wind_areas_csv` to limit the total number of installable turbines. Must be given with the unit suffix ``km^2``.
+* **allowed_terrains** (*optional, default=all terrains*): List of terrain ids (from :ref:`wind_terrains_csv`) in which this wind technology is allowed to operate. If set, the model enforces zero installed capacity for this tech in all non-listed terrains.
+* **curtail_max_rel** (*optional, default=1, [-]*): Maximum fraction of available wind power that may be curtailed. A value of 1 means any amount of power can be curtailed; a value of 0 means no curtailment is allowed. If also specified at the hub level in :ref:`hubs_yaml`, the more restrictive (smaller) value is used.
+* **curtail_min_rel** (*optional, default=0, [-]*): Minimum fraction of available wind power that must be curtailed. A value of 0 imposes no lower curtailment bound. If also specified at the hub level in :ref:`hubs_yaml`, the more restrictive (larger) value is used.
 
 **ATES parameters**
 
@@ -591,3 +622,114 @@ This file contains time series for solar irradiation [(ec/h)/m^2] which are requ
 
 * *stage_id*: Stage id.
 * *ec_id*: EC id.
+
+
+.. _wind_groups_csv:
+
+wind_groups.csv
+----------------
+
+.. literalinclude:: model_inputs/renewables/wind_groups.csv
+    :language: ruby
+    :caption: *wind_groups.csv*: Reference height per wind group.
+
+This file defines metadata for each wind group. Each column corresponds to one
+wind group, identified by the header:
+
+* *wind_group_id*: Wind group id.
+
+The row labels define the wind-group properties:
+
+* *unit*: Length unit used for the reference height.
+* *height*: Reference height of the wind-speed data for this wind group.
+
+These values are used by :ref:`wind_module` when adjusting a speed profile from
+the wind-group reference height to a wind turbine hub height.
+
+
+wind_terrains.csv
+-----------------
+
+.. literalinclude:: model_inputs/renewables/wind_terrains.csv
+    :language: ruby
+    :caption: *wind_terrains.csv*: Surface roughness per terrain.
+
+Each column is identified by ``terrain_id``. The ``roughness`` row defines the
+terrain surface roughness length, using the length unit in the ``unit`` row.
+
+
+wind_terrain_areas.csv
+----------------------
+
+This optional file splits each wind group into terrain subgroups. Columns are
+identified by ``wind_group_id`` and rows are terrain ids. Values are fractions
+of the wind-group area and should sum to 1 for each wind-group column.
+
+
+.. _wind_speed_csv:
+
+wind_speed.csv
+---------------
+
+.. literalinclude:: model_inputs/renewables/wind_speed.csv
+    :language: ruby
+    :caption: *wind_speed.csv*: Mean wind speed timeseries per stage and wind group.
+
+This file contains time series of mean wind speed [m/s] required by the :ref:`wind_tech_model`. Each column corresponds to one (stage, wind group) combination, identified by the multi-row header. The column headers are:
+
+* *stage_id*: Stage id.
+* *wind_group_id*: Wind group id. A wind group represents a geographic wind zone at a hub. Wind technologies at a hub are assigned to a wind group, and their available power is computed from the wind data of that group.
+
+Each data row corresponds to one timestep. The row index is the integer time id from :ref:`stages_yaml`.
+
+
+
+.. _wind_turbulence_intensity_fixed_csv:
+
+wind_turbulence_intensity_fixed.csv
+-----------------------------------
+
+.. literalinclude:: model_inputs/renewables/wind_turbulence_intensity_fixed.csv
+    :language: ruby
+    :caption: *wind_turbulence_intensity_fixed.csv*: Fixed turbulence intensity per stage and wind group.
+
+This optional file defines fixed turbulence intensity values for each ``(stage_id, wind_group_id)`` column. It has no time dimension. Use it when the turbulence level should be constant over all timesteps within a stage and wind group. If both fixed and profile turbulence intensity files are provided, the profile file takes precedence.
+
+
+.. _wind_turbulence_intensity_profile_csv:
+
+wind_turbulence_intensity_profile.csv
+-------------------------------------
+
+.. literalinclude:: model_inputs/renewables/wind_turbulence_intensity_profile.csv
+    :language: ruby
+    :caption: *wind_turbulence_intensity_profile.csv*: Turbulence intensity timeseries per stage and wind group.
+
+This optional file defines time-varying turbulence intensity for each ``(stage_id, wind_group_id)`` column. Each data row corresponds to one timestep, using the same time index convention as ``wind_speed.csv``. This is the most specific TI input and overrides ``wind_turbulence_intensity_fixed.csv`` for the same stage and wind group.
+
+.. _wind_areas_csv:
+
+wind_areas.csv
+---------------
+
+.. literalinclude:: model_inputs/renewables/wind_areas.csv
+    :language: ruby
+    :caption: *wind_areas.csv*: Available wind area per stage, hub, and wind group.
+
+This file contains the available land area [km^2] for wind turbine installation,
+required by the :ref:`wind_tech_model`. Each column corresponds to one
+``(stage, hub)`` combination. The column headers are:
+
+* *stage_id*: Stage id.
+* *hub_id*: Hub id.
+
+Each data row corresponds to one *wind_group_id*. In other words:
+
+* column multi-index: ``(stage_id, hub_id)``
+* row index: ``wind_group_id``
+
+The parser reads one area value for each ``(stage, hub, wind_group)`` tuple.
+The area value limits the total turbine footprint per wind group via
+:math:`\sum_x \mathcal{V}_{WindTechCapInGroup}[s,h,x,w] \cdot area\_per\_turbine[x] \le wind\_area[s,h,w]`,
+where :math:`area\_per\_turbine` is specified per technology in :ref:`techs_yaml`.
+

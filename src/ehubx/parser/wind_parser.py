@@ -189,12 +189,15 @@ def _parse_tech_primary(
     # Logging
     _log_wind_techs(wind_techs)
 
+
 """
 One long function with 6 independent blocks, each wrapped in if os.path.isfile(...).
 Reads csv input files for new wind module, incl. terrain specific data.
 Every file is optional: if it's missing, that feature just doesn't get used.
 e.g. no wind_terrain_multipliers.csv -> no terrain cost penalty
 """
+
+
 def parse_data(renewables_subpath: str) -> WindData:
     wind_data = WindData()
     tuples_in_speed: set[tuple[StageId, WindGroupId]] = set()
@@ -239,9 +242,7 @@ def parse_data(renewables_subpath: str) -> WindData:
                 wind_data.add_wind_group(wind_group)
             height_val = df_windgroup[wind_group_key].get("height")
             if height_val is not None:
-                wind_data.set_wind_group_height(
-                    wind_group, Value(height_val, unit_wg)
-                )
+                wind_data.set_wind_group_height(wind_group, Value(height_val, unit_wg))
                 tuples_in_height.add(wind_group)
     # Surface roughness of each terrain
     terrain_file_path = os.path.join(renewables_subpath, FILENAME_WINDTERRAIN)
@@ -279,7 +280,7 @@ def parse_data(renewables_subpath: str) -> WindData:
     if os.path.isfile(speed_file_path):
         df_speed = csv_parser.parse(
             speed_file_path,
-            header_ids=[csv_parser.HeaderId.STAGEID, csv_parser.HeaderId.WINDGROUPID]
+            header_ids=[csv_parser.HeaderId.STAGEID, csv_parser.HeaderId.WINDGROUPID],
         )
 
         for s, w in df_speed.columns:
@@ -310,7 +311,9 @@ def parse_data(renewables_subpath: str) -> WindData:
                 )
 
     # Fixed wind turbulence intensity (per stage, wind_group - no time dimension)
-    turb_int_fixed_file_path = os.path.join(renewables_subpath, FILENAME_WINDTURBINT_FIXED)
+    turb_int_fixed_file_path = os.path.join(
+        renewables_subpath, FILENAME_WINDTURBINT_FIXED
+    )
     if os.path.isfile(turb_int_fixed_file_path):
         df_turb_int_fixed = csv_parser.parse(
             turb_int_fixed_file_path,
@@ -320,7 +323,9 @@ def parse_data(renewables_subpath: str) -> WindData:
         for s, w in df_turb_int_fixed.columns:
             expected_unit = DimlessUnit()
             try:
-                unit = Unit.from_str(df_turb_int_fixed.attrs[csv_parser.ATTR_UNIT][s, w])
+                unit = Unit.from_str(
+                    df_turb_int_fixed.attrs[csv_parser.ATTR_UNIT][s, w]
+                )
             except data_exceptions.UnitException as ex:
                 raise exceptions.ParsingException(
                     turb_int_fixed_file_path,
@@ -343,7 +348,6 @@ def parse_data(renewables_subpath: str) -> WindData:
                 wind_data.set_fixed_turbulence_intensity(
                     StageId(s), WindGroupId(w), Value(float(val), unit)
                 )
-
 
     # Wind turbulence intensity profile (per stage, wind_group, time)
     turb_int_file_path = os.path.join(renewables_subpath, FILENAME_WINDTURBINT_PROFILE)
@@ -398,7 +402,6 @@ def parse_data(renewables_subpath: str) -> WindData:
         )
 
         for s, h in df_area.columns:
-
             expected_unit = LengthUnit.M * LengthUnit.M
             try:
                 unit = Unit.from_str(df_area.attrs[csv_parser.ATTR_UNIT][s, h])
@@ -454,9 +457,7 @@ def parse_data(renewables_subpath: str) -> WindData:
                 terrain = TerrainId(str(terrain_key))
                 frac = df_terrain_areas[w_key].get(terrain_key)
                 if frac is not None:
-                    wind_data.set_terrain_area_frac(
-                        wind_group, terrain, float(frac)
-                    )
+                    wind_data.set_terrain_area_frac(wind_group, terrain, float(frac))
                     terrains_in_area.add(terrain)
         wind_data.set_terrain_areas_loaded()
         logging.log_file(
@@ -604,5 +605,3 @@ def _log_wind_techs(wind_techs: WindTechs) -> None:
 
 def _log_wind_data(wind_data: WindData) -> None:
     logging.log_file("Parsed wind data", module=LOG_MODULE_STR)
-
-

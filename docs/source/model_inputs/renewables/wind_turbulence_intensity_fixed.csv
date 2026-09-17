@@ -1,0 +1,4 @@
+﻿stage_id,      S1,  S1,  S2
+wind_group_id, W1,  W2,  W1
+unit,          1,   1,   1
+turbulence_intensity, 0.10, 0.12, 0.11
