@@ -4,9 +4,145 @@ Audit of the `port/gitlab-outstanding` branch: what existed only on each
 side, and how each difference was resolved.
 
 - **Base:** `github/main` @ `da44b931` ("Upgrade to 2.3.1 (#14)", 2026-07-26)
-- **Port commit:** `24507591` — 36 files, +1705 / −178
+- **Port commits:** `64974e90` transport units · `7dbd0110` opex fix ·
+  `f6d11377` TSCL filename fix · `9befb4b4` + `818d4928` this audit
 - **Version:** stays **2.3.1** (see [Version](#version))
 - **Generated:** 2026-09-16
+
+---
+
+## 0. Migration plan: what is left to move to GitHub
+
+Status of the overall GitLab → GitHub migration, not just this port.
+
+### Where things stand
+
+GitHub `main` now carries everything GitLab `main` gained since the July 2026
+snapshot, once this port merges. What remains is **branch work**: 24 unmerged
+GitLab branches, three of them actively developed as of 2026-09-16.
+
+The only genuinely time-critical item is **inventory**. Code can be ported at
+any time; merge-request discussions, review threads and the authors’ context
+disappear when GitLab is archived. That is a one-way door.
+
+### Sequence
+
+| # | Step | Blocked by | Status |
+|---|---|---|---|
+| 1 | Merge this port into `uesl-empa/ehubx` | reviewer with write access | in review |
+| 2 | Inventory all branches, ask each owner port-or-drop | nothing — **do now, in parallel** | not started |
+| 3 | Close the snapshot drift (see below) | step 1 | not started |
+| 4 | Port `Autonomy_module` | steps 1–2, coordinate with author | not started |
+| 5 | Port remaining live branches (stochastic, resilience) | step 4 | not started |
+| 6 | Triage dormant branches; archive GitLab | step 2 | not started |
+
+Step 1 comes first because it widened `get_ec_model_unit()` from 3 to 6
+parameters. Every later port should target one stable signature rather than a
+moving one.
+
+### Known snapshot drift
+
+The July 2026 import (`4ee7dc8c`) did not capture GitLab `main` completely.
+About 60 lines exist on GitLab `main` but not on GitHub, independently of this
+port. Two look substantive:
+
+- **Self-sufficiency guard clauses** — GitLab raises an error when the
+  self-sufficiency objective is selected while the submodule is deactivated.
+  Appears at two call sites; absent on GitHub.
+- **Pareto front currency suffix** — `obj_key_1` / `obj_key_2` gain a
+  `[<currency>]` suffix on GitLab.
+
+Neither falls in the ported range `85937eb7..8bacfcd1`, so neither was in scope
+here. Both should be checked before GitLab is archived.
+
+### Also outstanding
+
+- **Write access** to `uesl-empa/ehubx` for the porting team. Without it every
+  port goes through a fork, which cannot assign reviewers.
+- **`CONTRIBUTING.md`** — on branch `workflow-alignment`, not yet merged.
+- **`CODEOWNERS` and branch protection** — neither exists; nothing
+  auto-requests a reviewer today.
+- **`.devcontainer/` and `.vscode/`** — GitLab-only developer tooling, see
+  [§4](#4-files-that-exist-on-only-one-side).
+
+---
+
+## 0b. GitLab branch inventory
+
+All 30 non-`main` branches on GitLab as of 2026-09-16, with a recommendation.
+**Recommendations are a starting point for the owner to confirm, not a
+decision.** Commit counts are relative to GitLab `main`.
+
+### Already merged into GitLab `main` — no action
+
+Their content is on GitHub already via the snapshot or this port.
+
+`Energy_System_Modular_Shelter` · `Jenny_Bitcoin` · `alessandro_heatwise` ·
+`issue249_self-sufficiency-approaches-simple-comparison` ·
+`issue266_introduce-currency-scaling` · `issue279_fix-opex-per-energy-main-carrier`
+
+### Active — port, and talk to the author first
+
+Last touched within the last week. Someone is working on these **now**.
+
+| Branch | Commits | Last activity | Author | Note |
+|---|---|---|---|---|
+| `Autonomy_module` | 15 | 2026-09-16 | chwa (Wassim Chedhli) | **Highest priority.** GitHub has a July snapshot of this work: `autonomy_model.py` is 543 lines there vs 609 here. Reviewed twice on GitLab by Dennis Beermann. |
+| `ebar/stochastic` | 7 | 2026-09-16 | Ebneali Samani, Arash | Not previously on anyone’s list. |
+| `resilience_extension` | 9 | 2026-09-15 | Giacomo Pareschi | |
+
+### Recent — ask the owner
+
+Substantial work from the last three months; almost certainly still wanted.
+
+| Branch | Commits | Last activity | Author |
+|---|---|---|---|
+| `issue268_wind-module-reintroduction` | 66 | 2026-07-24 | chyi |
+| `issue268_wind-module-reintroduction-lele` | 39 | 2026-08-20 | Barton Chen |
+| `issue277_improve-parser-lifetime-and-technology-summary-logging` | 3 | 2026-07-21 | chyi |
+
+The two wind branches overlap and should be reconciled into one before porting.
+
+### Small and specific — cheap to port, decide individually
+
+| Branch | Commits | Last activity | Author | Note |
+|---|---|---|---|---|
+| `Self_Sufficiency_Approach_Refinement_Inet` | 6 | 2026-04-16 | chwa | May relate to the self-sufficiency drift above. |
+| `issue278_the-behaviour-of-trl-list-with-single-point` | 1 | 2026-04-15 | Chen | One-line change to TRL reading: default TRL 1 before the first defined year. **Never merged into GitLab `main` either**, so it needs review, not just a port. |
+| `motel_demo` | 2 | 2026-04-15 | Chen | Demo/example. |
+| `issue275_model-module-testing` | 1 | 2026-02-10 | Tycho Frei | |
+| `issue274_parser-module-testing` | 18 | 2026-01-27 | Tycho Frei | Partly merged already (`dd4ee55c` is on `main`). |
+
+### Dormant — default to archive unless the owner objects
+
+No activity for a year or more. Porting these is likely more expensive than
+rewriting against current `main`.
+
+| Branch | Commits | Last activity | Author |
+|---|---|---|---|
+| `krem/pathfndr` | 1 | 2025-10-31 | Kreyenbühl, Marco |
+| `Heatwise_WasteHeatDc` | 23 | 2025-07-04 | jenny.hansson |
+| `Humbert_Branch` | 2 | 2025-06-30 | GabrieleHu |
+| `ehubtool_national_version` | 1 | 2025-03-24 | Dennis Beermann |
+| `testing` | 43 | 2025-01-24 | jenny.hansson |
+| `issue219_overhaul-input-parser` | 3 | 2024-09-12 | Dennis Beermann |
+| `issue218_ates` | 3 | 2024-09-04 | Dennis Beermann |
+| `issue215_import-export-model-tests` | 1 | 2024-07-23 | Dennis Beermann |
+| `issue211_ates` | 7 | 2024-06-20 | Dennis Beermann |
+| `jach` | 11 | 2024-06-15 | jach |
+| `AutarkyExampleImplementation` | 9 | 2024-05-30 | Wassim Chedhli |
+| `issue148_model-an-explicit-way-for-early-decomissioning` | 1 | 2024-05-28 | Dennis Beermann |
+| `production` | 2 | 2022-05-13 | Leonie Fierz |
+
+`production` and `testing` are worth a second look despite their age: the names
+suggest they may have been deployment branches rather than feature work.
+
+### Before archiving GitLab
+
+Whatever the per-branch decision, capture for every branch that is **not**
+ported: branch name, tip SHA, author, and the merge-request discussion if one
+exists. A bare clone of the GitLab repository preserves the commits; it does
+**not** preserve merge requests, review threads or issue links.
 
 ---
 
