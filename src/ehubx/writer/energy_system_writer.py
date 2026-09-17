@@ -25,6 +25,7 @@ from ehubx.writer import (
     network_writer,
     solar_writer,
     tech_writer,
+    wind_writer,
 )
 from ehubx.writer.common_writer import (
     DfStBuilder,
@@ -481,3 +482,4 @@ def write_data_time_series(energy_system: EnergySystem, dir_path: str) -> None:
     hp_tech_writer.write_data_time_series(energy_system, dir_path)
     solar_writer.write_data_time_series(energy_system, dir_path)
     network_writer.write_data_time_series(energy_system, dir_path)
+    wind_writer.write_data_time_series(energy_system, dir_path)

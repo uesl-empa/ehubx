@@ -125,6 +125,12 @@ class TimeSeriesKind(Enum):
     NETLINKAVAIL = "net_link_availability"
     """Network link availability (stage, link, net_link_direction)"""
 
+    WINDSPEED = "wind_speed"
+    """Wind speed (stage, hub)"""
+
+    WINDTURBULENCEINTENSITY = "wind_turbulence_intensity_profile"
+    """Wind turbulence intensity (stage, wind_group)"""
+
 
 class SolverKind(Enum):
     """Third-party solvers that ehubX can interface with"""

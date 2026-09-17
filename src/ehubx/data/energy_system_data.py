@@ -48,6 +48,8 @@ from ehubx.data.unit import (
     TimeUnit,
 )
 from ehubx.data.value import Value
+from ehubx.data.wind_data import WindData
+from ehubx.data.wind_tech_data import WindTechs
 
 
 class ExceptionKey(Enum):
@@ -134,12 +136,14 @@ class EnergySystem:
         self.ebm_techs = EbmTechs()
         self.conv_techs = ConversionTechs()
         self.solar_techs = SolarTechs()
+        self.wind_techs = WindTechs()
         self.hp_techs = HeatpumpTechs()
         self.ates_techs = AtesTechs()
         self.net_techs = NetworkTechs()
         self.self_sufficiency = SelfSufficiency()
         self.ates_data = AtesData()
         self.solar_data = SolarData()
+        self.wind_data = WindData()
         self.times = Times()
 
     # ---------------------------------- #
@@ -333,6 +337,7 @@ class EnergySystem:
         all_series += self.load_shedding.time_series
         all_series += self.net_links.time_series
         all_series += self.solar_data.time_series
+        all_series += self.wind_data.time_series
         all_series += self.conv_techs.time_series
         all_series += self.ebm_techs.time_series
         all_series += self.hp_techs.time_series
@@ -368,6 +373,7 @@ class EnergySystem:
         self.load_shedding.set_time_series_val(kind, s, ids, t, value)
         self.net_links.set_time_series_val(kind, s, ids, t, value)
         self.solar_data.set_time_series_val(kind, s, ids, t, value)
+        self.wind_data.set_time_series_val(kind, s, ids, t, value)
         self.conv_techs.set_time_series_val(kind, s, ids, t, value)
         self.ebm_techs.set_time_series_val(kind, s, ids, t, value)
         self.hp_techs.set_time_series_val(kind, s, ids, t, value)
@@ -670,6 +676,12 @@ class EnergySystem:
             self.techs,
             self.conv_techs,
             self.solar_data,
+        )
+        self.wind_data.validate(self.stages, self.hubs, self.times)
+        self.wind_techs.validate(
+            self.ecs,
+            self.techs,
+            {terrain.key for terrain in self.wind_data.get_terrains()},
         )
         self.hp_techs.validate(self.stages, self.hubs, self.ecs, self.techs, self.times)
         self.ates_data.validate(self.stages, self.hubs, self.times)
