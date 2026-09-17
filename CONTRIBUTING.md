@@ -68,6 +68,27 @@ If you can push a branch to `uesl-empa/ehubx`, you are internal. If you get a
 403, you are external — use a fork. Team members who expect write access but do
 not have it should ask the maintainers.
 
+### Sensitive or restricted work
+
+Some work cannot simply be pushed to a public repository: unpublished methods
+under embargo, industry collaborations under NDA, or projects whose grant or
+contract terms specify where data and code may be hosted.
+
+**If your work is under data-protection or contractual restrictions, consult the
+maintainers before choosing where to host it.** Requirements vary by project and
+some are contractual rather than technical — for example, terms that name a
+jurisdiction or prohibit third-party hosting. This is not a decision to make
+alone.
+
+Two things that are true regardless:
+
+- **Confidential input data does not belong in the repository**, public or
+  private. Keep model inputs outside the repo and reference them by path.
+  This is separate from whether the *code* is sensitive.
+- **Long-lived private branches get expensive to merge.** If work is embargoed
+  rather than permanently closed, rebase onto `main` regularly rather than
+  diverging for months.
+
 ### Branch naming
 
 Follow the convention carried over from GitLab:
