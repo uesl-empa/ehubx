@@ -49,6 +49,7 @@ from ehubx.model import (
     stor_tech_model,
     tech_model,
     times_model,
+    wind_tech_model,
 )
 
 
@@ -164,6 +165,7 @@ def _build_modules(model: Model, energy_system: EnergySystem) -> None:
     ebm_tech_model.build(model, energy_system)
     conv_tech_model.build(model, energy_system)
     solar_tech_model.build(model, energy_system)
+    wind_tech_model.build(model, energy_system)
     hp_tech_model.build(model, energy_system)
     ates_tech_model.build(model, energy_system)
     self_sufficiency_model.build(model, energy_system)
@@ -565,6 +567,14 @@ def _con_energy_balance(model: Model) -> None:
             if s == s_
             if h == h_
             if e == e_
+        )
+        # Wind tech output
+        energy_rest += sum(
+            getattr(model, wind_tech_model.VAR_WINDTECHOUT)[s, h, x, t]
+            for (s_, h_, x) in getattr(model, wind_tech_model.SET_WINDTECHTUPLE)
+            if s == s_
+            if h == h_
+            if e == getattr(model, wind_tech_model.PAR_WINDTECHEC)[x]
         )
         # Heat pump tech output
         energy_rest += sum(

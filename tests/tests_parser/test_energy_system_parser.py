@@ -193,12 +193,14 @@ def test_parse_modules_assigns_parsed_data(monkeypatch):
     stor_techs = object()
     conv_techs = object()
     solar_techs = object()
+    wind_techs = object()
     hp_techs = object()
     ates_techs = object()
     ebm_techs = object()
     net_techs = object()
     ates_data = object()
     solar_data = object()
+    wind_data = object()
     self_sufficiency = object()
     times = object()
 
@@ -220,6 +222,9 @@ def test_parse_modules_assigns_parsed_data(monkeypatch):
     monkeypatch.setattr(energy_system_parser.stor_tech_parser, "parse_primary", lambda *_: stor_techs)
     monkeypatch.setattr(energy_system_parser.conv_tech_parser, "parse_primary", lambda *_: conv_techs)
     monkeypatch.setattr(energy_system_parser.solar_parser, "parse_techs", lambda *_: solar_techs)
+    monkeypatch.setattr(energy_system_parser.wind_parser, "parse_techs_primary", lambda *_: wind_techs)
+    monkeypatch.setattr(energy_system_parser.wind_parser, "parse_data", lambda *_: wind_data)
+    monkeypatch.setattr(energy_system_parser.wind_parser, "parse_techs_secondary", lambda *_: None)
     monkeypatch.setattr(energy_system_parser.hp_tech_parser, "parse_primary", lambda *_: hp_techs)
     monkeypatch.setattr(energy_system_parser.ates_parser, "parse_primary", lambda *_: ates_techs)
     monkeypatch.setattr(energy_system_parser.ebm_tech_parser, "parse_primary", lambda *_: ebm_techs)
@@ -246,6 +251,7 @@ def test_parse_modules_assigns_parsed_data(monkeypatch):
     assert energy_system.techs is techs
     assert energy_system.conv_techs is conv_techs
     assert energy_system.solar_techs is solar_techs
+    assert energy_system.wind_techs is wind_techs
     assert energy_system.hp_techs is hp_techs
     assert energy_system.ates_techs is ates_techs
     assert energy_system.stor_techs is stor_techs
@@ -259,5 +265,6 @@ def test_parse_modules_assigns_parsed_data(monkeypatch):
     assert energy_system.load_shifting is load_shifting
     assert energy_system.ates_data is ates_data
     assert energy_system.solar_data is solar_data
+    assert energy_system.wind_data is wind_data
     assert energy_system.self_sufficiency is self_sufficiency
     assert energy_system.times is times

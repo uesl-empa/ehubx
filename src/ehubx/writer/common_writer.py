@@ -41,6 +41,9 @@ COL_LOADSHIFT: str = "Load shift"
 COL_ATESSCHEDULE: str = "ATES schedule"
 COL_SOURCE: str = "Source"
 COL_INPUTORRESULT: str = "Input/Result"
+COL_WINDGROUP: str = "Wind Group"
+COL_TERRAIN: str = "Terrain"
+COL_WINDHEIGHT: str = "Wind Turbine Hub Height"
 KEY_TIME: str = "Time"
 KEY_TIMEHOR: str = "Horizon time"
 
@@ -164,6 +167,9 @@ class DfStColumn(Enum):
     ATES_SCHEDULE = COL_ATESSCHEDULE
     SOURCE = COL_SOURCE
     INPUT_OR_RESULT = COL_INPUTORRESULT
+    WIND_GROUP = COL_WINDGROUP
+    TERRAIN = COL_TERRAIN
+    WIND_HEIGHT = COL_WINDHEIGHT
 
 
 class DfStBuilder:
@@ -186,6 +192,9 @@ class DfStBuilder:
         ates_schedule: Optional[str] = None,
         source: Optional[str] = None,
         in_res: Optional[str] = None,
+        wind_group: Optional[str] = None,
+        terrain: Optional[str] = None,
+        wind_height: Optional[str] = None,
     ) -> None:
         unit_str: Optional[str] = None
         value_str: Optional[str] = None
@@ -213,6 +222,9 @@ class DfStBuilder:
             DfStColumn.ATES_SCHEDULE: ates_schedule,
             DfStColumn.SOURCE: source,
             DfStColumn.INPUT_OR_RESULT: in_res,
+            DfStColumn.WIND_GROUP: wind_group,
+            DfStColumn.TERRAIN: terrain,
+            DfStColumn.WIND_HEIGHT: wind_height,
         }
         self._rows.append(row)
 
@@ -249,6 +261,9 @@ def init_df_ts_hor(times: Times) -> pd.DataFrame:
             COL_NETTECH,
             COL_LOADSHIFT,
             COL_ATESSCHEDULE,
+            COL_WINDGROUP,
+            COL_TERRAIN,
+            COL_WINDHEIGHT,
             COL_SOURCE,
             COL_INPUTORRESULT,
         ],
@@ -272,6 +287,9 @@ def init_df_ts_cl(times: Times) -> pd.DataFrame:
             COL_NETTECH,
             COL_LOADSHIFT,
             COL_ATESSCHEDULE,
+            COL_WINDGROUP,
+            COL_TERRAIN,
+            COL_WINDHEIGHT,
             COL_SOURCE,
             COL_INPUTORRESULT,
         ],
@@ -296,6 +314,9 @@ def add_to_df_ts_hor(
     source: str = "",
     load_shift: str = "",
     ates_schedule: str = "",
+    wind_group: str = "",
+    terrain: str = "",
+    wind_height: str = "",
     in_res: str = "",
 ) -> None:
     new_id = (
@@ -309,6 +330,9 @@ def add_to_df_ts_hor(
         net_tech,
         load_shift,
         ates_schedule,
+        wind_group,
+        terrain,
+        wind_height,
         source,
         in_res,
     )
@@ -339,6 +363,9 @@ def add_to_df_ts_cl(
     net_tech: str = "",
     load_shift: str = "",
     ates_schedule: str = "",
+    wind_group: str = "",
+    terrain: str = "",
+    wind_height: str = "",
     source: str = "",
     in_res: str = "",
 ) -> None:
@@ -353,6 +380,9 @@ def add_to_df_ts_cl(
         net_tech,
         load_shift,
         ates_schedule,
+        wind_group,
+        terrain,
+        wind_height,
         source,
         in_res,
     )

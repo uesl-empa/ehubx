@@ -17,6 +17,8 @@ class HeaderId(Enum):
     ECID = "ec_id"
     LOADSHIFTID = "loadshift_id"
     ATESSCHEDULEID = "ates_schedule_id"
+    WINDGROUPID = "wind_group_id"
+    TERRAINID = "terrain_id"
     TIMEID = "time_id"
     PROFILEKEY = "profile_key"
     UNIT = "unit"
