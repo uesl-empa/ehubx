@@ -152,7 +152,9 @@ return total_served_plus_unmet == demand_sum
 
 ## 6. Issues caught
 
-Four problems that a naive "apply and resolve" would have shipped:
+Six problems that a naive "apply and resolve" would have shipped. Items 1-4
+were resolution hazards; items 5 and 6 are pre-existing GitHub-only defects
+that the port surfaced because GitLab had never had them.
 
 1. **Deleted CO2 constraints** (`conv_tech_model.py`) — see above.
 2. **Lost unmet-demand term** (`demand_model.py`) — see above.
@@ -177,6 +179,26 @@ Four problems that a naive "apply and resolve" would have shipped:
    references `docs/requirements.txt`, so this would have **broken the docs
    build**. Both restored. A CRLF-only change to `docs/make.bat` was also
    reverted as noise.
+5. **`soc_init` rows labelled `soc_max`** (`stor_tech_writer.py`,
+   `ebm_tech_writer.py`). On `github/main` the `soc_init` loop in both writers
+   passed `ENTRY_SOCMAX` to `add_row()`, so initial-SOC values were written to
+   the result files under **"Maximal SOC (soc_max)"**. `ENTRY_SOCINIT` was
+   defined in both files and never used, and the `# soc_init` comment directly
+   above the call confirms the intent. GitLab had the correct label, so the fix
+   arrived with the content patch.
+
+   This changes the `ENTRY` column value of those rows from
+   `Maximal SOC (soc_max)` to `Initial SOC (soc_init)`. Downstream scripts
+   filtering on that string will behave differently — correctly, but
+   differently. It is the one **output-affecting** change in the port that is
+   not a new capability.
+6. **TSCL output filenames built from the wrong variable** (`tech_writer.py`).
+   In `_format_file_granularity`, the `source != SOURCE` branch of the `-TSCL`
+   loop assigned to `filename_ts_hor`, the horizon variable belonging to the
+   separate `-TS` loop above, leaving `filename_ts_cl` at its loop default.
+   Because that default omits the tech id `x`, techs sharing a `source`
+   collided on one output path and overwrote each other. Also GitHub-only;
+   separated into its own commit since it belongs to neither ported feature.
 
 ---
 
@@ -204,6 +226,43 @@ The 233 baseline failures are **environmental, not code defects**:
 This means the **solver-dependent tests never actually executed here**. The
 numerical behaviour of both ported features is therefore *not* verified locally;
 CI is the real check. Treat green CI as a merge precondition.
+
+---
+
+## 8. Output compatibility
+
+**Verified: the port does not change the output file schema.**
+
+Result CSVs use a fixed 14-column schema defined by `DfStColumn` in
+`writer/common_writer.py`:
+
+    ENTRY, VALUE, UNIT, STAGE, HUB, EC, TECH, NET_LINK, NET_LINK_DIR,
+    NET_TECH, LOAD_SHIFT, ATES_SCHEDULE, SOURCE, INPUT_OR_RESULT
+
+`git diff github/main HEAD -- src/ehubx/writer/common_writer.py` is empty: the
+enum is untouched. `add_row()` emits each parameter as a **row**, with the
+parameter name as a *value* in the `ENTRY` column, so adding model parameters
+can never widen the file. No new `ENTRY_` constants were defined either.
+
+Consequences for downstream scripts:
+
+| Change | Effect on existing models |
+|---|---|
+| New `ENTRY` rows | None â no new entries defined |
+| New columns | None â schema unchanged |
+| New `UNIT` values | Only for pkm/tkm carriers, which could not previously be declared |
+| `soc_init` row label | **Changes** â see [§6](#6-issues-caught) item 5 |
+
+`get_ec_model_unit()` can now return length, passenger or freight units, which
+reach the `UNIT` column. This is reachable only for carriers declared in those
+units, and `set_unit()` rejected them before this port, so **existing models
+produce identical output**. The change is additive.
+
+The one genuine output difference is the `soc_init` label fix. It corrects rows
+that were mislabelled `Maximal SOC (soc_max)`; scripts filtering on that string
+will see different results.
+
+This makes the port **MINOR (2.4.0)** under SemVer, not MAJOR.
 
 ---
 
@@ -236,9 +295,9 @@ Then add a CHANGELOG entry and publish a GitHub Release tagged `2.4.0`
 
 ## Open items
 
-- [ ] Verify the transport-units change does not alter **output file columns**.
-      If it does, downstream scripts parsing ehubX output break, which would
-      make this a MAJOR (3.0.0) change rather than MINOR.
+- [x] ~~Verify the transport-units change does not alter **output file
+      columns**.~~ **Resolved: columns are unchanged; MINOR (2.4.0) stands.**
+      See [§8](#8-output-compatibility).
 - [ ] Decide whether to port `.devcontainer/` and `.vscode/` from GitLab.
 - [ ] Grant Barton Chen write access to `uesl-empa/ehubx` (currently 403;
       this port must go via a fork).
