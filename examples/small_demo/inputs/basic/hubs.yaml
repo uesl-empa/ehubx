@@ -17,6 +17,8 @@ tech_lists:
   techs: X14Ebm
 - tech_list_id: TL15
   techs: X15Ates
+- tech_list_id: TL17
+  techs: [X17Wind_Vestas, X17Wind_Gamesa, X17Wind_Senvion]
 
 hubs:
 - hub_id: H1
@@ -108,3 +110,22 @@ hubs:
 
 - hub_id: H16
   allowed_tech_lists: []
+
+- hub_id: H17
+  allowed_tech_lists: TL17
+  wind_params:
+      curtail_max_rel: 0.8
+      curtail_min_rel: 0.0
+  techs:
+  - tech_id: X17Wind_Vestas_5MW
+    tech_params:
+      cap_max: 1000 MW
+      cap_min:
+  - tech_id: X17Wind_Gamesa
+    tech_params:
+      cap_max: 1000 MW
+      cap_min:
+  - tech_id: X17Wind_Senvion
+    tech_params:
+      cap_max: 1000 MW
+      cap_min:

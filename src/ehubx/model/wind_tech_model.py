@@ -12,7 +12,11 @@ from ehubx.data.stage_data import StageId
 from ehubx.data.tech_data import TechId
 from ehubx.data.time_data import TimeId
 from ehubx.data.unit import DimlessUnit, LengthUnit, PowerUnit, TimeUnit
-from ehubx.data.wind_data import TerrainId, WindGroupId, adjust_speed_for_height_roughness
+from ehubx.data.wind_data import (
+    TerrainId,
+    WindGroupId,
+    adjust_speed_for_height_roughness,
+)
 from ehubx.data.wind_tech_data import WindTechs
 from ehubx.model.common import calculate_crf
 from ehubx.model.ec_model import get_ec_model_unit
@@ -26,7 +30,6 @@ from ehubx.model.tech_model import (
     VAR_TECHCAPINSTL,
     VAR_TECHCOSTCAPEX,
     VAR_TECHCOSTOPEXCAP,
-    VAR_YTECHCAPINSTL,
     VAR_YTECHUSED,
     get_model_cap_unit,
 )
@@ -104,16 +107,20 @@ CON_WINDAREACAP: str = "C_WindAreaCap"
 """Area capacity constraint per (stage, hub, wind_group, terrain)"""
 
 CON_WINDTECHGROUPALLOWED: str = "C_WindTechGroupAllowed"
-"""Force zero sub-group capacity for disallowed (tech, wind_group, terrain) sub-groups"""
+"""Force zero sub-group capacity for disallowed (tech, wind_group, terrain)
+sub-groups"""
 
 VAR_WINDTECHCAPINSTLGROUP: str = "V_WindTechCapInstlInGroup"
-"""New capacity installed in a specific (wind_group, terrain) sub-group at a given stage"""
+"""New capacity installed in a specific (wind_group, terrain) sub-group at a
+given stage"""
 
 CON_WINDTECHCAPINSTLGROUPSUM: str = "C_TechCapInstlGroupSum"
-"""V_TechCapInstl[s,h,x] == sum_{(w,terrain)} V_WindTechCapInstlInGroup[s,h,x,w,terrain]"""
+"""V_TechCapInstl[s,h,x]
+== sum_{(w,terrain)} V_WindTechCapInstlInGroup[s,h,x,w,terrain]"""
 
 CON_WINDTECHCAPINGROUPMIN: str = "C_WindTechCapInGroupMin"
-"""Sub-group stickiness: capacity in (w,terrain) >= sum of within-lifetime installs in that sub-group"""
+"""Sub-group stickiness: capacity in (w,terrain) >= sum of within-lifetime
+installs in that sub-group"""
 
 CON_WINDAREAINSTLCAP: str = "C_WindAreaInstlCap"
 """Area constraint at installation time per (wind_group, terrain) sub-group"""
@@ -146,7 +153,8 @@ CON_WINDTERRAINCOSTSTOPEXCAP: str = "C_WindTerrainCostOpexCap"
 """Terrain-adjusted OPEX constraint for wind techs (replaces C_TechCostOpexCap)"""
 
 VAR_YWINDTECHCAPINSTLGROUP: str = "V_YWindTechCapInstlGroup"
-"""Binary: new capacity installed in this (wind_group, terrain) sub-group at this stage"""
+"""Binary: new capacity installed in this (wind_group, terrain) sub-group
+at this stage"""
 
 VAR_YWINDTECHUSEDGROUP: str = "V_YWindTechUsedGroup"
 """Binary: cumulative capacity present in this (wind_group, terrain) sub-group"""
@@ -161,9 +169,10 @@ AIR_DENSITY_KG_M3: float = 1.225
 """Assumed constant air density (kg/m^3)."""
 
 
-
 _TI_SELECTION_LOGGED: set[tuple] = set()
 """Remember which TI source selections were already logged to avoid log spam."""
+
+
 # -------------------- #
 #       Helper         #
 # -------------------- #
@@ -331,13 +340,16 @@ def _get_turbulence_intensity(
     wind_group_id = WindGroupId(w)
     time_id = TimeId(t)
 
-    ti_profile = system.wind_data.get_turbulence_intensity_profile(stage_id, wind_group_id)
+    ti_profile = system.wind_data.get_turbulence_intensity_profile(
+        stage_id, wind_group_id
+    )
     if ti_profile is not None:
-        log_key = ("timeseries", s, w)
+        log_key: tuple = ("timeseries", s, w)
         if log_key not in _TI_SELECTION_LOGGED:
             _TI_SELECTION_LOGGED.add(log_key)
             logging.log_file(
-                f"Using time-series turbulence intensity from wind_turbulence_intensity_profile.csv "
+                "Using time-series turbulence intensity from "
+                "wind_turbulence_intensity_profile.csv "
                 f"for stage '{s}', wind group '{w}'",
                 module=LOG_MODULE_STR,
             )
@@ -349,7 +361,9 @@ def _get_turbulence_intensity(
         if log_key not in _TI_SELECTION_LOGGED:
             _TI_SELECTION_LOGGED.add(log_key)
             logging.log_file(
-                f"Using fixed turbulence intensity from wind_turbulence_intensity_fixed.csv for stage '{s}', wind group '{w}'",
+                "Using fixed turbulence intensity from "
+                f"wind_turbulence_intensity_fixed.csv for stage '{s}', "
+                f"wind group '{w}'",
                 module=LOG_MODULE_STR,
             )
         return max(0.0, fixed_ti.to_float(DimlessUnit()))
@@ -667,9 +681,11 @@ def _build_base(
         roughness and the derived turbulence intensity are linked to the terrain.
 
         Wind speed at the reference height is adjusted to hub height using the
-        logarithmic wind profile for the specific terrain roughness and reference height.
+        logarithmic wind profile for the specific terrain roughness and
+        reference height.
         Turbulence intensity is then resolved with the following precedence:
-        1. time-series TI from wind_turbulence_intensity_profile.csv for (stage, wind_group, time)
+        1. time-series TI from wind_turbulence_intensity_profile.csv for
+           (stage, wind_group, time)
         2. fixed TI from wind_turbulence_intensity_fixed.csv for (stage, wind_group)
         3. roughness-derived TI from hub height and terrain roughness,
            TI ~= 1/ln(hub_height/roughness).
@@ -841,6 +857,7 @@ def _con_wind_tech_output_sum_over_groups(model: Model) -> None:
 
     V_WindTechOut[s,h,x,t] = sum_{(w,terrain)} V_WindTechOutInGroup[s,h,x,w,terrain,t]
     """
+
     def __rule_wind_tech_output_sum_over_groups(model, s, h, x, t):
         return getattr(model, VAR_WINDTECHOUT)[s, h, x, t] == sum(
             getattr(model, VAR_WINDTECHOUTINGROUP)[s, h, x, w, terrain, t]
@@ -865,6 +882,7 @@ def _con_wind_tech_cap(model: Model) -> None:
     = simple sum
     V_TechCap[s,h,x] = sum_{(w,terrain)} V_WindTechCapInGroup[s,h,x,w,terrain]
     """
+
     def __rule_wind_tech_cap(model, s, h, x):
         return getattr(model, VAR_TECHCAP)[s, h, x] == sum(
             getattr(model, VAR_WINDTECHCAPINGROUP)[s, h, x, w, terrain]
@@ -890,6 +908,7 @@ def _con_wind_tech_cap_in_group(model: Model) -> None:
     V_WindTechOutInGroup[s,h,x,w,terrain,t] + V_WindTechCurt[s,h,x,w,terrain,t]
         = P_avail[s,x,w,terrain,t] * V_WindTechCapInGroup[s,h,x,w,terrain]
     """
+
     def __rule_wind_tech_cap(model, s, h, x, w, terrain, t):
         cap = getattr(model, VAR_WINDTECHCAPINGROUP)[s, h, x, w, terrain]
         out = getattr(model, VAR_WINDTECHOUTINGROUP)[s, h, x, w, terrain, t]
@@ -926,7 +945,12 @@ def _con_wind_tech_used(model: Model, system: EnergySystem) -> None:
     def __rule_wind_tech_used(model, s, h, x):
         wind_ec = wind_techs.get_ec(TechId(x))
         ec_unit = get_ec_model_unit(
-            system.ecs.get_unit(wind_ec), system.mass_unit, system.power_unit
+            system.ecs.get_unit(wind_ec),
+            system.mass_unit,
+            system.power_unit,
+            system.length_unit,
+            system.passenger_unit,
+            system.freight_unit,
         )
         bigm = system.get_heur_limit_max_sum_out(
             StageId(s), HubId(h), wind_ec
@@ -1039,7 +1063,8 @@ def _con_wind_area_cap(model: Model, system: EnergySystem) -> None:
     Limit the total land area occupied by installed turbines per
     (stage, hub, wind_group, terrain) sub-group.
 
-    Turbines in one wind group and terrain type can't occupy more land than that available.
+    Turbines in one wind group and terrain type can't occupy more land than
+    that available.
     Check for units!
     If units mismatch, area constraint is almost never binding.
 
@@ -1050,7 +1075,8 @@ def _con_wind_area_cap(model: Model, system: EnergySystem) -> None:
     Skipped if no wind area is defined for the given (stage, hub, wind_group) tuple
     or if the terrain fraction is zero.
 
-    sum_x( V_WindTechCapInGroup[s,h,x,w,terrain] * area_per_turbine[x] / rated_power[x] )
+    sum_x( V_WindTechCapInGroup[s,h,x,w,terrain] * area_per_turbine[x]
+           / rated_power[x] )
         <= area_avail(s,h,w,terrain)
     """
     area_unit = LengthUnit.M * LengthUnit.M
@@ -1076,7 +1102,9 @@ def _con_wind_area_cap(model: Model, system: EnergySystem) -> None:
         used_area = sum(
             getattr(m, VAR_WINDTECHCAPINGROUP)[s, h, x, w, terrain]
             * getattr(m, PAR_WINDTECHAREAPERTURBINE)[x]
-            / system.wind_techs.get_rated_power(TechId(x)).to_float(unit=system.power_unit)
+            / system.wind_techs.get_rated_power(TechId(x)).to_float(
+                unit=system.power_unit
+            )
             for (ss, hh, x) in getattr(m, SET_WINDTECHTUPLE)
             if ss == s and hh == h
         )
@@ -1099,8 +1127,10 @@ def _con_wind_tech_cap_instl_group_sum(model: Model) -> None:
     Total installed capacity to per turbine type.
     Only for newly built capacity at stage s, instead of cumulative caoacity.
 
-    V_TechCapInstl[s,h,x] == sum_{(w,terrain)} V_WindTechCapInstlInGroup[s,h,x,w,terrain]
+    V_TechCapInstl[s,h,x]
+        == sum_{(w,terrain)} V_WindTechCapInstlInGroup[s,h,x,w,terrain]
     """
+
     def __rule(model, s, h, x):
         return getattr(model, VAR_TECHCAPINSTL)[s, h, x] == sum(
             getattr(model, VAR_WINDTECHCAPINSTLGROUP)[s, h, x, w, terrain]
@@ -1172,7 +1202,8 @@ def _con_wind_area_instl_cap(model: Model, system: EnergySystem) -> None:
     Skipped if no wind area is defined or if the terrain fraction is zero.
 
     sum_{s_instl: within lifetime at s} sum_x
-        V_WindTechCapInstlInGroup[s_instl,h,x,w,terrain] * area_per_turbine[x] / rated_power[x]
+        V_WindTechCapInstlInGroup[s_instl,h,x,w,terrain]
+            * area_per_turbine[x] / rated_power[x]
         <= area_avail(s,h,w,terrain)
     """
     area_unit = LengthUnit.M * LengthUnit.M
@@ -1201,7 +1232,9 @@ def _con_wind_area_instl_cap(model: Model, system: EnergySystem) -> None:
         terms = [
             getattr(m, VAR_WINDTECHCAPINSTLGROUP)[ss, hh, x, w, terrain]
             * getattr(m, PAR_WINDTECHAREAPERTURBINE)[x]
-            / system.wind_techs.get_rated_power(TechId(x)).to_float(unit=system.power_unit)
+            / system.wind_techs.get_rated_power(TechId(x)).to_float(
+                unit=system.power_unit
+            )
             for (ss, hh, x) in getattr(m, SET_WINDTECHTUPLE)
             if hh == h
             and stages.get_start_year(StageId(ss)) <= current_year
@@ -1234,7 +1267,6 @@ def _override_wind_tech_costs(model: Model, system: EnergySystem) -> None:
     Called only when system.wind_data.has_terrain_multipliers() is True.
     """
     wind_data = system.wind_data
-    wind_techs = system.wind_techs
     stages = system.stages
     techs = system.techs
     currency_unit = system.currency_unit
@@ -1332,16 +1364,28 @@ def _override_wind_tech_costs(model: Model, system: EnergySystem) -> None:
             one_time_capex = techs.get_one_time_capex(
                 StageId(s_instl), TechId(x)
             ).to_float(unit=currency_unit)
-            cost_capex += crf * one_time_capex * sum(
-                float(getattr(model, PAR_WINDTERRAINCAPEXONE)[w, terrain])
-                * getattr(model, VAR_YWINDTECHCAPINSTLGROUP)[s_instl, h, x, w, terrain]
-                for (w, terrain) in getattr(model, SET_WINDSUBGROUP)
+            cost_capex += (
+                crf
+                * one_time_capex
+                * sum(
+                    float(getattr(model, PAR_WINDTERRAINCAPEXONE)[w, terrain])
+                    * getattr(model, VAR_YWINDTECHCAPINSTLGROUP)[
+                        s_instl, h, x, w, terrain
+                    ]
+                    for (w, terrain) in getattr(model, SET_WINDSUBGROUP)
+                )
             )
             # capex_per_cap: applied directly per (w, terrain) sub-group
-            cost_capex += crf * capex_per_cap * sum(
-                float(getattr(model, PAR_WINDTERRAINCAPEXCAP)[w, terrain])
-                * getattr(model, VAR_WINDTECHCAPINSTLGROUP)[s_instl, h, x, w, terrain]
-                for (w, terrain) in getattr(model, SET_WINDSUBGROUP)
+            cost_capex += (
+                crf
+                * capex_per_cap
+                * sum(
+                    float(getattr(model, PAR_WINDTERRAINCAPEXCAP)[w, terrain])
+                    * getattr(model, VAR_WINDTECHCAPINSTLGROUP)[
+                        s_instl, h, x, w, terrain
+                    ]
+                    for (w, terrain) in getattr(model, SET_WINDSUBGROUP)
+                )
             )
         return getattr(model, VAR_TECHCOSTCAPEX)[s, h, x] == cost_capex
 
@@ -1387,5 +1431,3 @@ def _override_wind_tech_costs(model: Model, system: EnergySystem) -> None:
         f"{len(list(getattr(model, SET_WINDTECHTUPLE)))} wind tech tuple(s)",
         module=LOG_MODULE_STR,
     )
-
-

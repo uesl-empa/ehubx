@@ -203,3 +203,78 @@ techs:
     opex_per_well_pair: 7 CHF
   emissions:
     co2_per_well_pair: 5 kg
+
+- tech_id: X17Wind_Vestas_5MW
+  type: wind
+  tech_params:
+    lifetime: 20 a
+    # unit_cap_min: 5 MW
+  wind_params:
+    ec: E0
+    rated_power: 5.0 MW
+    cut_in_speed: 3.0 m/s
+    rated_speed: 12.0 m/s
+    cut_out_speed: 25.0 m/s
+    rotor_diameter: 130.0 m
+    hub_height: 148 m
+    power_coefficient: 0.45
+    area_per_turbine: 0.15 km^2  # change to MW/km2 in the future  (skip?)
+    curtail_max_rel: 1.0
+    curtail_min_rel: 0.0
+  costs:
+    one_time_capex: 650000 CHF
+    capex_per_cap: 1000 CHF/kW
+    one_time_opex: 65000 CHF
+    opex_per_cap: 65 CHF/kW
+  emissions:
+    co2_per_cap: 16 kg/kW
+
+- tech_id: X17Wind_Gamesa
+  type: wind
+  tech_params:
+    lifetime: 20 a
+    # unit_cap_min: 3 MW
+  wind_params:
+    ec: E0
+    rated_power: 3.0 MW
+    cut_in_speed: 3.0 m/s
+    rated_speed: 10.3 m/s
+    cut_out_speed: 25.0 m/s
+    rotor_diameter: 120.0 m
+    hub_height: 125 m
+    power_coefficient: 0.45
+    area_per_turbine: 0.1 km^2
+    curtail_max_rel: 1.0
+    curtail_min_rel: 0.0
+  costs:
+    one_time_capex: 500000 CHF
+    capex_per_cap: 1200 CHF/kW
+    one_time_opex: 50000 CHF
+    opex_per_cap: 50 CHF/kW
+  emissions:
+    co2_per_cap: 15 kg/kW
+
+- tech_id: X17Wind_Senvion
+  type: wind
+  tech_params:
+    lifetime: 20 a
+    # unit_cap_min: 2 MW
+  wind_params:
+    ec: E0
+    rated_power: 2.05 MW
+    cut_in_speed: 3.0 m/s
+    rated_speed: 11.0 m/s
+    cut_out_speed: 24.0 m/s
+    rotor_diameter: 120.0 m
+    hub_height: 100 m
+    power_coefficient: 0.45
+    area_per_turbine: 0.12 km^2
+    curtail_max_rel: 1.0     # default: 1.0 (freie Curtailment möglich)
+    curtail_min_rel: 0.0     # default: 0.0 (kein erzwungenes Curtailment)
+  costs:
+    one_time_capex: 300000 CHF
+    capex_per_cap: 1300 CHF/kW
+    one_time_opex: 30000 CHF
+    opex_per_cap: 30 CHF/kW
+  emissions:
+    co2_per_cap: 12 kg/kW

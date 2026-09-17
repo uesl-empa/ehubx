@@ -34,6 +34,8 @@
 #                      E13d for power consumption
 #   - H14 (ebm): Import E0 which is the ec of an EBM fleet with its own demand
 #                and availability profiles.
+#   - H16 (demand_sum): ...
+#   - H17 (wind): Use wind tech XWind16 to produce E0 to satisfy the demand
 import os
 
 from pyomo.core import Constraint, Model, NonNegativeReals, Var

@@ -2,7 +2,7 @@
 files"""
 
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pyomo.core import Model, value
@@ -103,7 +103,8 @@ def _format_tech(
 
     # Wind output
     """
-    Total wind output per (stage, hub, tech) combination, summed over all wind groups and terrain types.
+    Total wind output per (stage, hub, tech) combination, summed over all wind groups
+    and terrain types.
     Hourly time series, unit = ec/h.
     Reads VAR_WINDTECHOUT from model.
     """
@@ -120,6 +121,9 @@ def _format_tech(
                 energy_system.ecs.get_unit(ec),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             wind_out_unit = ec_unit / TimeUnit.H
             for t in energy_system.times.ids:
@@ -158,9 +162,15 @@ def _format_tech(
             for w in energy_system.wind_data.get_wind_groups():
                 terrain_fracs = energy_system.wind_data.get_terrain_fracs_for_group(w)
                 # When no terrain areas are defined the sub-group uses terrain == w
-                subgroup_terrains = list(terrain_fracs) if terrain_fracs else [w]
+                # Falls back to the wind group itself when no terrain areas
+                # are defined; terrain_key below handles both id types.
+                subgroup_terrains: List[Any] = (
+                    list(terrain_fracs) if terrain_fracs else [w]
+                )
                 for terrain in subgroup_terrains:
-                    terrain_key = terrain.key if hasattr(terrain, "key") else str(terrain)
+                    terrain_key = (
+                        terrain.key if hasattr(terrain, "key") else str(terrain)
+                    )
                     var = getattr(model, wind_tech_model.VAR_WINDTECHOUTINGROUP)
                     wind_out = TimeSeries()
                     ec = energy_system.wind_techs.get_ec(x)
@@ -168,6 +178,9 @@ def _format_tech(
                         energy_system.ecs.get_unit(ec),
                         energy_system.mass_unit,
                         energy_system.power_unit,
+                        energy_system.length_unit,
+                        energy_system.passenger_unit,
+                        energy_system.freight_unit,
                     )
                     wind_out_unit = ec_unit / TimeUnit.H
                     for t in energy_system.times.ids:
@@ -176,7 +189,9 @@ def _format_tech(
                             exception=False,
                         )
                         if wind_out_fl is not None:
-                            wind_out.set_value(t, Value(wind_out_fl, unit=wind_out_unit))
+                            wind_out.set_value(
+                                t, Value(wind_out_fl, unit=wind_out_unit)
+                            )
                     add_to_df_ts_cl(
                         df_ts_hor,
                         df_ts_cl,
@@ -199,11 +214,15 @@ def _format_tech(
                     wind_curt = TimeSeries()
                     for t in energy_system.times.ids:
                         wind_curt_fl = value(
-                            var_curt[s.key, h.key, x.key, w.key, terrain_key, t.key_as_int],
+                            var_curt[
+                                s.key, h.key, x.key, w.key, terrain_key, t.key_as_int
+                            ],
                             exception=False,
                         )
                         if wind_curt_fl is not None:
-                            wind_curt.set_value(t, Value(wind_curt_fl, unit=wind_out_unit))
+                            wind_curt.set_value(
+                                t, Value(wind_curt_fl, unit=wind_out_unit)
+                            )
                     add_to_df_ts_cl(
                         df_ts_hor,
                         df_ts_cl,
@@ -231,9 +250,13 @@ def _format_tech(
                 continue
             for w in energy_system.wind_data.get_wind_groups():
                 terrain_fracs = energy_system.wind_data.get_terrain_fracs_for_group(w)
+                # Falls back to the wind group itself when no terrain areas
+                # are defined; terrain_key below handles both id types.
                 subgroup_terrains = list(terrain_fracs) if terrain_fracs else [w]
                 for terrain in subgroup_terrains:
-                    terrain_key = terrain.key if hasattr(terrain, "key") else str(terrain)
+                    terrain_key = (
+                        terrain.key if hasattr(terrain, "key") else str(terrain)
+                    )
                     if not energy_system.wind_techs.is_subgroup_allowed(
                         x, w.key, terrain_key
                     ):
@@ -243,6 +266,9 @@ def _format_tech(
                         energy_system.ecs.get_unit(ec),
                         energy_system.mass_unit,
                         energy_system.power_unit,
+                        energy_system.length_unit,
+                        energy_system.passenger_unit,
+                        energy_system.freight_unit,
                     )
                     var_cap = getattr(model, wind_tech_model.VAR_WINDTECHCAPINGROUP)
                     cap_fl = value(
@@ -251,7 +277,8 @@ def _format_tech(
                     )
                     if cap_fl is not None:
                         df_st_builder.add_row(
-                            f"Wind sub-group capacity ({wind_tech_model.VAR_WINDTECHCAPINGROUP})",
+                            "Wind sub-group capacity "
+                            f"({wind_tech_model.VAR_WINDTECHCAPINGROUP})",
                             Value(cap_fl, unit=cap_unit),
                             unit=cap_unit,
                             stage=s.key,
@@ -263,14 +290,17 @@ def _format_tech(
                             in_res="result",
                         )
 
-                    var_instl = getattr(model, wind_tech_model.VAR_WINDTECHCAPINSTLGROUP)
+                    var_instl = getattr(
+                        model, wind_tech_model.VAR_WINDTECHCAPINSTLGROUP
+                    )
                     instl_fl = value(
                         var_instl[s.key, h.key, x.key, w.key, terrain_key],
                         exception=False,
                     )
                     if instl_fl is not None:
                         df_st_builder.add_row(
-                            f"Wind sub-group installed capacity ({wind_tech_model.VAR_WINDTECHCAPINSTLGROUP})",
+                            "Wind sub-group installed capacity "
+                            f"({wind_tech_model.VAR_WINDTECHCAPINSTLGROUP})",
                             Value(instl_fl, unit=cap_unit),
                             unit=cap_unit,
                             stage=s.key,
@@ -282,14 +312,17 @@ def _format_tech(
                             in_res="result",
                         )
 
-                    var_y_instl = getattr(model, wind_tech_model.VAR_YWINDTECHCAPINSTLGROUP)
+                    var_y_instl = getattr(
+                        model, wind_tech_model.VAR_YWINDTECHCAPINSTLGROUP
+                    )
                     y_instl_fl = value(
                         var_y_instl[s.key, h.key, x.key, w.key, terrain_key],
                         exception=False,
                     )
                     if y_instl_fl is not None:
                         df_st_builder.add_row(
-                            f"Wind sub-group install binary ({wind_tech_model.VAR_YWINDTECHCAPINSTLGROUP})",
+                            "Wind sub-group install binary "
+                            f"({wind_tech_model.VAR_YWINDTECHCAPINSTLGROUP})",
                             bool(round(y_instl_fl)),
                             stage=s.key,
                             hub=h.key,
@@ -307,7 +340,8 @@ def _format_tech(
                     )
                     if y_used_fl is not None:
                         df_st_builder.add_row(
-                            f"Wind sub-group used binary ({wind_tech_model.VAR_YWINDTECHUSEDGROUP})",
+                            "Wind sub-group used binary "
+                            f"({wind_tech_model.VAR_YWINDTECHUSEDGROUP})",
                             bool(round(y_used_fl)),
                             stage=s.key,
                             hub=h.key,
@@ -370,4 +404,3 @@ def write_data_time_series(energy_system: EnergySystem, dir_path: str) -> None:
         ]
         df.index += 1
         df.to_csv(os.path.join(dir_path, FILENAME_TIMESERIES_WINDDATA))
-

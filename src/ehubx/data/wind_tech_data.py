@@ -298,7 +298,8 @@ class WindTechs:
         """
         Check if wind tech x is allowed in the given terrain.
         Only meaningful when has_allowed_terrains(x) is True;
-        prefer is_subgroup_allowed() to resolve eligibility for a (wind_group, terrain) sub-group.
+        prefer is_subgroup_allowed() to resolve eligibility for a (wind_group, terrain)
+        sub-group.
         """
         self._check_id(x, ExceptionKey.ALLOWEDTERRAINS_GET)
         allowed = self._allowed_terrains.get(x, None)
@@ -691,19 +692,22 @@ class WindTechs:
             hub_min = self._curtail_min_rel_hub.get(h, self.DEF_CURTAIL_MIN_REL)
             if not (Value(0) <= hub_min <= Value(1)):
                 raise exceptions.DataException(
-                    exc_key, [h],
+                    exc_key,
+                    [h],
                     f"curtail_min_rel hub override must be in [0,1], got {hub_min}",
                     module=LOG_MODULE_STR,
                 )
             if not (Value(0) <= hub_max <= Value(1)):
                 raise exceptions.DataException(
-                    exc_key, [h],
+                    exc_key,
+                    [h],
                     f"curtail_max_rel hub override must be in [0,1], got {hub_max}",
                     module=LOG_MODULE_STR,
                 )
             if hub_min > hub_max:
                 raise exceptions.DataException(
-                    exc_key, [h],
+                    exc_key,
+                    [h],
                     f"Expected curtail_min_rel <= curtail_max_rel for hub override, "
                     f"got {hub_min} > {hub_max}",
                     module=LOG_MODULE_STR,

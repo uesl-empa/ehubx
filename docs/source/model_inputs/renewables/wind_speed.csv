@@ -1,0 +1,6 @@
+stage_id,      S1,  S1,  S2
+wind_group_id, W1,  W2,  W1
+unit,          m/s, m/s, m/s
+1,             6.0, 7.5, 5.5
+2,             8.0, 9.0, 7.0
+3,             5.0, 6.0, 4.5

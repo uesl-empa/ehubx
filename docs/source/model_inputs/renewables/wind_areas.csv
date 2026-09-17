@@ -1,3 +1,5 @@
-stage_id, S1,  S2
-hub_id,   H1,  H1
-WP1,      500, 600
+stage_id,S1
+hub_id,H1
+unit,km^2
+W1,1000
+W2,600
