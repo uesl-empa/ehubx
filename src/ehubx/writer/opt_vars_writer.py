@@ -136,10 +136,10 @@ def _vars_to_dataframe(model: Model, only_non_zero_results: bool) -> pd.DataFram
                 for idx_vals, val in var_obj.items()
             ]
         model_vars += vars_v
-    # Define dataframe and filter nonzero results
+    # Define dataframe and filter out NaN and nonzero results
     df = pd.DataFrame(model_vars).set_index(COL_VARNAME)
     if only_non_zero_results:
-        return df[df[COL_VARVALUE] != 0]
+        return df[df[COL_VARVALUE].notna() & (df[COL_VARVALUE] != 0)]
     # Return
     return df
 

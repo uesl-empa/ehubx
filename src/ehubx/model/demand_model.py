@@ -225,7 +225,7 @@ def build(model: Model, system: EnergySystem) -> None:
         if penalty_val is None:
             demand_unmet_penalty_per_tuple[(s, h, e)] = 0.0
         else:
-            unit_energy = get_ec_model_unit(
+            unit = get_ec_model_unit(
                 ecs.get_unit(e),
                 mass_unit,
                 power_unit,
@@ -233,7 +233,7 @@ def build(model: Model, system: EnergySystem) -> None:
                 passenger_unit,
                 freight_unit,
             )
-            penalty_unit = system.currency_unit / unit_energy
+            penalty_unit = system.currency_unit / unit
             demand_unmet_penalty_per_tuple[(s, h, e)] = penalty_val.to_float(
                 unit=penalty_unit
             )
@@ -280,11 +280,6 @@ def build(model: Model, system: EnergySystem) -> None:
         freight_unit,
     )
 
-    # Store the user-defined per-stage setting for unmet demand status (flag)
-    model.autonomy_allow_unmet_demand_user = {
-        s.key: system.stages.get_allow_unmet_demand(s) for s in system.stages.ids
-    }
-
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
@@ -307,7 +302,15 @@ def _con_demand_supply_sum(
     S_Time = getattr(model, SET_TIME)
 
     def __rule_demand_supply_sum(m, s, h, e):
-        unit_energy = get_ec_model_unit(
+        # Get demand sum
+        demand_sum = demands.get_demand_sum(
+            StageId(s),
+            HubId(h),
+            EcId(e),
+        )
+
+        # Get model unit for the energy carrier
+        unit = get_ec_model_unit(
             ecs.get_unit(EcId(e)),
             mass_unit,
             power_unit,
@@ -316,6 +319,7 @@ def _con_demand_supply_sum(
             freight_unit,
         )
 
+        # Calculate total served demand plus unmet demand
         total_served_plus_unmet = sum(
             times.get_weight(StageId(s), TimeId(t_elem))
             * (
@@ -325,16 +329,16 @@ def _con_demand_supply_sum(
             for t_elem in S_Time
         )
 
-        demand_sum = demands.get_demand_sum(StageId(s), HubId(h), EcId(e)).to_float(
-            unit=unit_energy
-        )
-        # Set constraint
-        return total_served_plus_unmet == demand_sum
+        # Served demand plus unmet demand must equal total demand
+        return total_served_plus_unmet == demand_sum.to_float(unit=unit)
 
     setattr(
         model,
         CON_DEMANDSUPPLYSUM,
-        Constraint(getattr(model, SET_DEMANDSUMTUPLE), rule=__rule_demand_supply_sum),
+        Constraint(
+            getattr(model, SET_DEMANDSUMTUPLE),
+            rule=__rule_demand_supply_sum,
+        ),
     )
 
 
@@ -349,6 +353,16 @@ def _con_unmet_demand_gate_all(
     passenger_unit: PassengerUnit,
     freight_unit: FreightUnit,
 ) -> None:
+    """
+    Unified unmet-demand gating for *all* demand tuples:
+
+      V_AutUnmetDemand[s,h,e,t] <= M(s,h,e,t) * P_DemandUnmetAllowed
+
+    where M(s,h,e,t) is:
+      - for demand-profile tuples: the actual demand at (s,h,e,t) in model units
+      - for demand-sum tuples: DemandSumBigM[s,h,e] / weight(s,t) in model units
+      - otherwise: 0 (no unmet allowed / irrelevant tuple)
+    """
     S_Time = getattr(model, SET_TIME)
     S_DemandTuple = getattr(model, SET_DEMANDTUPLE)
     S_Profile = getattr(model, SET_DEMANDPROFILETUPLE)
@@ -364,7 +378,7 @@ def _con_unmet_demand_gate_all(
         # Case A: profile tuple -> bound by actual per-timestep demand
         if (s, h, e) in profile_set:
             t_id = TimeId(t_elem)
-            unit_pw = (
+            unit = (
                 get_ec_model_unit(
                     ecs.get_unit(EcId(e)),
                     mass_unit,
@@ -379,16 +393,16 @@ def _con_unmet_demand_gate_all(
             dv = demands.get_demand_profile(StageId(s), HubId(h), EcId(e)).get_value(
                 t_id
             )
-            demand_pw = 0.0 if dv is None else dv.to_float(unit=unit_pw)
-            M = demand_pw
+            demand = 0.0 if dv is None else dv.to_float(unit=unit)
+            M = demand
 
-        # Case B: sum tuple -> bound by per-timestep Big-M derived from total energy
+        # Case B: sum tuple -> bound by per-timestep Big-M
         elif (s, h, e) in sum_set:
-            M_energy = getattr(m, PAR_DEMANDSUMBIGM)[s, h, e]  # energy units
+            M_sum = getattr(m, PAR_DEMANDSUMBIGM)[s, h, e]
             w_t = times.get_weight(StageId(s), TimeId(t_elem))
             if w_t <= 0:
                 return Constraint.Skip
-            M = M_energy / w_t
+            M = M_sum / w_t
 
         # Case C: other tuples -> no unmet supposed to exist
         else:

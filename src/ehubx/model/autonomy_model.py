@@ -10,7 +10,14 @@ from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import TimeUnit
+from ehubx.data.unit import (
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.demand_model import (
     PAR_DEMANDSUMBIGM,
     PAR_DEMANDUNMETALLOWED,
@@ -77,6 +84,11 @@ LOG_MODULE_STR: str = "mod/autonomy"
 def build(model, system: EnergySystem) -> None:
     times: Times = system.times
     ecs: Ecs = system.ecs
+    mass_unit: MassUnit = system.mass_unit
+    power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
 
     s_stage = getattr(model, SET_STAGE)
     s_time_hor = getattr(model, SET_TIMEHORIZON)
@@ -106,11 +118,11 @@ def build(model, system: EnergySystem) -> None:
         ecs=ecs,
         imports=system.imports,
         times=times,
-        mass_unit=system.mass_unit,
-        power_unit=system.power_unit,
-        length_unit=system.length_unit,
-        passenger_unit=system.passenger_unit,
-        freight_unit=system.freight_unit,
+        mass_unit=mass_unit,
+        power_unit=power_unit,
+        length_unit=length_unit,
+        passenger_unit=passenger_unit,
+        freight_unit=freight_unit,
     )
     _con_aut_no_cross_export_while_alive(
         con_enabled,
@@ -118,11 +130,11 @@ def build(model, system: EnergySystem) -> None:
         ecs=ecs,
         exports=system.exports,
         times=times,
-        mass_unit=system.mass_unit,
-        power_unit=system.power_unit,
-        length_unit=system.length_unit,
-        passenger_unit=system.passenger_unit,
-        freight_unit=system.freight_unit,
+        mass_unit=mass_unit,
+        power_unit=power_unit,
+        length_unit=length_unit,
+        passenger_unit=passenger_unit,
+        freight_unit=freight_unit,
     )
     _con_aut_unmet_demand_gated(
         con_enabled,
@@ -130,11 +142,11 @@ def build(model, system: EnergySystem) -> None:
         ecs=ecs,
         demands=system.demands,
         times=times,
-        mass_unit=system.mass_unit,
-        power_unit=system.power_unit,
-        length_unit=system.length_unit,
-        passenger_unit=system.passenger_unit,
-        freight_unit=system.freight_unit,
+        mass_unit=mass_unit,
+        power_unit=power_unit,
+        length_unit=length_unit,
+        passenger_unit=passenger_unit,
+        freight_unit=freight_unit,
         s_time=s_time_hor,
     )
     _con_aut_hours_definition(con_enabled, model, s_stage, s_time_hor)
@@ -222,7 +234,7 @@ def con_aut_alive_nonincreasing(container, model, s_stage, s_time_hor) -> None:
 
 # ---------------------------------------------------------------------
 # Gate unmet demand: V_DemandUnmet <= demand(t) * (1 - v_autalive)
-# (compute demand on-the-fly, cached per (s,h,e))
+# compute demand on-the-fly
 # ---------------------------------------------------------------------
 def _con_aut_unmet_demand_gated(
     container,
@@ -230,11 +242,11 @@ def _con_aut_unmet_demand_gated(
     ecs: Ecs,
     demands,
     times: Times,
-    mass_unit,
-    power_unit,
-    length_unit,
-    passenger_unit,
-    freight_unit,
+    mass_unit: MassUnit,
+    power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
     s_time,
 ) -> None:
     if not hasattr(model, VAR_DEMANDUNMET):
@@ -251,6 +263,10 @@ def _con_aut_unmet_demand_gated(
     sum_set = set(s_sum.data()) if s_sum is not None else set()
 
     def rule(m, s, h, e, t_elem):
+        # Autonomy applies only to energy carriers
+        if not ecs.is_energy(EcId(e)):
+            return Constraint.Skip
+
         # Only apply to demand tuples that are actually profile or sum demand tuples
         if (s, h, e) not in profile_set and (s, h, e) not in sum_set:
             return Constraint.Skip
@@ -263,7 +279,7 @@ def _con_aut_unmet_demand_gated(
 
         # A) profile tuples -> actual demand(t)
         if (s, h, e) in profile_set:
-            unit_pw = (
+            unit = (
                 get_ec_model_unit(
                     ecs.get_unit(EcId(e)),
                     mass_unit,
@@ -274,19 +290,22 @@ def _con_aut_unmet_demand_gated(
                 )
                 / TimeUnit.H
             )
-            dv = demands.get_demand_profile(StageId(s), HubId(h), EcId(e)).get_value(
-                t_clust_id
-            )
 
-            M = dv.to_float(unit=unit_pw)
+            dv = demands.get_demand_profile(
+                StageId(s),
+                HubId(h),
+                EcId(e),
+            ).get_value(t_clust_id)
 
-        # B) sum tuples -> Big-M per timestep from total energy / weight
+            M = 0.0 if dv is None else dv.to_float(unit=unit)
+
+        # B) sum tuples -> Big-M per timestep from total demand / weight
         else:
-            energy_limit = getattr(model, PAR_DEMANDSUMBIGM)[s, h, e]
+            demand_limit = getattr(model, PAR_DEMANDSUMBIGM)[s, h, e]
             w_t = times.get_weight(StageId(s), t_clust_id)
             if w_t <= 0:
                 return Constraint.Skip
-            M = energy_limit / w_t
+            M = demand_limit / w_t
 
         # Strict mode (flag=0): unmet demand is globally forbidden.
         # Relaxed mode (flag=1): unmet demand is permitted only after autonomy is lost
@@ -312,11 +331,11 @@ def _con_aut_no_cross_import_while_alive(
     ecs: Ecs,
     imports,
     times: Times,
-    mass_unit,
-    power_unit,
-    length_unit,
-    passenger_unit,
-    freight_unit,
+    mass_unit: MassUnit,
+    power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     s_imp_tuple = getattr(model, SET_IMPTUPLE)
     s_time_hor = getattr(model, SET_TIMEHORIZON)
@@ -340,7 +359,8 @@ def _con_aut_no_cross_import_while_alive(
 
         for t_cl in getattr(model, SET_TIME):
             t_cl_id = TimeId(t_cl)
-            unit_pow = (
+
+            unit = (
                 get_ec_model_unit(
                     ecs.get_unit(e_id),
                     mass_unit,
@@ -352,41 +372,61 @@ def _con_aut_no_cross_import_while_alive(
                 / TimeUnit.H
             )
 
-            # (A) time-dependent max if defined
+            sum_unit = get_ec_model_unit(
+                ecs.get_unit(e_id),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
+
+            bounds = []
+
+            # (A) Explicit per-timestep maximum
             imp_max = imports.get_max(s_id, h_id, e_id)
+
             if imp_max.has_values:
                 v = imp_max.get_value(t_cl_id)
-                if v is not None:
-                    M[(s, h, e_id, t_cl)] = max(0.0, v.to_float(unit=unit_pow))
-                    continue
 
-            # (B) finite sum_max -> distribute across full horizon as average
-            sm = imports.get_sum_max(s_id, h_id, e_id, ecs).to_float(
-                unit=get_ec_model_unit(
-                    ecs.get_unit(e_id),
-                    mass_unit,
-                    power_unit,
-                    length_unit,
-                    passenger_unit,
-                    freight_unit,
-                )
+                if v is not None:
+                    max_t = v.to_float(unit=unit)
+
+                    if max_t != float("inf"):
+                        bounds.append(max(0.0, max_t))
+
+            # (B) Per-timestep bound implied by finite sum_max
+            sum_max = imports.get_sum_max(
+                s_id,
+                h_id,
+                e_id,
+                ecs,
             )
-            if sm != float("inf") and times.num_horizon_ts > 0:
-                M[(s, h, e_id, t_cl)] = max(0.0, sm / times.num_horizon_ts)
+
+            if sum_max.is_finite:
+                sm = sum_max.to_float(unit=sum_unit)
+                w_t = times.get_weight(s_id, t_cl_id)
+
+                if w_t > 0:
+                    bounds.append(max(0.0, sm / w_t))
+
+            # Use the tightest available valid upper bound
+            if bounds:
+                M[(s, h, e_id, t_cl)] = min(bounds)
                 continue
 
-            # (C) fallback
+            # (C) No finite bound available
             if DEF_AUT_BIGM_STRICT:
                 raise ValueError(
-                    f"No finite Big-M bound available for"
+                    f"No finite Big-M bound available for "
                     f"autonomy cross-import restriction "
                     f"(stage={s}, hub={h}, ec={e_id.key}, time={t_cl}). "
                     f"Specify an import max profile or finite sum_max."
                 )
 
             logging.log_file(
-                f"Warning: Using fallback Big-M={DEF_AUT_BIGM_FALLBACK} for autonomy "
-                f"cross-import restriction "
+                f"Warning: Using fallback Big-M={DEF_AUT_BIGM_FALLBACK} "
+                f"for autonomy cross-import restriction "
                 f"(stage={s}, hub={h}, ec={e_id.key}, time={t_cl}). "
                 f"Specify an import max profile or finite sum_max to avoid fallback.",
                 module=LOG_MODULE_STR,
@@ -447,11 +487,11 @@ def _con_aut_no_cross_export_while_alive(
     ecs: Ecs,
     exports,
     times: Times,
-    mass_unit,
-    power_unit,
-    length_unit,
-    passenger_unit,
-    freight_unit,
+    mass_unit: MassUnit,
+    power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     s_exp_tuple = getattr(model, SET_EXPTUPLE)
     s_time_hor = getattr(model, SET_TIMEHORIZON)
@@ -468,9 +508,11 @@ def _con_aut_no_cross_export_while_alive(
     for s, h, e_id in cross_typed:
         s_id = StageId(s)
         h_id = HubId(h)
+
         for t_cl in getattr(model, SET_TIME):
             t_cl_id = TimeId(t_cl)
-            unit_pow = (
+
+            unit = (
                 get_ec_model_unit(
                     ecs.get_unit(e_id),
                     mass_unit,
@@ -481,28 +523,51 @@ def _con_aut_no_cross_export_while_alive(
                 )
                 / TimeUnit.H
             )
-            # (A) time-dependent max if defined
+
+            sum_unit = get_ec_model_unit(
+                ecs.get_unit(e_id),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
+
+            bounds = []
+
+            # (A) Explicit per-timestep maximum
             exp_max = exports.get_max(s_id, h_id, e_id)
+
             if exp_max.has_values:
                 v = exp_max.get_value(t_cl_id)
+
                 if v is not None:
-                    M[(s, h, e_id, t_cl)] = max(0.0, v.to_float(unit=unit_pow))
-                    continue
-            # (B) finite sum_max -> distribute across full horizon as average
-            sm = exports.get_sum_max(s_id, h_id, e_id, ecs).to_float(
-                unit=get_ec_model_unit(
-                    ecs.get_unit(e_id),
-                    mass_unit,
-                    power_unit,
-                    length_unit,
-                    passenger_unit,
-                    freight_unit,
-                )
+                    max_t = v.to_float(unit=unit)
+
+                    if max_t != float("inf"):
+                        bounds.append(max(0.0, max_t))
+
+            # (B) Per-timestep bound implied by finite sum_max
+            sum_max = exports.get_sum_max(
+                s_id,
+                h_id,
+                e_id,
+                ecs,
             )
-            if sm != float("inf") and times.num_horizon_ts > 0:
-                M[(s, h, e_id, t_cl)] = max(0.0, sm / times.num_horizon_ts)
+
+            if sum_max.is_finite:
+                sm = sum_max.to_float(unit=sum_unit)
+                w_t = times.get_weight(s_id, t_cl_id)
+
+                if w_t > 0:
+                    bounds.append(max(0.0, sm / w_t))
+
+            # Use the tightest available valid upper bound
+            if bounds:
+                M[(s, h, e_id, t_cl)] = min(bounds)
                 continue
-            # (C) fallback
+
+            # (C) No finite bound available
             if DEF_AUT_BIGM_STRICT:
                 raise ValueError(
                     f"No finite Big-M bound available for "
@@ -510,9 +575,10 @@ def _con_aut_no_cross_export_while_alive(
                     f"(stage={s}, hub={h}, ec={e_id.key}, time={t_cl}). "
                     f"Specify an export max profile or finite sum_max."
                 )
+
             logging.log_file(
-                f"Warning: Using fallback Big-M={DEF_AUT_BIGM_FALLBACK} for autonomy "
-                f"cross-export restriction "
+                f"Warning: Using fallback Big-M={DEF_AUT_BIGM_FALLBACK} "
+                f"for autonomy cross-export restriction "
                 f"(stage={s}, hub={h}, ec={e_id.key}, time={t_cl}). "
                 f"Specify an export max profile or finite sum_max to avoid fallback.",
                 module=LOG_MODULE_STR,
