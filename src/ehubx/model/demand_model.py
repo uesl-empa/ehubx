@@ -280,6 +280,11 @@ def build(model: Model, system: EnergySystem) -> None:
         freight_unit,
     )
 
+    # Store the user-defined per-stage setting for unmet demand status (flag)
+    model.autonomy_allow_unmet_demand_user = {
+        s.key: system.stages.get_allow_unmet_demand(s) for s in system.stages.ids
+    }
+
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
