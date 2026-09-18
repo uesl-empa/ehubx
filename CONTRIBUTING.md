@@ -1,78 +1,123 @@
 # Contributing to ehubX [DRAFT - to be aligned with UESL/Empa team]
 
-Thank you for your interest in contributing to ehubX! This document outlines how you can contribute to the project.
+Thank you for your interest in contributing to ehubX!
+
+This document has two parts:
+
+- **[Part A — How we work](#part-a--how-we-work)** describes the process: who
+  does what, in which order, and why. No programming knowledge is needed to
+  follow it.
+- **[Part B — Technical reference](#part-b--technical-reference)** gives the
+  commands and set-up details for each step. Part A links to the right place.
 
 > **Draft status.** Items marked **[decide]** need a decision from the UESL/Empa
 > team before they mean anything. Everything else describes how the repository
 > is actually configured today.
 
-## Repository Status: GitHub is Canonical
-
-**Important:** This project was originally hosted on GitLab but has now migrated to GitHub.
-
-- **GitHub repository (the one under UESL-Empa):** https://github.com/uesl-empa/ehubx — **Primary/Canonical**
-- **GitLab repository:** Legacy/archival only — **do not submit new contributions there**
-
-All new contributions, issues, and discussions should be directed to the **GitHub repository**.
-
 ---
 
-## 1. How to contribute: which workflow applies to you
+# Part A — How we work
 
-Everyone ends up at the same place — a **pull request against `main`**. Nothing
-is pushed directly to `main`. How you get there depends on whether you have
-write access to `uesl-empa/ehubx`.
+## A1. Where the project lives
 
-### Internal contributors (UESL/Empa team, with write access)
+The project moved from GitLab to GitHub in 2026.
 
-Work on a **branch in the main repository**. No fork needed.
+- **GitHub** — https://github.com/uesl-empa/ehubx — is the **only** place for
+  new work, issues and discussions.
+- **GitLab** is legacy and archival only. **Do not submit new contributions
+  there.**
 
-```bash
-git clone https://github.com/uesl-empa/ehubx.git
-cd ehubx
-git checkout -b issue123_short-description
-# ... work, commit ...
-git push -u origin issue123_short-description
-```
+## A2. Roles
 
-Then open a PR from your branch to `main`.
+Most people are **model users**: they run ehubX for their own studies and
+never change its code. That is the most common way to take part, and reporting
+problems is a real contribution.
 
-Why branches rather than forks: you can assign reviewers, CI has access to
-repository secrets, and colleagues can push fixes to your branch during review.
-None of that works from a fork.
+| Role | Who | Responsible for |
+|---|---|---|
+| **Model user** | Anyone who runs ehubX for their work | Reporting bugs, unclear documentation and unexpected results as issues; suggesting features. No code changes, no git needed. See [A9](#a9-reporting-problems-and-other-ways-to-contribute). |
+| **Contributor** | Anyone making a change to the code or documentation | Doing the work, opening the pull request, responding to review |
+| **Reviewer** | A team member other than the contributor | Checking the change is correct and that its effect on results is understood; approving or requesting changes |
+| **Maintainer** | **[decide]** — named people in the UESL/Empa team | Granting write access, merging **[decide]**, publishing releases, deciding where sensitive work is hosted |
 
-### External contributors (no write access)
+## A3. The workflow, step by step
 
-**Fork** the repository, then open a PR from your fork.
+### For model users
 
-```bash
-# Fork via the GitHub web UI first, then:
-git clone https://github.com/your-username/ehubx.git
-cd ehubx
-git remote add upstream https://github.com/uesl-empa/ehubx.git
-git checkout -b short-description
-# ... work, commit ...
-git push -u origin short-description
-```
+You do **not** need a fork, git, or a GitHub copy of the project to use
+ehubX. A fork is only for proposing changes back to the project; if you only
+run the model, it would just be an extra copy that falls out of date.
 
-Then open a PR from `your-username/ehubx:short-description` to
-`uesl-empa/ehubx:main`. **Check the base repository** — GitHub sometimes
-defaults it to your own fork.
+| # | Step | What it involves |
+|---|---|---|
+| 1 | **Install ehubX** | Install the published package and a solver. See [B1](#b1-setting-up-your-environment). |
+| 2 | **Keep your model inputs in your own folder** | Your input files and results belong to your study, not to the ehubX project. Keep them outside the ehubX code, and back them up or version them however suits your project. See [A6](#a6-sensitive-or-restricted-work) for confidential data. |
+| 3 | **Record which version you used** | Note the ehubX version for every study, so results can be reproduced later. |
+| 4 | **Upgrade deliberately** | Before upgrading mid-study, read the changelog: a new version can change results (see [A5](#a5-changes-that-affect-results)). |
+| 5 | **Report problems** | Open an issue on GitHub. See [A9](#a9-reporting-problems-and-other-ways-to-contribute). |
 
-Note: contributors working from a fork **cannot assign reviewers** — GitHub only
-allows that with write access. @-mention someone in a PR comment instead.
+If you want to fix something yourself, you become a contributor and follow the
+workflow below. Only then may you need a fork (see [A4](#a4-internal-or-external-contributor)).
 
-### Not sure which you are?
+### For contributors
 
-If you can push a branch to `uesl-empa/ehubx`, you are internal. If you get a
-403, you are external — use a fork. Team members who expect write access but do
-not have it should ask the maintainers.
+Every change — a bug fix, a new model feature, a documentation correction —
+follows the same path and ends as a **pull request** (PR) into the `main`
+branch. Nobody changes `main` directly.
 
-### Sensitive or restricted work
+| # | Step | Who | What it involves |
+|---|---|---|---|
+| 1 | **Raise an issue** | Anyone, often a model user | Describe the bug or the feature on GitHub. For anything larger than a small fix, discuss it before starting, so nobody works in parallel on the same thing. A model user's part usually ends here, apart from answering questions on the issue. |
+| 2 | **Create a working branch** | Contributor | A private copy of the code to work in, named after the issue. See [B2](#b2-day-to-day-git-commands) and [B3](#b3-branch-naming). |
+| 3 | **Make the change** | Contributor | Include tests for new functionality, and update the documentation if users will notice the change. Keep unrelated changes apart. |
+| 4 | **Check it locally** | Contributor | Run the automatic checks on your own machine before asking anyone to look. See [B4](#b4-running-the-checks). |
+| 5 | **Open a pull request** | Contributor | Explain *why* the change is needed, link the issue, and **state whether it changes model results** (see [A5](#a5-changes-that-affect-results)). |
+| 6 | **Review** | Reviewer | At least one approving review is needed. **[decide]** — number of approvals, and whether this is enforced automatically. |
+| 7 | **Respond to review** | Contributor | Make the requested changes. The pull request updates itself, and the automatic checks run again. |
+| 8 | **Merge** | **[decide]** — contributor after approval, or maintainer | The change enters `main`. **[decide]** — squash policy; see [B6](#b6-merging). |
+| 9 | **Release** | Maintainer | Bundling merged changes into a new published version. See [A7](#a7-versions-and-releases). |
 
-Some work cannot simply be pushed to a public repository: unpublished methods
-under embargo, industry collaborations under NDA, or projects whose grant or
-contract terms specify where data and code may be hosted.
+## A4. Internal or external contributor?
+
+Both end with a pull request into `main`; the route differs.
+
+- **Internal contributors** (UESL/Empa team, with write access) work on a
+  branch **inside** the main repository. This lets you assign reviewers, lets
+  the automatic checks use repository settings, and lets colleagues push fixes
+  to your branch during review.
+- **External contributors** (no write access) work in their own copy of the
+  repository, called a **fork**, and open the pull request from there. From a
+  fork you **cannot assign reviewers** — mention someone by `@name` in a
+  comment instead.
+
+**Not sure which you are?** If you can push a branch to `uesl-empa/ehubx`, you
+are internal. If you are refused, you are external. Team members who expect
+write access but do not have it should ask a maintainer.
+
+Commands for both routes: [B2](#b2-day-to-day-git-commands).
+
+## A5. Changes that affect results
+
+ehubX produces numbers that people publish. Some changes are not just code
+changes, and the pull request must say so:
+
+- **Changing a constraint or cost term** alters objective values. Say so
+  explicitly, and say which model configurations are affected.
+- **Changing an output label or output filename** changes result files.
+  Downstream scripts read these. Call it out.
+- **Adding a model parameter** is usually safe: result files have a fixed
+  column layout and parameters are written as rows, so new parameters do not
+  add columns.
+
+If you are unsure whether a change affects results, assume it does and mention
+it. A reviewer would much rather read one unnecessary paragraph than discover it
+after a paper is submitted.
+
+## A6. Sensitive or restricted work
+
+Some work cannot simply be published: unpublished methods under embargo,
+industry collaborations under NDA, or projects whose grant or contract terms
+specify where data and code may be hosted.
 
 **If your work is under data-protection or contractual restrictions, consult the
 maintainers before choosing where to host it.** Requirements vary by project and
@@ -80,48 +125,128 @@ some are contractual rather than technical — for example, terms that name a
 jurisdiction or prohibit third-party hosting. This is not a decision to make
 alone.
 
-Two things that are true regardless:
+Two things are true regardless:
 
 - **Confidential input data does not belong in the repository**, public or
-  private. Keep model inputs outside the repo and reference them by path.
+  private. Keep model inputs outside the repository and refer to them by path.
   This is separate from whether the *code* is sensitive.
 - **Long-lived private branches get expensive to merge.** If work is embargoed
-  rather than permanently closed, rebase onto `main` regularly rather than
-  diverging for months.
+  rather than permanently closed, bring it up to date with `main` regularly
+  rather than letting it drift apart for months.
 
-### Branch naming
+## A7. Versions and releases
 
-Follow the convention carried over from GitLab:
+The project follows [Semantic Versioning](https://semver.org/):
 
-```
-issue<number>_<short-description>
-```
+- **MAJOR** — breaks existing models or the structure of output files
+- **MINOR** — new capability; existing models unaffected
+- **PATCH** — bug fix with no change to how the model is used
 
-for example `issue279_fix-opex-per-energy-main-carrier`. For work without an
-issue, a short descriptive name is fine (`autonomy-module`, `docs/setup-guide`).
+**Contributors do not change the version number.** Releases are done by a
+maintainer as a separate step. Procedure: [B8](#b8-release-procedure).
+
+## A8. Moving work from GitLab
+
+If you still have work that only exists on GitLab:
+
+1. **Check it is not already on GitHub.** Much of GitLab `main` was ported in
+   2026; `MIGRATION_AUDIT.md` lists what was moved and what was not.
+2. **Bring it across as a new pull request** on GitHub, following the workflow
+   in [A3](#a3-the-workflow-step-by-step).
+3. **Credit the original author** if the work is not yours, and **record where
+   it came from** on GitLab, so the history survives once GitLab is archived.
+
+The two repositories do not share history, so this is a copy rather than a
+simple transfer. How to do it: [B7](#b7-moving-work-from-gitlab).
+
+## A9. Reporting problems and other ways to contribute
+
+For model users, issues are the main way to take part. Open one when:
+
+- the model crashes or gives an error you cannot explain
+- results look wrong or change unexpectedly between versions
+- the documentation is missing, unclear or does not match the model
+- a feature you need is missing
+
+You need a free GitHub account, and nothing else.
+
+Other ways to contribute:
+
+- **Reporting bugs** — open an issue with a clear description and steps to
+  reproduce
+- **Suggesting features** — open an issue to discuss before anyone starts work
+- **Improving documentation** — always welcome
+- **Examples** — new example models in the `examples/` folder
+
+A good bug report includes the ehubX version, Python version, solver, a minimal
+input that reproduces the problem, and what you expected instead. If the model
+is confidential, describe its shape rather than attaching it.
 
 ---
 
-## 2. Setting up your development environment
+# Part B — Technical reference
 
-### Requirements
+## B1. Setting up your environment
 
-- **Python 3.11, 3.12 or 3.13** (CI tests all three)
+### For model users
+
+Install the published package from [PyPI](https://pypi.org/project/ehubx/),
+ideally in its own Python environment:
+
+```bash
+pip install ehubx               # latest version
+pip install ehubx==2.3.1        # a specific version, e.g. to reproduce a study
+```
+
+You also need a solver; see [Installing a solver](#installing-a-solver-important)
+below.
+
+Check which version you have (include this in bug reports):
+
+```bash
+pip show ehubx
+```
+
+Upgrade when you are ready, after reading `CHANGELOG.rst`:
+
+```bash
+pip install --upgrade ehubx
+```
+
+The example models are in the
+[`examples/`](https://github.com/uesl-empa/ehubx/tree/main/examples) folder on
+GitHub. Download them with **Code → Download ZIP**; no git is needed.
+
+### For contributors: requirements
+
+- **Python 3.11, 3.12 or 3.13** (the automatic checks test all three)
 - **Poetry** for dependency management
 - **A MILP solver** — see below
 
-### Install
+### For contributors: install
 
 ```bash
+git clone https://github.com/uesl-empa/ehubx.git
+cd ehubx
 pip install poetry
 poetry install
 poetry run pre-commit install
 ```
 
-That last command installs the repository's git hooks
+The last command installs the repository's git hooks
 (`.pre-commit-config.yaml`): ruff, ruff-format, mypy, and merge-conflict and
 whitespace checks. They run automatically on every commit and are the easiest
-way to avoid a red CI run.
+way to avoid a failed CI run.
+
+If you use your own environment (for example conda) instead of Poetry, install
+ehubX in **editable** mode from the repository folder:
+
+```bash
+pip install -e .
+```
+
+Otherwise Python may import an older installed copy of ehubX instead of the
+code you are editing, and your tests check the wrong code without any warning.
 
 ### Installing a solver (important)
 
@@ -139,7 +264,54 @@ broken — they simply cannot run. If you see a large number of failures
 immediately after cloning, check `glpsol --help` works before investigating
 anything else.
 
-### Running checks locally
+## B2. Day-to-day git commands
+
+### Internal contributors (branch in the main repository)
+
+```bash
+git clone https://github.com/uesl-empa/ehubx.git
+cd ehubx
+git checkout -b issue123_short-description
+# ... work, commit ...
+git push -u origin issue123_short-description
+```
+
+Then open a pull request from your branch to `main` on GitHub.
+
+### External contributors (fork)
+
+```bash
+# Fork via the GitHub web UI first, then:
+git clone https://github.com/your-username/ehubx.git
+cd ehubx
+git remote add upstream https://github.com/uesl-empa/ehubx.git
+git checkout -b short-description
+# ... work, commit ...
+git push -u origin short-description
+```
+
+Then open a pull request from `your-username/ehubx:short-description` to
+`uesl-empa/ehubx:main`. **Check the base repository** — GitHub sometimes
+defaults it to your own fork.
+
+### Updating a pull request during review
+
+Push new commits to the same branch; the pull request updates and CI reruns.
+Prefer follow-up commits over force-pushes once review has started: a
+force-push can detach existing review comments from the lines they refer to.
+
+## B3. Branch naming
+
+Follow the convention carried over from GitLab:
+
+```
+issue<number>_<short-description>
+```
+
+for example `issue279_fix-opex-per-energy-main-carrier`. For work without an
+issue, a short descriptive name is fine (`autonomy-module`, `docs/setup-guide`).
+
+## B4. Running the checks
 
 ```bash
 poetry run ruff check src --ignore C901
@@ -151,18 +323,24 @@ CI runs exactly these across Python 3.11, 3.12 and 3.13. The release and
 publish jobs are gated to `release` and `workflow_dispatch` events, so they
 show as **skipped** on pull requests — that is expected, not a failure.
 
----
+On Windows, if many tests fail at setup with `PermissionError` in
+`AppData\Local\Temp`, pytest cannot write its temporary folder. Point it at one
+it can write to:
 
-## 3. Rules for commits
+```bash
+poetry run pytest --basetemp=<a folder you can write to>
+```
+
+## B5. Commit and code rules
 
 ### Commit messages
 
 Explain **why**, not just what — the diff already shows what changed. A subject
 line under ~72 characters, a blank line, then the reasoning.
 
-Separate unrelated changes into separate commits, even within one PR. This
-matters more than it sounds: it is what lets a behaviour change be reverted
-later without unpicking everything around it.
+Separate unrelated changes into separate commits, even within one pull request.
+This matters more than it sounds: it is what lets a behaviour change be
+reverted later without unpicking everything around it.
 
 **[decide]** — whether to adopt conventional commit prefixes (`feat:`, `fix:`,
 `docs:`, `refactor:`, `test:`, `chore:`). No commit in the repository currently
@@ -177,11 +355,48 @@ existing practice.
 - Use type hints — mypy runs in CI
 - Include docstrings for public functions and classes
 
-### Porting a commit from GitLab
+### Output labels
 
-The two repositories share **no common history**, so a GitLab branch cannot be
-merged into this one. Port the content as a patch, and record provenance with
-git trailers so it survives the GitLab archive:
+Output labels are the `ENTRY_` constants and output filenames in
+`src/ehubx/writer/`. Changing them is result-affecting (see
+[A5](#a5-changes-that-affect-results)). Result CSVs use a fixed column schema
+(`DfStColumn` in `writer/common_writer.py`), which is why new parameters add
+rows rather than columns.
+
+## B6. Merging
+
+**[decide]** — squash policy. If a pull request has deliberately separated
+commits, say so in the description and ask not to squash; otherwise
+squash-merge keeps `main` tidy.
+
+**Branches built on other branches.** If your branch started from another
+feature branch rather than `main`, and that other branch was later
+squash-merged, git can no longer recognise its commits as already merged. Your
+branch then appears to carry them again, and merging reports conflicts that
+are not real. Replay only your own commits onto `main`:
+
+```bash
+git fetch origin
+git rebase --onto origin/main <last-commit-of-the-other-branch> <your-branch>
+```
+
+## B7. Moving work from GitLab
+
+The two repositories share **no common history** — `git merge-base` finds
+nothing between them — so a GitLab branch cannot be merged or simply rebased
+into this one. Port the content as a patch or cherry-pick onto a fresh clone
+of the GitHub repository:
+
+```bash
+git remote add github https://github.com/uesl-empa/ehubx.git
+git fetch github
+git checkout -b your-feature-branch github/main
+git cherry-pick <gitlab-commit>        # repeat per commit, resolve conflicts
+git push github your-feature-branch
+```
+
+Record provenance with git trailers in each commit message, so it survives the
+GitLab archive:
 
 ```
 GitLab-Commit: <full 40-character sha>
@@ -191,110 +406,10 @@ GitLab-URL: https://gitlab.empa.ch/ues-lab/team-mes/ehub-modelling/ehubX/-/commi
 Credit the original author with `Co-Authored-By:` if the work is not yours.
 `MIGRATION_AUDIT.md` documents the 2026 port and is a worked example.
 
----
+## B8. Release procedure
 
-## 4. Pull request process
-
-1. Ensure your code follows the existing style and conventions
-2. Add tests for new functionality where applicable
-3. Update documentation if your changes affect the API or user-facing behavior
-4. Ensure all CI checks pass
-5. Submit your pull request to the `main` branch
-6. Reference any related issues in your pull request description
-
-### Review
-
-Every PR needs at least one approving review before merge. **[decide]** —
-number of approvals, and whether this is enforced by branch protection.
-
-When you push new commits to an open PR, the PR updates automatically and CI
-reruns. Prefer follow-up commits over force-pushes once review has started: a
-force-push can detach existing review comments from the lines they refer to.
-
-**[decide]** — squash policy. If a PR has deliberately separated commits, say so
-in the description and ask not to squash; otherwise squash-merge keeps `main`
-tidy.
-
-### Changes that affect results
-
-ehubX produces numbers that people publish. Some changes are not just code
-changes:
-
-- **Changing a constraint or cost term** alters objective values. Say so
-  explicitly in the PR description, and say which model configurations are
-  affected.
-- **Changing an `ENTRY_` label or output filename** in `src/ehubx/writer/`
-  changes result files. Downstream scripts parse these. Call it out.
-- **Adding a model parameter** is usually safe: result CSVs use a fixed column
-  schema (`DfStColumn` in `writer/common_writer.py`) and parameters are written
-  as rows, so new parameters do not add columns.
-
-If you are unsure whether a change is result-affecting, assume it is and mention
-it. A reviewer would much rather read one unnecessary paragraph than discover it
-after a paper is submitted.
-
----
-
-## 5. Migrating existing work from GitLab
-
-If you have local changes or branches based on the GitLab repository:
-
-1. **Add GitHub as a remote** to your existing local repository:
-   ```bash
-   git remote add github https://github.com/uesl-empa/ehubx.git
-   git fetch github
-   ```
-
-2. **Check your current branch** and ensure it's up to date with GitLab's main:
-   ```bash
-   git checkout main
-   git pull origin main
-   ```
-
-3. **Rebase your work** onto GitHub's main branch:
-   ```bash
-   git checkout your-feature-branch
-   git rebase main
-   ```
-   If there are conflicts, resolve them, then continue the rebase with `git rebase --continue`.
-
-4. **Push your branch to GitHub**:
-   ```bash
-   git push github your-feature-branch
-   ```
-
-5. **Open a pull request** on GitHub from your branch to `main`.
-
-**Note:** the two repositories share no common history, so a rebase may not be
-possible — `git merge-base` finds nothing between them. If your branch has
-diverged significantly, cherry-pick your commits onto a fresh clone of the
-GitHub repository instead, and record provenance with the `GitLab-Commit:`
-trailers described above.
-
----
-
-## Ways to Contribute
-
-- **Reporting bugs:** Open an issue on GitHub with a clear description and steps to reproduce
-- **Suggesting features:** Open an issue on GitHub to discuss new features before implementation
-- **Code contributions:** Submit pull requests to the `main` branch
-- **Documentation improvements:** Pull requests for documentation are always welcome
-- **Examples:** Contribute new examples in the `examples/` directory
-
-A good bug report includes the ehubX version, Python version, solver, a minimal
-input that reproduces the problem, and what you expected instead. If the model
-is confidential, describe its shape rather than attaching it.
-
-## Versioning and releases
-
-The project follows [SemVer](https://semver.org/):
-
-- **MAJOR** — breaks existing models or output-file structure
-- **MINOR** — new capability, existing models unaffected
-- **PATCH** — bug fix with no interface change
-
-**Do not bump the version in a feature PR.** Version bumps belong to a release
-commit, which changes three files together or the package misreports itself:
+For maintainers. A version bump is its own release commit, which changes three
+files together or the package misreports itself:
 
 ```
 pyproject.toml          version = "X.Y.Z"
@@ -310,10 +425,16 @@ Then add a `CHANGELOG.rst` entry and publish a GitHub Release tagged `X.Y.Z`
 > even after deletion. Test first via **Actions → CI → Run workflow** with
 > `publish_target: testpypi`.
 
+---
+
 ## License
 
-By contributing to ehubX, you agree that your contributions will be licensed under the **GNU General Public License v3.0 or later**, in line with the project's existing license.
+By contributing to ehubX, you agree that your contributions will be licensed
+under the **GNU General Public License v3.0 or later**, in line with the
+project's existing license.
 
 ## Questions?
 
-If you have questions about contributing, please open an issue on GitHub or contact the maintainers. If this document is wrong or unclear, that is a bug in the document — please fix it.
+If you have questions about contributing, please open an issue on GitHub or
+contact the maintainers. If this document is wrong or unclear, that is a bug in
+the document — please fix it.
