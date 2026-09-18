@@ -145,6 +145,19 @@ The project follows [Semantic Versioning](https://semver.org/):
 **Contributors do not change the version number.** Releases are done by a
 maintainer as a separate step. Procedure: [B8](#b8-release-procedure).
 
+### When we release
+
+There is no fixed release schedule. A release is made:
+
+- **On demand**, when something worth releasing has been merged: a feature
+  users are waiting for, an important bug fix, or a colleague who needs a
+  fixed version to cite in a paper.
+- **At a project milestone**, such as the end of a project phase or a
+  deliverable that depends on a specific ehubX version.
+
+Anyone can ask for a release by opening an issue or raising it with a
+maintainer. The maintainer decides and carries it out.
+
 ## A8. Moving work from GitLab
 
 If you still have work that only exists on GitLab:
