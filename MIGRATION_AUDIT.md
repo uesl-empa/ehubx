@@ -8,6 +8,8 @@ side, and how each difference was resolved.
   `f6d11377` TSCL filename fix · `9befb4b4` + `818d4928` this audit
 - **Version:** stays **2.3.1** (see [Version](#version))
 - **Generated:** 2026-09-16
+- **Last updated:** 2026-09-18 — #16 and #17 merged; see
+  [§9](#9-autonomy-module-port-17)
 
 ---
 
@@ -29,11 +31,11 @@ disappear when GitLab is archived. That is a one-way door.
 
 | # | Step | Blocked by | Status |
 |---|---|---|---|
-| 1 | Merge this port into `uesl-empa/ehubx` | reviewer with write access | in review |
+| 1 | Merge this port into `uesl-empa/ehubx` | reviewer with write access | **done** — squash-merged as #16 (`025ee66`) |
 | 2 | Inventory all branches, ask each owner port-or-drop | nothing — **do now, in parallel** | not started |
 | 3 | Close the snapshot drift (see below) | step 1 | not started |
-| 4 | Port `Autonomy_module` | steps 1–2, coordinate with author | not started |
-| 5 | Port remaining live branches (stochastic, resilience) | step 4 | not started |
+| 4 | Port `Autonomy_module` | steps 1–2, coordinate with author | **done** — squash-merged as #17 (`f331ee4`) |
+| 5 | Port remaining live branches (stochastic, resilience) | step 4 | not started — `wind-module-port` is next, see below |
 | 6 | Triage dormant branches; archive GitLab | step 2 | not started |
 
 Step 1 comes first because it widened `get_ec_model_unit()` from 3 to 6
@@ -57,8 +59,15 @@ here. Both should be checked before GitLab is archived.
 
 ### Also outstanding
 
-- **Write access** to `uesl-empa/ehubx` for the porting team. Without it every
-  port goes through a fork, which cannot assign reviewers.
+- ~~**Write access** to `uesl-empa/ehubx` for the porting team.~~ **Granted.**
+  Branches now push directly to `uesl-empa/ehubx`. The `BartonChenTW` fork was
+  verified to hold no unique commits and was deleted on 2026-09-18.
+- **Merge methods** — squash is currently the only option enabled on
+  `uesl-empa/ehubx`. This is what made #17 painful: because #16 was squashed
+  into a new SHA, git could not tell that `autonomy-port`'s six inherited
+  commits were already merged, and reported three false conflicts. Enabling
+  "Allow merge commits" alongside squash would avoid a repeat for any branch
+  stacked on another, and would preserve authorship on multi-author PRs.
 - **`CONTRIBUTING.md`** — on branch `workflow-alignment`, not yet merged.
 - **`CODEOWNERS` and branch protection** — neither exists; nothing
   auto-requests a reviewer today.
@@ -402,6 +411,107 @@ This makes the port **MINOR (2.4.0)** under SemVer, not MAJOR.
 
 ---
 
+## 9. Autonomy module port (#17)
+
+Added 2026-09-18, after this audit's original scope.
+
+`Autonomy_module` was ported as `autonomy-port` and squash-merged as #17
+(`f331ee4`). Authorship of the module itself is attributed to **chwa-dev**;
+the bug fix below is a separate change.
+
+### Why it needed a rebase
+
+The branch was based on the unsquashed `port/gitlab-outstanding`, whose six
+commits `main` had already absorbed as the squash merge #16. Git could not
+recognise the duplicates, so a direct merge reported three content conflicts —
+in `autonomy_model.py`, `demand_model.py` and `stor_tech_model.py` — none of
+which were genuine divergence.
+
+`git rebase --onto origin/main 19893ee` dropped the duplicates and replayed
+only the autonomy work, with no conflicts. Content equivalence with the
+original commit was confirmed by `git patch-id` and a byte-level patch diff.
+
+### Bug found and fixed during the port
+
+The branch removed the block in `demand_model.build()` that populates
+`model.autonomy_allow_unmet_demand_user`, but kept its consumer in
+`autonomy_model.configure_autonomy()`:
+
+```python
+user_flags = getattr(model, "autonomy_allow_unmet_demand_user", {})
+```
+
+With nothing assigning the attribute, the `getattr` default left `user_flags`
+empty, so `effective_flag` was always `0` and `PAR_DEMANDUNMETALLOWED` was
+forced off for every stage. The `autonomy_allow_unmet_demand` YAML key was
+parsed and stored but never reached the model: unmet demand was permanently
+disallowed regardless of configuration, silently, with no error or warning.
+
+This was almost certainly a bad conflict resolution when the branch was first
+built. No test covers `allow_unmet_demand`, which is why it went unnoticed —
+**that test gap is still open.**
+
+### Verification
+
+Unlike §7, the suite was actually executed this time. The 233 baseline
+failures reported there were environmental: pytest could not create its
+temp directory (`PermissionError` on `AppData\Local\Temp\10\pytest-of-chyi`),
+and `ehubx` resolved to a stale 2.2.4 copy in `site-packages` rather than the
+working tree. With `--basetemp` pointed at a writable directory and
+`PYTHONPATH=src`:
+
+| Branch | Result |
+|---|---|
+| `main` (`025ee66`) | 786 passed |
+| `autonomy-port` | 786 passed |
+
+Solver-dependent tests do run under this configuration. Recommend
+`pip install -e .` in the dev environment to remove the stale-copy trap
+permanently.
+
+### Follow-ups opened by this port
+
+- **`co2_per_in` is parsed twice, and #17 reintroduced a block that #11 had
+  deliberately removed.** `conv_tech_parser._parse_conv_tech_primary` and
+  `tech_parser._parse_emissions` both read `emissions/co2_per_in` from the same
+  `techs_node` and both call `set_co2_per_in`. `conv_tech_parser` runs first
+  (`energy_system_parser.py:172`, then `tech_parser` at line 177) and filters to
+  CONVERSION and SOLAR types; `tech_parser` does not filter, so for any
+  **non-conversion** tech carrying a `co2_per_in` key it calls
+  `conv_techs.get_in_ecs()` on an id that was never registered in
+  `ConversionTechs`, raising `UnknownIdException`. No shipped example uses the
+  key on a non-conversion tech, so this is latent rather than active, and the
+  full suite passes.
+
+  The history matters for choosing the fix. The `tech_parser` copy is not new
+  work: it was added by the original migration `adb5125`, then **removed** by
+  `4ee7dc8` (#11), whose message reads *"Reconsituted current code state of
+  GitLab main (accidentally took code status from autonomy branch before)"* —
+  i.e. it belonged to the autonomy branch, not GitLab `main`. #12 then landed
+  the autonomy work with `co2_per_in` in `conv_tech_parser`, the type-filtered
+  location. #17 reintroduced the retired `tech_parser` copy because the
+  `Autonomy_module` branch still carried the pre-#11 arrangement.
+
+  **Recommended fix: delete the `tech_parser` block**, restoring #11's decision,
+  rather than adding a type filter to it. That also removes the `conv_techs`
+  parameter #17 threaded through `parse_primary` → `_parse_tech_primary` →
+  `_parse_emissions`, which exists only to serve the duplicate. Confirm with
+  Dennis Beermann (made the #11 call) and chwa-dev (author of the reintroducing
+  branch) before removing.
+- **`co2_per_in` is undocumented.** No mention anywhere in `docs/`, though its
+  sibling `co2_per_cap` is documented in both `input_files.rst` and
+  `parameter_overview.rst`.
+- **Duplication in `autonomy_model.py`** — `_con_aut_no_cross_import_while_alive`
+  and `_con_aut_no_cross_export_while_alive` are ~100 near-identical lines; a
+  fix to one must be applied to both. In both, `unit` and `sum_unit` are
+  recomputed per timestep despite not depending on it.
+- **Unreachable guard** — the `enabled`-gated check in `set_autonomy_enabled`
+  cannot fail as currently called.
+- **Silent Big-M fallback** — when no finite bound exists,
+  `DEF_AUT_BIGM_FALLBACK = 1e6` is applied with only a log-file warning.
+
+---
+
 ## Version
 
 The port leaves the version at **2.3.1**. It does not bump it, because
@@ -429,13 +539,21 @@ Then add a CHANGELOG entry and publish a GitHub Release tagged `2.4.0`
 
 ---
 
+
 ## Open items
 
 - [x] ~~Verify the transport-units change does not alter **output file
       columns**.~~ **Resolved: columns are unchanged; MINOR (2.4.0) stands.**
       See [§8](#8-output-compatibility).
+- [x] ~~Grant Barton Chen write access to `uesl-empa/ehubx`.~~ **Granted.**
+- [ ] Add a test covering `autonomy_allow_unmet_demand`; see
+      [§9](#9-autonomy-module-port-17).
+- [ ] Remove the duplicated `co2_per_in` parsing from `tech_parser` (restores
+      #11's decision; see [§9](#9-autonomy-module-port-17)).
+- [ ] Document the `co2_per_in` input parameter — absent from `docs/` entirely.
+- [ ] Ask an admin to enable merge commits alongside squash.
 - [ ] Decide whether to port `.devcontainer/` and `.vscode/` from GitLab.
-- [ ] Grant Barton Chen write access to `uesl-empa/ehubx` (currently 403;
-      this port must go via a fork).
 - [ ] Triage the ~30 remaining GitLab feature branches (ATES, wind, currency
-      scaling, parser overhaul) before GitLab is archived.
+      scaling, parser overhaul) before GitLab is archived. `wind-module-port`
+      already exists on `uesl-empa/ehubx` and carries the same six inherited
+      duplicate commits, so it needs the same rebase treatment as #17.
