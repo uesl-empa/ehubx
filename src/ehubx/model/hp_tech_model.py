@@ -11,7 +11,7 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.tech_data import TechId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import PowerUnit
+from ehubx.data.unit import FreightUnit, LengthUnit, PassengerUnit, PowerUnit
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
 from ehubx.model.tech_model import SET_TECHTUPLE, VAR_TECHCAP, VAR_YTECHUSED
 from ehubx.model.times_model import SET_TIME
@@ -349,12 +349,22 @@ def _con_hp_tech_used(model: Model, system: EnergySystem) -> None:
     times = system.times
     mass_unit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
 
     def __rule_hp_tech_used(model, s, h, x):
         # Get parameters
         ec_ht_out = hp_techs.get_ec_ht_out(TechId(x))
         ec_co_in = hp_techs.get_ec_co_in(TechId(x))
-        ec_unit = get_ec_model_unit(ecs.get_unit(ec_ht_out), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(ec_ht_out),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         # a) bigM by tech capacity times horizon length
         cap_max = getattr(model, VAR_TECHCAP)[s, h, x].ub
         bigm_cap = cap_max * system.times.num_horizon_ts

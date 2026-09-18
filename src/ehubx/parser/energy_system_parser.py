@@ -3,7 +3,15 @@ from datetime import datetime
 
 from ehubx.core import logging
 from ehubx.data.energy_system_data import EnergySystem
-from ehubx.data.unit import CurrencyUnit, DimlessUnit, LengthUnit, MassUnit, PowerUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    DimlessUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+)
 from ehubx.parser import (
     ates_parser,
     conv_tech_parser,
@@ -37,6 +45,8 @@ YAMLKEY_CURRENCYUNIT = "currency_unit"
 YAMLKEY_LENGTHUNIT = "length_unit"
 YAMLKEY_MASSUNIT = "mass_unit"
 YAMLKEY_POWERUNIT = "power_unit"
+YAMLKEY_PASSENGERUNIT = "passenger_unit"
+YAMLKEY_FREIGHTUNIT = "freight_unit"
 
 # Literals
 LOG_MODULE_STR: str = "pars/system"
@@ -121,6 +131,20 @@ def _parse_self(input_path: str) -> EnergySystem:
     if power_unit is not None:
         assert isinstance(power_unit, PowerUnit)
         energy_system.power_unit = power_unit
+    # passenger_unit
+    passenger_unit = yaml_parser.parse_optional_unit_from_dict_node(
+        system_params_node, YAMLKEY_PASSENGERUNIT, expected_unit=PassengerUnit.PKM
+    )
+    if passenger_unit is not None:
+        assert isinstance(passenger_unit, PassengerUnit)
+        energy_system.passenger_unit = passenger_unit
+    # freight_unit
+    freight_unit = yaml_parser.parse_optional_unit_from_dict_node(
+        system_params_node, YAMLKEY_FREIGHTUNIT, expected_unit=FreightUnit.TKM
+    )
+    if freight_unit is not None:
+        assert isinstance(freight_unit, FreightUnit)
+        energy_system.freight_unit = freight_unit
     # Log
     _log(energy_system)
     # Return

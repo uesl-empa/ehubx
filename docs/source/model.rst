@@ -531,7 +531,7 @@ The :ref:`techs.yaml<techs_yaml>` offers the parameter :math:`out\_sum\_min` and
 
 Lastly, the conversion technology model has its own cost concept in addition to the costs defined in the :ref:`tech model<tech_model>`, namely OPEX costs that arise proportionally to the amount of energy that is being output by the conversion technologies. The calculation of these costs uses the cost parameter :math:`opex\_per\_energy` from :ref:`techs.yaml<techs_yaml>`:
 
-:raw-math:`\begin{align*} \mathcal{V}_{ConvTechCostOpexOut}&: \mathcal{S}_{ConvTechTuple} \to \mathbb{R}, \\ \mathcal{V}_{ConvTechCostOpexOut}[s, h, x] &= \sum\limits_{\substack{e \in \mathcal{S}_{Ec} \\ (s, h, x, e) \in \mathcal{S}_{ConvTechOut}}} opex\_per\_energy[s, h, x] \cdot \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, e, t] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{ConvTechCostOpexOut}&: \mathcal{S}_{ConvTechTuple} \to \mathbb{R}, \\ \mathcal{V}_{ConvTechCostOpexOut}[s, h, x] &= opex\_per\_energy[s, h, x] \cdot \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, out\_ec\_main[x], t] \end{align*}`
 
 Finally, all costs in the conversion model (i.e.; only the energy-related OPEX costs above) are bundled into a single variable for convenient use outside of the conversion module:
 

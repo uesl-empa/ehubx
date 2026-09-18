@@ -21,7 +21,14 @@ from ehubx.data.self_sufficiency_data import (
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.tech_data import TechId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.conv_tech_model import SET_CONVTECHTUPLE, VAR_CONVTECHOUT
 from ehubx.model.ec_model import get_ec_model_unit
 from ehubx.model.import_model import SET_IMPTUPLE, VAR_IMP
@@ -141,6 +148,9 @@ def build(model: Model, system: EnergySystem) -> None:
     times: Times = system.times
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     # Skip self-sufficiency module if it is not set to be included
     if self_sufficiency.calculation_method == SelfSufficiencyCalculationMethod.NONE:
         logging.log_file(
@@ -163,6 +173,9 @@ def build(model: Model, system: EnergySystem) -> None:
         times,
         mass_unit,
         power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # Logging
     elapsed = datetime.now() - start
@@ -183,6 +196,9 @@ def _build_base(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] Internal imports. These include a) imports of ecs with
     #       is_energy=True and imp_exp_type=internal, and b) outputs of
@@ -216,6 +232,9 @@ def _build_base(
         times,
         mass_unit,
         power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [CON] Self-sufficiency min/max limits
     _con_self_sufficiency_minmax(model, self_sufficiency)
@@ -315,6 +334,9 @@ def _con_self_sufficiency_self_sufficiency(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     """
     Constructs self-sufficiency constraints based on the selected calculation method.
@@ -335,6 +357,9 @@ def _con_self_sufficiency_self_sufficiency(
             times,
             mass_unit,
             power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
             total_nodes=900,
         )
     if (
@@ -354,6 +379,9 @@ def _con_self_sufficiency_self_sufficiency_linearized(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
     total_nodes: int,
 ) -> None:
     # Obtain maximal upper boundaries for V_SelfSufficiencyImpCross and
@@ -370,7 +398,14 @@ def _con_self_sufficiency_self_sufficiency_linearized(
                 .get_value(t)
                 .to_float(
                     unit=(
-                        get_ec_model_unit(ecs.get_unit(e), mass_unit, power_unit)
+                        get_ec_model_unit(
+                            ecs.get_unit(e),
+                            mass_unit,
+                            power_unit,
+                            length_unit,
+                            passenger_unit,
+                            freight_unit,
+                        )
                         / TimeUnit.H
                     )
                 )
@@ -396,6 +431,9 @@ def _con_self_sufficiency_self_sufficiency_linearized(
                 times,
                 mass_unit,
                 power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
             )
             if max_imp_tuple == float("inf"):
                 logging.log_warning(
@@ -422,6 +460,9 @@ def _con_self_sufficiency_self_sufficiency_linearized(
                 times,
                 mass_unit,
                 power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
             )
             if max_imp_tuple == float("inf"):
                 logging.log_warning(
@@ -461,7 +502,14 @@ def _con_self_sufficiency_self_sufficiency_linearized(
             # and if output ec is is_energy
             e_in = conv_techs.get_in_ec_main(TechId(x))
             e_out = conv_techs.get_out_ec_main(TechId(x))
-            e_out_unit = get_ec_model_unit(ecs.get_unit(e_out), mass_unit, power_unit)
+            e_out_unit = get_ec_model_unit(
+                ecs.get_unit(e_out),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
             if not (
                 ecs.get_imp_exp_type(e_in) == ImpExpType.INTERNAL
                 and not ecs.is_energy(e_in)
@@ -793,9 +841,19 @@ def _calc_imp_sum_max(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> float:
     # First boundary from sum_max
-    ec_unit = get_ec_model_unit(ecs.get_unit(e), mass_unit, power_unit)
+    ec_unit = get_ec_model_unit(
+        ecs.get_unit(e),
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     sum_max_1 = imports.get_sum_max(s, h, e, ecs).to_float(unit=ec_unit)
     # Second boundary from max
     sum_max_2: float = 0

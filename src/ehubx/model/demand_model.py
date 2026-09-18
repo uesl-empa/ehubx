@@ -12,7 +12,14 @@ from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
 from ehubx.model.hub_model import SET_HUB
 from ehubx.model.stage_model import SET_STAGE
@@ -83,6 +90,9 @@ def build(model: Model, system: EnergySystem) -> None:
     times = system.times
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    length_unit = system.length_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
     # Start measuring build time
     start = datetime.now()
     # [SET] Tuples (s, h, e) with demand values
@@ -152,19 +162,46 @@ def build(model: Model, system: EnergySystem) -> None:
     )
 
     # [CON] Constraint demand supply for tuples with demand-sum
-    _con_demand_supply_sum(model, ecs, demands, times, mass_unit, power_unit)
+    _con_demand_supply_sum(
+        model,
+        ecs,
+        demands,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
 
     # [PAR] Generic value for bigM based on demand data
     demand_sum_per_tuple: Dict[Tuple[StageId, HubId, EcId], float] = {}
     for s, h, e in demands.profile_tuples:
-        unit = get_ec_model_unit(ecs.get_unit(e), mass_unit, power_unit) / TimeUnit.H
+        unit = (
+            get_ec_model_unit(
+                ecs.get_unit(e),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
+            / TimeUnit.H
+        )
         demand_profile = demands.get_demand_profile(s, h, e)
         demand_sum_per_tuple[s, h, e] = sum(
             times.get_weight(s, t) * demand_profile.get_value(t).to_float(unit=unit)
             for t in times.ids
         )
     for s, h, e in demands.sum_tuples:
-        unit = get_ec_model_unit(ecs.get_unit(e), mass_unit, power_unit)
+        unit = get_ec_model_unit(
+            ecs.get_unit(e),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         demand_sum = demands.get_demand_sum(s, h, e)
         demand_sum_per_tuple[(s, h, e)] = demand_sum.to_float(unit=unit)
 
@@ -188,7 +225,14 @@ def build(model: Model, system: EnergySystem) -> None:
         if penalty_val is None:
             demand_unmet_penalty_per_tuple[(s, h, e)] = 0.0
         else:
-            unit_energy = get_ec_model_unit(ecs.get_unit(e), mass_unit, power_unit)
+            unit_energy = get_ec_model_unit(
+                ecs.get_unit(e),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
             penalty_unit = system.currency_unit / unit_energy
             demand_unmet_penalty_per_tuple[(s, h, e)] = penalty_val.to_float(
                 unit=penalty_unit
@@ -224,7 +268,17 @@ def build(model: Model, system: EnergySystem) -> None:
     _con_demand_unmet_cost_total(model)
 
     # [CON] gate unmet demand for all demand tuples (profile + sum)
-    _con_unmet_demand_gate_all(model, ecs, demands, times, mass_unit, power_unit)
+    _con_unmet_demand_gate_all(
+        model,
+        ecs,
+        demands,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
 
     # Store the user-defined per-stage setting for unmet demand status (flag)
     model.autonomy_allow_unmet_demand_user = {
@@ -246,11 +300,21 @@ def _con_demand_supply_sum(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     S_Time = getattr(model, SET_TIME)
 
     def __rule_demand_supply_sum(m, s, h, e):
-        unit_energy = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        unit_energy = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
 
         total_served_plus_unmet = sum(
             times.get_weight(StageId(s), TimeId(t_elem))
@@ -264,6 +328,7 @@ def _con_demand_supply_sum(
         demand_sum = demands.get_demand_sum(StageId(s), HubId(h), EcId(e)).to_float(
             unit=unit_energy
         )
+        # Set constraint
         return total_served_plus_unmet == demand_sum
 
     setattr(
@@ -280,6 +345,9 @@ def _con_unmet_demand_gate_all(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     S_Time = getattr(model, SET_TIME)
     S_DemandTuple = getattr(model, SET_DEMANDTUPLE)
@@ -297,7 +365,14 @@ def _con_unmet_demand_gate_all(
         if (s, h, e) in profile_set:
             t_id = TimeId(t_elem)
             unit_pw = (
-                get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+                get_ec_model_unit(
+                    ecs.get_unit(EcId(e)),
+                    mass_unit,
+                    power_unit,
+                    length_unit,
+                    passenger_unit,
+                    freight_unit,
+                )
                 / TimeUnit.H
             )
 

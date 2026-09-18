@@ -7,7 +7,16 @@ from typing import Dict, List, Set
 
 from ehubx.data import exceptions
 from ehubx.data.index import Index, IndexKind
-from ehubx.data.unit import DimlessUnit, MassUnit, PowerUnit, TimeUnit, Unit
+from ehubx.data.unit import (
+    DimlessUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+    Unit,
+)
 from ehubx.data.value import Value
 
 
@@ -137,19 +146,25 @@ class Ecs:
 
         :param e: ec
         :type e: EcId
-        :param unit: Unit of the ec. This must be either a mass unit (e.g. kg) or an
-            energy unit (e.g. kWh)
+        :param unit: Unit of the ec. This must be a mass unit (e.g. kg), an
+            energy unit (e.g. kWh), a length unit (e.g. km), a passenger unit
+            (e.g. pkm), or a freight unit (e.g. tkm)
         :type unit: Unit
         """
         self._check_id(e, ExceptionKey.UNIT_SET)
-        if not unit.same_type_as(MassUnit.KG) and not unit.same_type_as(
-            PowerUnit.KW * TimeUnit.H
+        if (
+            not unit.same_type_as(MassUnit.KG)
+            and not unit.same_type_as(PowerUnit.KW * TimeUnit.H)
+            and not unit.same_type_as(LengthUnit.M)
+            and not unit.same_type_as(PassengerUnit.PKM)
+            and not unit.same_type_as(FreightUnit.TKM)
         ):
             raise exceptions.UnitException(
                 str(unit),
                 msg=(
                     f"Unit {unit} is not a valid unit for an ec. Only units of type "
-                    f"{MassUnit.KG} or {PowerUnit.KW * TimeUnit.H} are allowed."
+                    f"{MassUnit.KG}, {PowerUnit.KW * TimeUnit.H}, {LengthUnit.M}, "
+                    f"{PassengerUnit.PKM}, or {FreightUnit.TKM} are allowed."
                 ),
                 module=LOG_MODULE_STR,
             )

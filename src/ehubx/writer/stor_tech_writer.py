@@ -228,7 +228,7 @@ def _format_tech(
             continue
         soc_init = energy_system.stor_techs.get_soc_init(h, x)
         df_st_builder.add_row(
-            ENTRY_SOCMAX,
+            ENTRY_SOCINIT,
             soc_init,
             unit=DimlessUnit(),
             hub=h.key,
@@ -242,6 +242,9 @@ def _format_tech(
         energy_system.ecs.get_unit(energy_system.stor_techs.get_ec(x)),
         energy_system.mass_unit,
         energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
     flow_unit = ec_unit / TimeUnit.H
     for s in energy_system.stages.ids_in_order:
@@ -366,6 +369,9 @@ def _format_tech(
                     energy_system.ecs.get_unit(ec_id),
                     energy_system.mass_unit,
                     energy_system.power_unit,
+                    energy_system.length_unit,
+                    energy_system.passenger_unit,
+                    energy_system.freight_unit,
                 )
                 df_st_builder.add_row(
                     ENTRY_STORTECHENERGYFINAL,

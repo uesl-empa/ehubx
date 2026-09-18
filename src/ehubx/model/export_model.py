@@ -11,7 +11,15 @@ from ehubx.data.export_data import Exports
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.ec_model import SET_EC, get_ec_model_unit
 from ehubx.model.hub_model import SET_HUB
 from ehubx.model.stage_model import SET_STAGE
@@ -85,13 +93,25 @@ def build(model: Model, system: EnergySystem) -> None:
     times: Times = system.times
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     currency_unit: CurrencyUnit = system.currency_unit
     # Start measuring build time
     start = datetime.now()
     # Build
-    _build_base(model, ecs, exports, times, mass_unit, power_unit)
-    _build_profit(model, ecs, exports, times, currency_unit, mass_unit, power_unit)
-    _build_co2(model, ecs, exports, times, mass_unit, power_unit)
+    _build_base(
+        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        freight_unit,
+    )
+    _build_profit(
+        model, ecs, exports, times, currency_unit, mass_unit, power_unit, length_unit,
+        passenger_unit, freight_unit,
+    )
+    _build_co2(
+        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        freight_unit,
+    )
     # Logging
     elapsed = datetime.now() - start
     logging.log_file(
@@ -107,6 +127,9 @@ def _build_base(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [SET] Export tuples
     setattr(
@@ -131,9 +154,15 @@ def _build_base(
         ),
     )
     # [CON] Enforce minimal and maximal exports
-    _con_exp_minmax(model, ecs, exports, mass_unit, power_unit)
+    _con_exp_minmax(
+        model, ecs, exports, mass_unit, power_unit, length_unit, passenger_unit,
+        freight_unit,
+    )
     # [CON] Enforce minima and maxima for summed-up exports
-    _con_exp_sum_minmax(model, ecs, exports, times, mass_unit, power_unit)
+    _con_exp_sum_minmax(
+        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        freight_unit,
+    )
 
 
 def _build_profit(
@@ -144,11 +173,17 @@ def _build_profit(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] Export profit
     setattr(model, VAR_EXPPROFIT, Var(getattr(model, SET_EXPTUPLE), domain=Reals))
     # [CON] Export profit
-    _con_exp_profit(model, ecs, exports, times, currency_unit, mass_unit, power_unit)
+    _con_exp_profit(
+        model, ecs, exports, times, currency_unit, mass_unit, power_unit, length_unit,
+        passenger_unit, freight_unit,
+    )
     # [VAR] Total export profit
     setattr(model, VAR_EXPPROFITTOTAL, Var(domain=Reals))
     # [CON] Total export profit
@@ -162,13 +197,19 @@ def _build_co2(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] CO2 emissions from exports
     setattr(
         model, VAR_EXPCO2, Var(getattr(model, SET_EXPTUPLE), domain=NonNegativeReals)
     )
     # [CON] Set CO2 emissions for exports
-    _con_exp_co2(model, ecs, exports, times, mass_unit, power_unit)
+    _con_exp_co2(
+        model, ecs, exports, times, mass_unit, power_unit, length_unit, passenger_unit,
+        freight_unit,
+    )
     # [VAR] Total CO2 emissions from exports
     setattr(
         model, VAR_EXPCO2TOTAL, Var(getattr(model, SET_STAGE), domain=NonNegativeReals)
@@ -178,11 +219,26 @@ def _build_co2(
 
 
 def _con_exp_minmax(
-    model: Model, ecs: Ecs, exports: Exports, mass_unit: MassUnit, power_unit: PowerUnit
+    model: Model,
+    ecs: Ecs,
+    exports: Exports,
+    mass_unit: MassUnit,
+    power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_exp_min(model, s, h, e, t):
         unit = (
-            get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit) / TimeUnit.H
+            get_ec_model_unit(
+                ecs.get_unit(EcId(e)),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
+            / TimeUnit.H
         )
         exp_min = (
             exports.get_min(StageId(s), HubId(h), EcId(e))
@@ -193,7 +249,15 @@ def _con_exp_minmax(
 
     def __rule_exp_max(model, s, h, e, t):
         unit = (
-            get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit) / TimeUnit.H
+            get_ec_model_unit(
+                ecs.get_unit(EcId(e)),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
+            / TimeUnit.H
         )
         exp_max = (
             exports.get_max(StageId(s), HubId(h), EcId(e))
@@ -225,10 +289,20 @@ def _con_exp_sum_minmax(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_exp_sum_min(model, s, h, e):
         # Get minimum for summed-up export
-        unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         sum_min = exports.get_sum_min(StageId(s), HubId(h), EcId(e), ecs).to_float(
             unit=unit
         )
@@ -243,7 +317,14 @@ def _con_exp_sum_minmax(
 
     def __rule_exp_sum_max(model, s, h, e):
         # Get minimum for summed-up export
-        unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         sum_max = exports.get_sum_max(StageId(s), HubId(h), EcId(e), ecs).to_float(
             unit=unit
         )
@@ -276,12 +357,20 @@ def _con_exp_profit(
     currency_unit: CurrencyUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_exp_profit(model, s, h, e):
         # Get parameters
         price = exports.get_price(StageId(s), HubId(h), EcId(e))
         unit = currency_unit / get_ec_model_unit(
-            ecs.get_unit(EcId(e)), mass_unit, power_unit
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         # Calculate profit
         profit = sum(
@@ -320,12 +409,20 @@ def _con_exp_co2(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_exp_co2(model, s, h, e):
         # Get parameters
         co2 = exports.get_co2(StageId(s), HubId(h), EcId(e))
         unit = mass_unit / get_ec_model_unit(
-            ecs.get_unit(EcId(e)), mass_unit, power_unit
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         # Calculate emissions
         exp_co2 = sum(
