@@ -99,9 +99,9 @@ p { margin: 0 0 1em; }
   backdrop-filter: saturate(1.4) blur(10px);
   border-bottom: 1px solid var(--border);
 }
-.nav { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.nav { display: flex; align-items: center; gap: 28px; height: 64px; }
 .brand {
-  text-decoration: none;
+  margin-right: auto; text-decoration: none;
   color: var(--text); font-weight: 700; font-size: 1.3rem; letter-spacing: -.02em;
 }
 .nav-links { display: flex; gap: 26px; align-items: center; }
@@ -111,11 +111,23 @@ p { margin: 0 0 1em; }
   color: #fff; background: var(--accent-fill); padding: 8px 16px; border-radius: 999px;
 }
 .nav-links .nav-cta:hover { background: var(--accent-fill-strong); color: #fff; }
+.empa-logo {
+  display: block; flex-shrink: 0; padding-left: 28px; border-left: 1px solid var(--border);
+}
+.empa-logo svg { display: block; height: 42px; width: auto; }
+.empa-logo .ink { fill: var(--text); }
 .nav-toggle { display: none; background: none; border: 0; padding: 8px; cursor: pointer; }
 .nav-toggle span { display: block; width: 22px; height: 2px; background: var(--text); margin: 5px 0; border-radius: 2px; }
 
+@media (max-width: 1080px) {
+  .nav, .nav-links { gap: 20px; }
+  .empa-logo { padding-left: 20px; }
+}
 @media (max-width: 860px) {
-  .nav-toggle { display: block; }
+  .nav { gap: 12px; }
+  .nav-toggle { display: block; order: 3; }
+  .empa-logo { order: 2; border-left: 0; padding-left: 0; }
+  .empa-logo svg { height: 36px; }
   .nav-links {
     display: none; position: absolute; top: 64px; left: 0; right: 0;
     flex-direction: column; align-items: stretch; gap: 0;
