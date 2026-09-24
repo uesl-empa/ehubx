@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ehubX — Energy system optimisation</title>
+  <meta name="description" content="ehubX is an open-source tool from Empa's Urban Energy Systems Laboratory that finds the best mix of energy technologies for districts, municipalities, industrial sites and regions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#top">ehubX</a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="nav-links" class="nav-links">
+      <a href="#about">About</a>
+      <a href="#how">How it works</a>
+      <a href="#use-cases">Use cases</a>
+      <a href="#projects">Projects</a>
+      <a href="#publications">Publications</a>
+      <a href="#get-started" class="nav-cta">Get started</a>
+    </nav>
+    <a class="empa-logo" href="https://www.empa.ch/" title="Empa"><svg xmlns="http://www.w3.org/2000/svg" viewBox="10 16 330 94" role="img" aria-label="Empa – Materials Science and Technology"><polygon points="79.44 68.9 79.44 30.55 101.68 30.55 101.68 35.21 85.65 35.21 85.65 47 100.92 47 100.92 51.6 85.65 51.6 85.65 64.25 102.26 64.25 102.26 68.9 79.44 68.9" class="ink"/><path d="M354.06,303.24V281.1a63,63,0,0,0-.29-6.61h5.46l0.17,4.95a9.42,9.42,0,0,1,8.89-5.52c4.64,0,7.55,2.64,8.48,5.86a9.68,9.68,0,0,1,8.89-5.86c6.27,0,9.18,4.2,9.18,10.18v19.15H389V284.78c0-3.45-1.1-6.38-5.17-6.38-4.76,0-6.45,4.71-6.45,9.14v15.7h-5.81V284.78c0-3.45-1.1-6.38-5.17-6.38-4.76,0-6.5,4.71-6.5,9.14v15.7h-5.81Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M401.93,315.65V283.57c0-3.39-.12-6.27-0.29-9.08h5.52l0.23,4.95c1.57-3.45,5.46-5.52,9.23-5.52,8.83,0,11.91,7.19,11.91,14.83s-3.25,15.12-12,15.12c-3.71,0-7.32-1.84-8.77-5.29v17.08h-5.81Zm13-16.21c5.87,0,7.32-5.92,7.32-10.69S421,278.34,415,278.34c-5.58,0-7.43,5.81-7.43,10.41a15.14,15.14,0,0,0,1.57,7.07,6.45,6.45,0,0,0,5.81,3.62" transform="translate(-246.33 -234.33)" class="ink"/><path d="M451.1,303.24l-0.18-4.54a10,10,0,0,1-9.12,5.18c-5.23,0-9.64-2.53-9.64-8.51,0-7.47,6.79-9.77,15.33-9.77,0.76,0,2.38,0,3.25.06v-1.21c0-4.2-2-6.5-6.62-6.5a16.16,16.16,0,0,0-8.54,2.3l-0.35-4.43a27.73,27.73,0,0,1,9.41-1.9c7.49,0,11.79,3.16,11.79,10.92v12a52.88,52.88,0,0,0,.35,6.38H451.1Zm-1.92-14.09c-5.75,0-11.27.81-11.27,5.87,0,3.28,2.21,4.66,5.29,4.66,5.29,0,7.55-4.14,7.55-9v-1.55h-1.57Z" transform="translate(-246.33 -234.33)" class="ink"/><polygon points="53.26 57.57 54.29 68.81 45.04 60.94 43.67 49.82 53.26 57.57" style="fill:#bd0518"/><polygon points="39.05 49.58 40.58 60.67 28.46 67.8 26.4 56.74 39.05 49.58" style="fill:#9d0d16"/><polygon points="65.45 50.3 53.26 57.57 43.67 49.82 55.61 43.01 65.45 50.3" style="fill:#e2001a"/><polygon points="39.05 49.58 26.4 56.74 17.62 48.81 29.98 42.11 39.05 49.58" style="fill:#e2001a"/><polygon points="39.77 33.99 41.29 45.78 32.09 38.43 30.27 26.84 39.77 33.99" style="fill:#bd0518"/><polygon points="52.25 27.28 53.27 39.05 41.29 45.78 39.77 33.99 52.25 27.28" style="fill:#9d0d16"/><polygon points="52.25 27.28 39.77 33.99 30.27 26.84 42.47 20.55 52.25 27.28" style="fill:#e2001a"/><polygon points="26.4 56.74 28.46 67.8 19.93 59.74 17.62 48.81 26.4 56.74" style="fill:#bd0518"/><polygon points="65.45 50.3 65.98 61.58 54.29 68.81 53.26 57.57 65.45 50.3" style="fill:#9d0d16"/><polygon points="50.66 59.13 37.63 66.89 28.4 58.55 41.12 51.28 50.66 59.13" style="fill:#e2001a"/><polygon points="37.63 66.89 39.34 78.08 30.4 69.63 28.4 58.55 37.63 66.89" style="fill:#bd0518"/><polygon points="50.66 59.13 51.8 70.36 39.34 78.08 37.63 66.89 50.66 59.13" style="fill:#9d0d16"/><polygon points="51.94 43.15 53.04 55.16 43.38 47.45 41.93 35.62 51.94 43.15" style="fill:#bd0518"/><polygon points="64.76 35.88 51.94 43.15 41.93 35.62 54.48 28.81 64.76 35.88" style="fill:#e2001a"/><polygon points="64.76 35.88 65.33 47.89 53.04 55.16 51.94 43.15 64.76 35.88" style="fill:#9d0d16"/><polygon points="37.09 35.42 38.73 47.22 25.96 54.38 23.76 42.59 37.09 35.42" style="fill:#9d0d16"/><polygon points="37.09 35.42 23.76 42.59 14.67 34.88 27.67 28.18 37.09 35.42" style="fill:#e2001a"/><polygon points="23.76 42.59 25.96 54.38 17.13 46.48 14.67 34.88 23.76 42.59" style="fill:#bd0518"/><polygon points="35.45 52.51 37.27 64.5 27.97 56.18 25.84 44.36 35.45 52.51" style="fill:#bd0518"/><polygon points="49.19 44.71 50.41 56.73 37.27 64.5 35.45 52.51 49.19 44.71" style="fill:#9d0d16"/><polygon points="49.19 44.71 35.45 52.51 25.84 44.36 39.25 37.08 49.19 44.71" style="fill:#e2001a"/><polygon points="35.42 41 32.4 42.65 34.81 44.62 31.46 46.47 33.63 48.29 37 46.41 39.41 48.38 42.49 46.64 40.06 44.7 43.43 42.82 41.2 41.09 37.85 42.94 35.42 41" style="fill:#fff"/><polygon points="107.72 102.2 107.72 90.86 109.32 90.86 113.47 101.05 117.6 90.86 119.2 90.86 119.2 102.2 118.18 102.2 118.18 91.81 113.96 102.2 112.93 102.2 108.71 91.81 108.71 102.2 107.72 102.2" class="ink"/><path d="M372.93,336.54l-0.05-1.45a2.91,2.91,0,0,1-2.74,1.63,2.41,2.41,0,0,1-2.62-2.52c0-2.16,2-2.79,4.69-2.79h0.58V331c0-1.34-.51-2.19-2-2.19a4.77,4.77,0,0,0-2.31.61l-0.1-.87a5.07,5.07,0,0,1,2.41-.61c2.11,0,2.94,1.14,2.94,3.13v3.74a12.61,12.61,0,0,0,.12,1.75h-0.9Zm-0.44-4.3c-1.9,0-4,.2-4,2a1.52,1.52,0,0,0,1.68,1.67c1.9,0,2.58-1.51,2.58-3.2v-0.42h-0.31Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M377.59,334.39c0,0.77.2,1.45,1.1,1.45a2.38,2.38,0,0,0,1-.24l0.07,0.88a3.27,3.27,0,0,1-1.21.24c-1.68,0-1.84-1.28-1.84-2.75V328.9h-1.62v-0.82h1.62v-2l0.92-.32v2.28h1.92v0.82h-1.92v5.49Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M381.49,332.46c0,1.79,1,3.4,3.14,3.4a4.23,4.23,0,0,0,2.06-.49l0.05,0.92a5.05,5.05,0,0,1-2.18.44c-2.87,0-4.08-2.06-4.08-4.44,0-2.19,1.22-4.37,3.6-4.37s3.2,2.06,3.2,4.1v0.44h-5.8Zm4.79-.82c-0.05-1.31-.46-2.89-2.18-2.89s-2.52,1.7-2.6,2.89h4.78Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M389.09,336.54v-6.44a19.7,19.7,0,0,0-.08-2h0.83l0.07,1.58a2.57,2.57,0,0,1,2.19-1.75,2.65,2.65,0,0,1,.73.07l-0.07,1a2.22,2.22,0,0,0-.66-0.1c-1.77,0-2.09,2-2.09,3.33v4.32h-0.92Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M394.34,324.76h0.92v1.36h-0.92v-1.36Zm0,3.33h0.92v8.45h-0.92v-8.45Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M402.38,336.54l0-1.45a2.91,2.91,0,0,1-2.74,1.63,2.41,2.41,0,0,1-2.62-2.52c0-2.16,2-2.79,4.69-2.79h0.58V331c0-1.34-.51-2.19-2-2.19a4.77,4.77,0,0,0-2.31.61l-0.1-.87a5.07,5.07,0,0,1,2.41-.61c2.11,0,2.94,1.14,2.94,3.13v3.74a12.33,12.33,0,0,0,.12,1.75h-0.9Zm-0.44-4.3c-1.9,0-4,.2-4,2a1.52,1.52,0,0,0,1.68,1.67c1.9,0,2.58-1.51,2.58-3.2v-0.42h-0.31Z" transform="translate(-246.33 -234.33)" class="ink"/><polygon points="159.23 89.95 160.15 89.95 160.15 102.2 159.23 102.2 159.23 95.86 159.23 89.95" class="ink"/><path d="M408.28,335.36a4.79,4.79,0,0,0,2,.48,1.58,1.58,0,0,0,1.82-1.63c0-2.06-3.74-1.5-3.74-4,0-1.56,1.34-2.28,2.7-2.28a4.41,4.41,0,0,1,1.82.31l-0.1,1a3.79,3.79,0,0,0-1.68-.37c-0.87,0-1.75.32-1.75,1.39,0,1.71,3.76,1.22,3.76,4a2.61,2.61,0,0,1-2.85,2.52,5.77,5.77,0,0,1-2.11-.37Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M419.34,335.17a4.45,4.45,0,0,0,2.29.6c1.48,0,2.57-.68,2.57-2.24,0-1.07-.83-1.7-1.92-2.31l-1-.58a2.9,2.9,0,0,1-1.82-2.62c0-2,1.73-3,3.5-3a5.43,5.43,0,0,1,2,.36l-0.1,1a4.4,4.4,0,0,0-1.92-.43c-1.26,0-2.41.56-2.41,2,0,0.94.58,1.43,1.53,2l1,0.58c1.19,0.68,2.23,1.5,2.23,3,0,2-1.65,3.18-3.69,3.18a5.63,5.63,0,0,1-2.41-.49Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M433,336.43a5.32,5.32,0,0,1-1.84.29,4.41,4.41,0,0,1,0-8.8,4.85,4.85,0,0,1,1.8.27l-0.09,1a3.44,3.44,0,0,0-1.62-.34,3.21,3.21,0,0,0-3.31,3.48,3.34,3.34,0,0,0,3.3,3.55,3.87,3.87,0,0,0,1.7-.34Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M434.65,324.76h0.92v1.36h-0.92v-1.36Zm0,3.33h0.92v8.45h-0.92v-8.45Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M438.5,332.46c0,1.79,1,3.4,3.15,3.4a4.23,4.23,0,0,0,2.06-.49l0.05,0.92a5,5,0,0,1-2.18.44c-2.87,0-4.08-2.06-4.08-4.44,0-2.19,1.22-4.37,3.61-4.37s3.19,2.06,3.19,4.1v0.44h-5.8Zm4.79-.82c-0.05-1.31-.46-2.89-2.18-2.89s-2.52,1.7-2.6,2.89h4.78Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M446.09,336.54v-6.44c0-.66,0-1.34-0.08-2h0.83l0.05,1.48a2.91,2.91,0,0,1,2.74-1.65c2.18,0,2.82,1.5,2.82,3.45v5.17h-0.92v-5c0-1.43-.3-2.7-2-2.7-1.89,0-2.5,1.58-2.5,3.21v4.52h-0.92Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M460.43,336.43a5.32,5.32,0,0,1-1.84.29,4.41,4.41,0,0,1,0-8.8,4.85,4.85,0,0,1,1.8.27l-0.08,1a3.44,3.44,0,0,0-1.62-.34,3.21,3.21,0,0,0-3.31,3.48,3.34,3.34,0,0,0,3.3,3.55,3.87,3.87,0,0,0,1.7-.34Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M462.35,332.46c0,1.79,1,3.4,3.15,3.4a4.23,4.23,0,0,0,2.06-.49l0.05,0.92a5.05,5.05,0,0,1-2.18.44c-2.87,0-4.08-2.06-4.08-4.44,0-2.19,1.22-4.37,3.61-4.37s3.19,2.06,3.19,4.1v0.44h-5.8Zm4.79-.82c-0.05-1.31-.46-2.89-2.18-2.89s-2.52,1.7-2.6,2.89h4.78Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M479.28,336.54l0-1.45a2.91,2.91,0,0,1-2.74,1.63,2.41,2.41,0,0,1-2.62-2.52c0-2.16,2-2.79,4.69-2.79h0.58V331c0-1.34-.51-2.19-2-2.19a4.77,4.77,0,0,0-2.31.61l-0.1-.87a5.06,5.06,0,0,1,2.41-.61c2.11,0,2.94,1.14,2.94,3.13v3.74a12.47,12.47,0,0,0,.12,1.75h-0.9Zm-0.44-4.3c-1.9,0-4,.2-4,2a1.52,1.52,0,0,0,1.68,1.67c1.9,0,2.58-1.51,2.58-3.2v-0.42h-0.31Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M482.45,336.54v-6.44c0-.66,0-1.34-0.08-2h0.83l0.05,1.48a2.91,2.91,0,0,1,2.74-1.65c2.18,0,2.82,1.5,2.82,3.45v5.17h-0.92v-5c0-1.43-.3-2.7-2-2.7-1.89,0-2.5,1.58-2.5,3.21v4.52h-0.92Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M496.93,336.54l-0.12-1.41a2.76,2.76,0,0,1-2.63,1.6c-2.52,0-3.42-2.28-3.42-4.44s0.94-4.37,3.47-4.37a2.76,2.76,0,0,1,2.55,1.6v-5.23h0.92v9.48c0,0.9,0,1.82.08,2.77h-0.85Zm-2.67-.7c1.89,0,2.55-2,2.55-3.55s-0.7-3.48-2.55-3.48c-2,0-2.5,1.82-2.5,3.48a5.4,5.4,0,0,0,.49,2.4,2.16,2.16,0,0,0,2,1.16" transform="translate(-246.33 -234.33)" class="ink"/><polygon points="260.64 102.2 260.64 91.78 257.33 91.78 257.33 90.86 265 90.86 265 91.78 261.67 91.78 261.67 102.2 260.64 102.2" class="ink"/><path d="M512.08,332.46c0,1.79,1,3.4,3.15,3.4a4.23,4.23,0,0,0,2.06-.49l0.05,0.92a5,5,0,0,1-2.18.44c-2.87,0-4.08-2.06-4.08-4.44,0-2.19,1.22-4.37,3.61-4.37s3.19,2.06,3.19,4.1v0.44h-5.8Zm4.79-.82c-0.05-1.31-.46-2.89-2.18-2.89s-2.51,1.7-2.6,2.89h4.78Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M525.39,336.43a5.32,5.32,0,0,1-1.84.29,4.41,4.41,0,0,1,0-8.8,4.85,4.85,0,0,1,1.8.27l-0.09,1a3.44,3.44,0,0,0-1.62-.34,3.21,3.21,0,0,0-3.31,3.48,3.34,3.34,0,0,0,3.3,3.55,3.87,3.87,0,0,0,1.7-.34Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M527,336.54V324.28h0.92v5.23a2.7,2.7,0,0,1,2.62-1.6c2.11,0,2.82,1.5,2.82,3.45v5.17h-0.92v-5c0-1.43-.31-2.7-2-2.7-1.89,0-2.5,1.58-2.5,3.21v4.52H527Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M535.74,336.54v-6.44a20,20,0,0,0-.09-2h0.83l0.05,1.48a2.91,2.91,0,0,1,2.74-1.65c2.18,0,2.82,1.5,2.82,3.45v5.17h-0.92v-5c0-1.43-.31-2.7-2-2.7-1.89,0-2.5,1.58-2.5,3.21v4.52h-0.92Z" transform="translate(-246.33 -234.33)" class="ink"/><path d="M544,332.29c0-2.33,1.38-4.37,3.83-4.37,2.62,0,3.82,2,3.82,4.37s-1.26,4.44-3.82,4.44a3.85,3.85,0,0,1-1.7-.36,4.36,4.36,0,0,1-2.12-4.08m3.83,3.55c2,0,2.82-1.84,2.82-3.55s-0.78-3.48-2.82-3.48-2.82,1.75-2.82,3.48a4.33,4.33,0,0,0,.66,2.41,2.48,2.48,0,0,0,2.16,1.14" transform="translate(-246.33 -234.33)" class="ink"/><polygon points="307.28 89.95 308.2 89.95 308.2 102.2 307.28 102.2 307.28 96.07 307.28 89.95" class="ink"/><path d="M556.47,332.29c0-2.33,1.38-4.37,3.83-4.37,2.62,0,3.82,2,3.82,4.37s-1.26,4.44-3.82,4.44a3.85,3.85,0,0,1-1.7-.36,4.36,4.36,0,0,1-2.12-4.08m3.83,3.55c2,0,2.82-1.84,2.82-3.55s-0.78-3.48-2.82-3.48-2.82,1.75-2.82,3.48a4.33,4.33,0,0,0,.66,2.41,2.48,2.48,0,0,0,2.16,1.14" transform="translate(-246.33 -234.33)" class="ink"/><path d="M566.41,338.91a5.18,5.18,0,0,0,2.41.6c2.11,0,2.82-1.45,2.82-3.35V335a3,3,0,0,1-2.6,1.51c-2.52,0-3.42-2.19-3.42-4.25,0-2.24,1-4.37,3.45-4.37a2.75,2.75,0,0,1,2.63,1.6v-1.43h0.85v8.06c0,2.53-1.07,4.25-3.79,4.25a8.17,8.17,0,0,1-2.46-.44Zm2.72-3.26c1.89,0,2.55-1.87,2.55-3.37s-0.68-3.48-2.53-3.48c-2,0-2.52,1.82-2.52,3.48a4.94,4.94,0,0,0,.49,2.28,2.2,2.2,0,0,0,2,1.09" transform="translate(-246.33 -234.33)" class="ink"/><path d="M574.46,339.36a2.18,2.18,0,0,0,.71.15c1,0,1.45-1.48,1.62-2.09l0.19-.59-2.92-8.74h1l2.4,7.5,2.41-7.5h1l-3.47,10.06c-0.46,1.36-1.14,2.24-2.23,2.24a2.77,2.77,0,0,1-.83-0.12Z" transform="translate(-246.33 -234.33)" class="ink"/><rect width="354.33" height="132.67" style="fill:none"/></svg></a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">Open-source · Empa Urban Energy Systems Lab</p>
+        <h1>Find the best energy system for your district, municipality or region.</h1>
+        <p class="lead">ehubX is a planning tool that works out which energy technologies to build, how large they should be, and how to run them. It weighs costs, CO₂ emissions and local self-sufficiency against each other, so decision-makers can compare options on solid numbers.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#use-cases">See what it's used for</a>
+          <a class="btn btn-ghost" href="https://github.com/uesl-empa/ehubx">View on GitHub</a>
+        </div>
+      </div>
+      <figure class="hero-figure" aria-label="Illustration of an energy hub">
+        <svg viewBox="0 0 360 310" role="img" aria-labelledby="hero-svg-t">
+          <title id="hero-svg-t">An energy hub connects solar, wind, the grid, storage and heat pumps to supply buildings and industry</title>
+          <g class="hub-links">
+            <path d="M180 150 L70 60"/><path d="M180 150 L290 60"/><path d="M180 150 L50 170"/>
+            <path d="M180 150 L310 170"/><path d="M180 150 L110 260"/><path d="M180 150 L250 260"/>
+          </g>
+          <g class="hub-flow">
+            <path d="M70 60 L180 150"/><path d="M290 60 L180 150"/><path d="M50 170 L180 150"/>
+            <path d="M180 150 L310 170"/><path d="M180 150 L110 260"/><path d="M180 150 L250 260"/>
+          </g>
+          <circle class="hub-core" cx="180" cy="150" r="42"/>
+          <text class="hub-core-t" x="180" y="146" text-anchor="middle">Energy</text>
+          <text class="hub-core-t" x="180" y="163" text-anchor="middle">hub</text>
+          <g class="hub-node"><circle cx="70" cy="60" r="26"/><text x="70" y="65" text-anchor="middle">☀</text><text class="lbl" x="70" y="102" text-anchor="middle">Solar</text></g>
+          <g class="hub-node"><circle cx="290" cy="60" r="26"/><g class="turbine"><path d="M290 60 L290 78"/><path d="M290 60 L290 44 M290 60 L276 68 M290 60 L304 68"/><circle cx="290" cy="60" r="2.5"/></g><text class="lbl" x="290" y="102" text-anchor="middle">Wind</text></g>
+          <g class="hub-node"><circle cx="50" cy="170" r="26"/><text x="50" y="175" text-anchor="middle">⚡</text><text class="lbl" x="50" y="212" text-anchor="middle">Grid</text></g>
+          <g class="hub-node alt"><circle cx="310" cy="170" r="26"/><text x="310" y="175" text-anchor="middle">🔋</text><text class="lbl" x="310" y="212" text-anchor="middle">Storage</text></g>
+          <g class="hub-node alt"><circle cx="110" cy="260" r="26"/><text x="110" y="265" text-anchor="middle">🏘</text><text class="lbl" x="110" y="302" text-anchor="middle">Buildings</text></g>
+          <g class="hub-node alt"><circle cx="250" cy="260" r="26"/><text x="250" y="265" text-anchor="middle">🏭</text><text class="lbl" x="250" y="302" text-anchor="middle">Industry</text></g>
+        </svg>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="section">
+    <div class="wrap">
+      <p class="eyebrow">What is ehubX?</p>
+      <h2>A “what-if” engine for energy planning</h2>
+      <div class="two-col">
+        <p>Planning a local energy system means making many connected decisions. Should we install heat pumps or connect to a district heating network? How much solar is worth it? Do we need a battery, or seasonal heat storage? What happens when energy prices or CO₂ targets change?</p>
+        <p>ehubX answers these questions together, not one at a time. You describe the area: its energy demand, the technologies available, prices and local limits. ehubX then uses mathematical optimisation to find the combination that best meets your goal, for every hour of the year and, if you want, over several decades of investment.</p>
+      </div>
+
+      <h3 class="subhead">Questions ehubX helps answer</h3>
+      <ul class="question-grid">
+        <li><span class="q-icon">€</span><strong>What is the cheapest way to meet our energy needs?</strong><span>The mix and size of technologies with the lowest total cost over their lifetime.</span></li>
+        <li><span class="q-icon">CO₂</span><strong>What does it cost to cut emissions further?</strong><span>The trade-off between costs and emissions, so you can see how much each extra tonne of CO₂ saved costs.</span></li>
+        <li><span class="q-icon">⌂</span><strong>How self-sufficient can we become?</strong><span>How much local energy can be produced and used, and how long the area could keep running without outside supply.</span></li>
+        <li><span class="q-icon">⇢</span><strong>When should we invest?</strong><span>A step-by-step investment plan, for example 2030, 2040 and 2050, that follows changing prices, demand and targets.</span></li>
+        <li><span class="q-icon">⇄</span><strong>Should neighbouring sites share energy?</strong><span>Whether heat or power networks between buildings, sites or towns pay off, and where they should run.</span></li>
+        <li><span class="q-icon">↻</span><strong>How should the system run day to day?</strong><span>When to charge storage, run heat pumps or shift flexible loads, hour by hour.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="section section-alt">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2>From a description of your area to a clear recommendation</h2>
+
+      <ol class="flow">
+        <li>
+          <span class="flow-step">1</span>
+          <h3>Describe the system</h3>
+          <p>Energy demand profiles, prices, available technologies and their costs, and limits such as roof area or grid connection size. All inputs are plain spreadsheet-style files.</p>
+        </li>
+        <li>
+          <span class="flow-step">2</span>
+          <h3>Set a goal</h3>
+          <p>Minimise cost, emissions, or dependence on imports. Or explore the trade-off between two goals at once.</p>
+        </li>
+        <li>
+          <span class="flow-step">3</span>
+          <h3>Optimise</h3>
+          <p>ehubX sets up a mathematical model and solves it with proven industrial solvers, taking every hour of the year into account.</p>
+        </li>
+        <li>
+          <span class="flow-step">4</span>
+          <h3>Get answers</h3>
+          <p>Which technologies to build and how large, how they run every hour, and the resulting costs, emissions and self-sufficiency.</p>
+        </li>
+      </ol>
+
+      <div class="concept">
+        <div>
+          <h3>The “energy hub” idea</h3>
+          <p>ehubX treats each building, site or town as an <em>energy hub</em>, a node where different forms of energy come together. Electricity, heat, gas, hydrogen and other carriers can be bought, produced, stored, converted into each other and passed on to neighbouring hubs. At every hour, what comes in must equal what goes out.</p>
+          <p>Looking at all energy forms together is called <em>sector coupling</em>. It shows combinations that stay hidden when electricity, heating and mobility are planned separately. One example is solar power running heat pumps whose heat is stored for winter.</p>
+        </div>
+        <figure class="tradeoff">
+          <svg viewBox="0 0 320 220" role="img" aria-labelledby="po-t po-d">
+            <title id="po-t">Illustrative cost–emissions trade-off</title>
+            <desc id="po-d">Each point is an optimal system design. Moving left lowers emissions but raises cost.</desc>
+            <line class="axis" x1="44" y1="180" x2="300" y2="180"/>
+            <line class="axis" x1="44" y1="20" x2="44" y2="180"/>
+            <text class="ax-lbl" x="172" y="208" text-anchor="middle">CO₂ emissions →</text>
+            <text class="ax-lbl" x="16" y="100" text-anchor="middle" transform="rotate(-90 16 100)">Total cost →</text>
+            <path class="front" d="M70 36 C 95 110, 150 150, 280 164"/>
+            <g class="pts">
+              <circle cx="70" cy="36" r="5"/><circle cx="88" cy="82" r="5"/><circle cx="112" cy="116" r="5"/>
+              <circle cx="146" cy="138" r="5"/><circle cx="190" cy="152" r="5"/><circle cx="240" cy="160" r="5"/><circle cx="280" cy="164" r="5"/>
+            </g>
+            <text class="pt-lbl" x="80" y="30">lowest emissions</text>
+            <text class="pt-lbl" x="276" y="152" text-anchor="end">lowest cost</text>
+          </svg>
+          <figcaption>Illustration: each point is a best-possible system design. Planners choose the balance between cost and emissions that suits them.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPABILITIES -->
+  <section class="section">
+    <div class="wrap">
+      <p class="eyebrow">What can be modelled</p>
+      <h2>A broad toolbox of technologies</h2>
+      <p class="section-lead">ehubX is a framework, not one fixed model. Each study combines the building blocks it needs.</p>
+      <ul class="cap-grid">
+        <li><strong>Solar &amp; wind</strong><span>Rooftop and ground-mounted PV, solar thermal, wind turbines</span></li>
+        <li><strong>Heat pumps</strong><span>With temperature-dependent efficiency</span></li>
+        <li><strong>Conversion</strong><span>Boilers, CHP, electrolysers and any carrier-to-carrier technology</span></li>
+        <li><strong>Storage</strong><span>Batteries, hot-water tanks, hydrogen and more</span></li>
+        <li><strong>Seasonal heat storage</strong><span>Aquifer thermal energy storage (ATES)</span></li>
+        <li><strong>Electric mobility</strong><span>EV charging and vehicle batteries</span></li>
+        <li><strong>Energy networks</strong><span>Heat and power grids between hubs, including losses</span></li>
+        <li><strong>Flexible demand</strong><span>Load shifting and load shedding</span></li>
+        <li><strong>Markets</strong><span>Energy imports and exports with time-varying prices</span></li>
+        <li><strong>Long-term planning</strong><span>Multi-stage investment over decades</span></li>
+        <li><strong>Multiple goals</strong><span>Cost, CO₂, self-sufficiency and autonomy</span></li>
+        <li><strong>Fast studies</strong><span>Clustering typical days to speed up large models</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section id="use-cases" class="section section-alt">
+    <div class="wrap">
+      <p class="eyebrow">Use cases</p>
+      <h2>Who uses ehubX, and for what</h2>
+      <div class="usecase-grid">
+        <article class="usecase">
+          <h3>Municipal &amp; regional energy planning</h3>
+          <p>Compare strategies to reach net zero across a whole town or region, including costs, emissions and the infrastructure needed, as a basis for energy plans and political decisions.</p>
+        </article>
+        <article class="usecase">
+          <h3>Industrial sites &amp; sector coupling</h3>
+          <p>Find synergies between industry, households and energy suppliers, such as using industrial waste heat, electrifying processes or capturing CO₂.</p>
+        </article>
+        <article class="usecase">
+          <h3>District heating &amp; seasonal storage</h3>
+          <p>Size heat networks, heat pumps and underground seasonal storage so that summer heat can be used in winter.</p>
+        </article>
+        <article class="usecase">
+          <h3>Neighbourhoods &amp; building portfolios</h3>
+          <p>Choose between individual and shared solutions for groups of buildings, such as PV, batteries, heat pumps or a local heat network.</p>
+        </article>
+        <article class="usecase">
+          <h3>Resilience &amp; autonomy</h3>
+          <p>Work out how long a community or site could keep supplying itself during a grid outage or supply crisis, and what that would cost.</p>
+        </article>
+        <article class="usecase">
+          <h3>Research</h3>
+          <p>A transparent, open-source basis for scientific studies on energy transition pathways, new technologies and flexibility.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section id="projects" class="section">
+    <div class="wrap">
+      <p class="eyebrow">Projects</p>
+      <h2>ehubX in practice</h2>
+      <p class="section-lead">ehubX has been used in many large energy system studies, both for research and for real municipal and regional planning. A selection:</p>
+      <div id="project-list" class="project-list"></div>
+      <noscript><p>Please enable JavaScript to see the project list.</p></noscript>
+    </div>
+  </section>
+
+  <!-- PUBLICATIONS -->
+  <section id="publications" class="section section-alt">
+    <div class="wrap">
+      <p class="eyebrow">Publications</p>
+      <h2>Research using ehubX</h2>
+      <ol id="pub-list" class="pub-list"></ol>
+      <p class="muted small">Missing a publication? <a href="https://github.com/uesl-empa/ehubx/issues">Let us know on GitHub</a>.</p>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section id="team" class="section">
+    <div class="wrap team">
+      <div>
+        <p class="eyebrow">Team</p>
+        <h2>Developed at Empa</h2>
+        <p>ehubX is developed and maintained by the <a href="https://www.empa.ch/web/s313">Urban Energy Systems Laboratory</a> at <a href="https://www.empa.ch/">Empa</a>, the Swiss Federal Laboratories for Materials Science and Technology. It builds on more than a decade of energy hub research at Empa.</p>
+        <p>Interested in a collaboration or a study for your municipality, company or region? <a href="https://www.empa.ch/web/s313">Get in touch with the lab.</a></p>
+      </div>
+      <div>
+        <h3 class="subhead-sm">Contributors</h3>
+        <ul id="team-list" class="team-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- GET STARTED -->
+  <section id="get-started" class="section section-dark">
+    <div class="wrap">
+      <p class="eyebrow">For modellers</p>
+      <h2>Get started</h2>
+      <div class="start-grid">
+        <div class="start-card">
+          <h3>Install</h3>
+          <p>ehubX is a Python package (3.11+) available on PyPI. You also need a MILP solver: Gurobi or the free GLPK.</p>
+          <pre><code>pip install ehubx</code></pre>
+        </div>
+        <div class="start-card">
+          <h3>Learn</h3>
+          <p>The documentation covers input files, all parameters and the full mathematical model.</p>
+          <a class="btn btn-light" href="https://ehubx.readthedocs.io/">Read the documentation</a>
+        </div>
+        <div class="start-card">
+          <h3>Explore</h3>
+          <p>Start with the <em>small_demo</em> example, then try clustering, self-sufficiency and autonomy demos.</p>
+          <a class="btn btn-light" href="https://github.com/uesl-empa/ehubx/tree/main/examples">Browse examples</a>
+        </div>
+      </div>
+
+      <div class="cite">
+        <h3>How to cite</h3>
+        <p>If you use ehubX in your work, please cite the software:</p>
+        <pre><code>@software{ehubx,
+  title   = {ehubX: A Python framework for modeling and optimizing energy systems based on the energy hub concept},
+  author  = {{Urban Energy Systems Laboratory, Empa}},
+  url     = {https://github.com/uesl-empa/ehubx},
+  version = {2.3.1},
+  year    = {2026},
+  license = {GPL-3.0-or-later}
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <p>© 2026 Urban Energy Systems Laboratory, Empa. ehubX is free software under the GNU GPL v3.0 or later.</p>
+    <p class="footer-links">
+      <a href="https://github.com/uesl-empa/ehubx">GitHub</a>
+      <a href="https://ehubx.readthedocs.io/">Docs</a>
+      <a href="https://pypi.org/project/ehubx/">PyPI</a>
+      <a href="https://www.empa.ch/web/s313">UES Lab</a>
+    </p>
+  </div>
+</footer>
+
+<script src="data/content.js"></script>
+<script src="assets/main.js"></script>
+</body>
+</html>
