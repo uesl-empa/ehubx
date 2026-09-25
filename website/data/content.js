@@ -75,13 +75,12 @@ window.EHUBX_CONTENT = {
     {
       level: "PhD",
       status: "Ongoing",
-      year: "",
-      title: "PhD thesis title",
+      year: "Since 2024",
+      title: "Thesis title to be announced",
       student: "Arijit Upadhyay",
-      institution: "",
+      institution: "ETH Zurich",
       supervisors: "",
       url: "",
-      todo: true, // add title, institution and start year
     },
     {
       level: "MSc",
