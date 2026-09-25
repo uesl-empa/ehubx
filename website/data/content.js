@@ -69,6 +69,55 @@ window.EHUBX_CONTENT = {
     },
   ],
 
+  theses: [
+    // `level` is "PhD" or "MSc" (also fine: "BSc", "Semester project").
+    // `status` is "Completed" or "Ongoing". Replace the placeholders below.
+    {
+      level: "PhD",
+      status: "Ongoing",
+      year: "20XX",
+      title: "PhD thesis title",
+      student: "Student name",
+      institution: "University / department",
+      supervisors: "Supervisor names",
+      url: "",
+      todo: true,
+    },
+    {
+      level: "PhD",
+      status: "Completed",
+      year: "20XX",
+      title: "PhD thesis title",
+      student: "Student name",
+      institution: "University / department",
+      supervisors: "Supervisor names",
+      url: "",
+      todo: true,
+    },
+    {
+      level: "MSc",
+      status: "Completed",
+      year: "20XX",
+      title: "MSc thesis title",
+      student: "Student name",
+      institution: "University / department",
+      supervisors: "Supervisor names",
+      url: "",
+      todo: true,
+    },
+    {
+      level: "MSc",
+      status: "Completed",
+      year: "20XX",
+      title: "MSc thesis title",
+      student: "Student name",
+      institution: "University / department",
+      supervisors: "Supervisor names",
+      url: "",
+      todo: true,
+    },
+  ],
+
   team: [
     "Dennis Beermann",
     "Leonie Fierz",
