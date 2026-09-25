@@ -274,18 +274,21 @@ p { margin: 0 0 1em; }
 .usecase p { color: var(--muted); margin: 0; font-size: .97rem; }
 
 /* Projects */
-.project-list { display: grid; gap: 20px; }
+.project-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 20px; }
 .project {
-  display: grid; grid-template-columns: 240px 1fr; gap: 28px;
-  border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; background: var(--surface);
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; background: var(--surface);
 }
-.project-meta { border-right: 1px solid var(--border); padding-right: 24px; }
-.project-meta .place { font-weight: 600; margin-bottom: 4px; }
-.project-meta .years { color: var(--muted); font-size: .9rem; }
-.project h3 { font-size: 1.3rem; }
-.project p { color: var(--muted); }
-.project .partners { font-size: .9rem; }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; padding: 0; list-style: none; }
+.project-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 12px; font-size: .82rem; }
+.project-status { font-weight: 600; color: var(--muted); }
+.project-status.is-ongoing { color: var(--accent); }
+.project-status.is-ongoing::before { content: "● "; }
+.project-where { color: var(--muted); font-weight: 500; }
+.project h3 { font-size: 1.18rem; }
+.project p { color: var(--muted); font-size: .96rem; }
+.project .project-summary { flex: 1; }
+.project .partners { font-size: .88rem; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; }
 .tags li {
   font-size: .78rem; font-weight: 500; padding: 3px 10px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent-strong);
@@ -297,8 +300,7 @@ p { margin: 0 0 1em; }
   background: var(--warm-soft); color: var(--warm);
 }
 @media (max-width: 760px) {
-  .project { grid-template-columns: 1fr; gap: 12px; padding: 22px; }
-  .project-meta { border-right: 0; padding-right: 0; }
+  .project { padding: 22px; }
 }
 
 /* Publications */
