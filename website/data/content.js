@@ -85,16 +85,6 @@ window.EHUBX_CONTENT = {
     {
       level: "MSc",
       status: "",
-      year: "2026",
-      title: "Clustering Wind Regimes to Derive Representative Wind Profiles for Energy System Modelling in Switzerland",
-      student: "Elena Buchinger",
-      institution: "University of Natural Resources and Life Sciences, Vienna (BOKU)",
-      supervisors: "",
-      url: "",
-    },
-    {
-      level: "MSc",
-      status: "",
       year: "2025",
       title: "Advancing Net-Zero Strategies for Urban Energy Districts Using Energy System Optimization",
       student: "Matthias Vogt",
