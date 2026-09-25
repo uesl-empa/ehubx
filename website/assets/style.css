@@ -332,7 +332,7 @@ p { margin: 0 0 1em; }
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 22px; display: flex; flex-direction: column;
 }
-.thesis[hidden] { display: none; }
+.thesis[hidden], .thesis-filter[hidden] { display: none; }
 .thesis-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: .78rem; }
 .thesis-level {
   font-weight: 700; letter-spacing: .04em; padding: 2px 9px; border-radius: 6px;
