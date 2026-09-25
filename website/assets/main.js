@@ -20,25 +20,24 @@
   // Projects
   var projectList = document.getElementById("project-list");
   content.projects.forEach(function (p) {
-    var meta = el("div", { class: "project-meta" }, [
-      el("div", { class: "place", text: p.place || "" }),
-      p.years ? el("div", { class: "years", text: p.years }) : null,
+    var where = [p.place, p.years].filter(Boolean).join(" · ");
+    projectList.appendChild(el("article", { class: "project" }, [
+      el("div", { class: "project-head" }, [
+        p.status ? el("span", { class: "project-status" + (p.status === "Ongoing" ? " is-ongoing" : ""), text: p.status }) : null,
+        where ? el("span", { class: "project-where", text: where }) : null,
+      ]),
+      el("h3", { text: p.title }, [draftBadge(p)]),
+      el("p", { class: "project-summary", text: p.summary }),
+      p.partners ? el("p", { class: "partners" }, [el("strong", { text: "Partners: " }), document.createTextNode(p.partners)]) : null,
       p.tags && p.tags.length
         ? el("ul", { class: "tags" }, p.tags.map(function (t) { return el("li", { text: t }); }))
         : null,
-    ]);
-    var title = el("h3", { text: p.title }, [draftBadge(p)]);
-    var body = el("div", {}, [
-      title,
-      el("p", { text: p.summary }),
-      p.partners ? el("p", { class: "partners" }, [el("strong", { text: "Partners: " }), document.createTextNode(p.partners)]) : null,
       p.links && p.links.length
         ? el("div", { class: "links" }, p.links.map(function (l) {
             return el("a", { href: l.url, text: l.label + " →", rel: "noopener" });
           }))
         : null,
-    ]);
-    projectList.appendChild(el("article", { class: "project" }, [meta, body]));
+    ]));
   });
 
   // Publications (newest first)
