@@ -124,7 +124,7 @@ window.EHUBX_CONTENT = {
     "Andrew Bollinger",
     "Robin Mutschler",
     "Wassim Chedhli",
-    "Yi-Chung Chen",
+    "Barton Chen",
     "Binod Prasad Koirala",
     "Julien Marquant",
     "Michael Obrist",
