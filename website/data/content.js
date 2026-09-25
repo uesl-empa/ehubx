@@ -71,12 +71,12 @@ window.EHUBX_CONTENT = {
     },
     {
       title: "GOES: geothermal-based optimised energy systems",
-      status: "Ongoing",
+      status: "Completed",
       place: "International · Swiss case: Empa campus, Dübendorf",
       years: "",
       tags: ["Geothermal", "Seasonal storage", "ATES"],
       summary:
-        "GOES develops a standard, transferable way to design energy systems around geothermal energy, from the underground up to whole cities. The seasonal aquifer storage (ATES) module of ehubX was developed in this project. In Switzerland, high-temperature borehole storage is being integrated into the energy hub of the Empa campus in Dübendorf.",
+        "GOES developed a standard, transferable way to design energy systems around geothermal energy, from the underground up to whole cities. The seasonal aquifer storage (ATES) module of ehubX was developed in this project. The Swiss part focused on integrating high-temperature borehole storage into the energy hub of the Empa campus in Dübendorf.",
       partners: "Funded by GEOTHERMICA, an ERA-NET Cofund under Horizon 2020",
       links: [
         { label: "Project website", url: "https://www.goes-project.info/" },
@@ -129,23 +129,23 @@ window.EHUBX_CONTENT = {
     },
     {
       title: "SWEET DecarbCH: decarbonising heating and cooling",
-      status: "Ongoing",
+      status: "Completed",
       place: "Switzerland · case study Fraumünster, Zurich",
       years: "",
       tags: ["District heating", "Cooling", "Local energy planning"],
       summary:
-        "DecarbCH aims to speed up and de-risk the switch to renewable heating and cooling in homes, services and industry. Empa contributes local energy planning for future thermal networks, a detailed assessment of the Fraumünster district heating system in Zurich, and guidelines for combined heating and cooling networks.",
+        "DecarbCH set out to speed up and de-risk the switch to renewable heating and cooling in homes, services and industry. Empa contributed local energy planning for future thermal networks, a detailed assessment of the Fraumünster district heating system in Zurich, and guidelines for combined heating and cooling networks.",
       partners: "Funded by the Swiss Federal Office of Energy (SWEET programme)",
       links: [{ label: "Project website", url: "https://www.sweet-decarb.ch/" }],
     },
     {
       title: "SWEET PATHFNDR: pathways for renewable energy integration",
-      status: "Ongoing",
+      status: "Completed",
       place: "Switzerland",
       years: "",
       tags: ["Transition pathways", "Renewables", "Policy"],
       summary:
-        "PATHFNDR develops and analyses pathways for integrating renewable energy in Switzerland. It delivers feasible transition paths, planning and operation tools, pilot projects, and analyses of business opportunities and policies.",
+        "PATHFNDR developed and analysed pathways for integrating renewable energy in Switzerland. It delivered feasible transition paths, planning and operation tools, pilot projects, and analyses of business opportunities and policies.",
       partners: "Hosted by ETH Zurich with Empa, PSI, ZHAW, HSLU, UNIGE, EPFL and TU Delft, plus 25 cooperation partners",
       links: [{ label: "Project website", url: "https://sweet-pathfndr.ch/" }],
     },
@@ -252,7 +252,7 @@ window.EHUBX_CONTENT = {
     {
       level: "BSc",
       status: "",
-      year: "2025–2026",
+      year: "2026",
       title: "Implementation and Validation of Realistic Wind Power Modelling in the ehubX Energy System Framework",
       student: "Laurenz Ebi",
       institution: "ETH Zurich",
