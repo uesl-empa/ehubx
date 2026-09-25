@@ -26,6 +26,17 @@ window.EHUBX_CONTENT = {
       ],
     },
     {
+      title: "Net-zero planning for ESP Sisslerfeld",
+      status: "",
+      place: "Canton of Aargau, Switzerland",
+      years: "",
+      tags: ["Industrial area", "Sector coupling", "Load shifting"],
+      summary:
+        "Sisslerfeld is a development area of cantonal importance, spanning the municipalities of Eiken, Münchwilen, Sisseln and Stein. The project set up a continuous, integrated planning process to reach net-zero CO₂ by 2040 at the lowest cost, using synergies between industry, households and energy infrastructure. ehubX's load-shifting features were extended for this project.",
+      partners: "",
+      links: [],
+    },
+    {
       title: "SWEET ACHIEVE: net zero for hard-to-abate sectors",
       status: "Ongoing",
       place: "Switzerland",
