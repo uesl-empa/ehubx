@@ -63,6 +63,47 @@
       ]));
     });
 
+  // Theses (PhD first, then MSc and others; newest first within each level)
+  var thesisList = document.getElementById("thesis-list");
+  var levelRank = { PhD: 0, MSc: 1 };
+  var theses = (content.theses || []).slice().sort(function (a, b) {
+    var ra = a.level in levelRank ? levelRank[a.level] : 2;
+    var rb = b.level in levelRank ? levelRank[b.level] : 2;
+    return ra - rb || String(b.year || "").localeCompare(String(a.year || ""));
+  });
+  theses.forEach(function (t) {
+    var titleNode = t.url
+      ? el("a", { href: t.url, text: t.title, rel: "noopener" })
+      : document.createTextNode(t.title);
+    var details = [t.institution, t.supervisors ? "Supervised by " + t.supervisors : ""]
+      .filter(Boolean).join(" · ");
+    thesisList.appendChild(el("li", { class: "thesis", "data-level": t.level || "" }, [
+      el("div", { class: "thesis-head" }, [
+        el("span", { class: "thesis-level", text: t.level || "" }),
+        el("span", { class: "thesis-status" + (t.status === "Ongoing" ? " is-ongoing" : ""), text: t.status || "" }),
+        el("span", { class: "thesis-year", text: String(t.year || "") }),
+      ]),
+      el("h3", {}, [titleNode, draftBadge(t)]),
+      el("p", { class: "thesis-student", text: t.student || "" }),
+      details ? el("p", { class: "thesis-details", text: details }) : null,
+    ]));
+  });
+
+  var chips = document.querySelectorAll(".thesis-filter .chip");
+  Array.prototype.forEach.call(chips, function (chip) {
+    chip.addEventListener("click", function () {
+      var level = chip.getAttribute("data-level");
+      Array.prototype.forEach.call(chips, function (c) {
+        var on = c === chip;
+        c.classList.toggle("is-active", on);
+        c.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      Array.prototype.forEach.call(thesisList.children, function (item) {
+        item.hidden = level !== "all" && item.getAttribute("data-level") !== level;
+      });
+    });
+  });
+
   // Team
   var teamList = document.getElementById("team-list");
   content.team.forEach(function (name) { teamList.appendChild(el("li", { text: name })); });
