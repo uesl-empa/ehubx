@@ -73,6 +73,17 @@ window.EHUBX_CONTENT = {
     // `level` is "PhD", "MSc" or "BSc" (other values like "Semester project" also work).
     // `status` is "Completed" or "Ongoing"; leave "" to hide it.
     {
+      level: "PhD",
+      status: "Ongoing",
+      year: "",
+      title: "PhD thesis title",
+      student: "Arijit Upadhyay",
+      institution: "",
+      supervisors: "",
+      url: "",
+      todo: true, // add title, institution and start year
+    },
+    {
       level: "MSc",
       status: "",
       year: "2026",
