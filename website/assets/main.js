@@ -65,10 +65,10 @@
 
   // Theses (PhD first, then MSc and others; newest first within each level)
   var thesisList = document.getElementById("thesis-list");
-  var levelRank = { PhD: 0, MSc: 1 };
+  var levelRank = { PhD: 0, MSc: 1, BSc: 2 };
   var theses = (content.theses || []).slice().sort(function (a, b) {
-    var ra = a.level in levelRank ? levelRank[a.level] : 2;
-    var rb = b.level in levelRank ? levelRank[b.level] : 2;
+    var ra = a.level in levelRank ? levelRank[a.level] : 3;
+    var rb = b.level in levelRank ? levelRank[b.level] : 3;
     return ra - rb || String(b.year || "").localeCompare(String(a.year || ""));
   });
   theses.forEach(function (t) {
@@ -80,7 +80,7 @@
     thesisList.appendChild(el("li", { class: "thesis", "data-level": t.level || "" }, [
       el("div", { class: "thesis-head" }, [
         el("span", { class: "thesis-level", text: t.level || "" }),
-        el("span", { class: "thesis-status" + (t.status === "Ongoing" ? " is-ongoing" : ""), text: t.status || "" }),
+        t.status ? el("span", { class: "thesis-status" + (t.status === "Ongoing" ? " is-ongoing" : ""), text: t.status }) : null,
         el("span", { class: "thesis-year", text: String(t.year || "") }),
       ]),
       el("h3", {}, [titleNode, draftBadge(t)]),
@@ -89,7 +89,19 @@
     ]));
   });
 
-  var chips = document.querySelectorAll(".thesis-filter .chip");
+  // Filter chips: "All" plus one per level present in the data (hidden if only one level)
+  var filter = document.querySelector(".thesis-filter");
+  var levels = [];
+  theses.forEach(function (t) { if (t.level && levels.indexOf(t.level) < 0) levels.push(t.level); });
+  if (levels.length < 2) filter.hidden = true;
+  ["all"].concat(levels).forEach(function (level, i) {
+    filter.appendChild(el("button", {
+      type: "button", class: "chip" + (i === 0 ? " is-active" : ""),
+      "data-level": level, "aria-pressed": i === 0 ? "true" : "false",
+      text: level === "all" ? "All" : level,
+    }));
+  });
+  var chips = filter.querySelectorAll(".chip");
   Array.prototype.forEach.call(chips, function (chip) {
     chip.addEventListener("click", function () {
       var level = chip.getAttribute("data-level");
