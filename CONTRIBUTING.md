@@ -1,4 +1,7 @@
-# Contributing to ehubX [DRAFT - to be aligned with UESL/Empa team]
+# Contributing to ehubX
+
+> **Version note:** This is the revised version of the document, updated after
+> the internal UESL/Empa team meeting on **2026-09-30**.
 
 Thank you for your interest in contributing to ehubX!
 
