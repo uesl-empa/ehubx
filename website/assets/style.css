@@ -159,6 +159,7 @@ p { margin: 0 0 1em; }
 }
 .hero-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; align-items: center; }
 .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+.hero-actions .btn { padding: 12px 18px; }
 .hero-figure { margin: 0; }
 .hero-figure svg { display: block; width: 100%; height: auto; }
 .hub-links path { stroke: var(--border); stroke-width: 6; stroke-linecap: round; }
