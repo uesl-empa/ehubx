@@ -3,7 +3,14 @@ from typing import Optional, Tuple
 
 from ehubx.core import logging
 from ehubx.data.ec_data import EcId, Ecs, ImpExpType
-from ehubx.data.unit import MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.parser import exceptions, yaml_parser
 
 
@@ -63,15 +70,20 @@ def _parse_ec(ec_node: yaml_parser.YamlDictNode, ecs: Ecs) -> None:
     ecs.add_id(ec_id)
     # unit
     unit = yaml_parser.parse_mandatory_unit_from_dict_node(ec_node, YAMLKEY_UNIT)
-    if not unit.same_type_as(MassUnit.KG) and not unit.same_type_as(
-        PowerUnit.KW * TimeUnit.H
+    if (
+        not unit.same_type_as(MassUnit.KG)
+        and not unit.same_type_as(PowerUnit.KW * TimeUnit.H)
+        and not unit.same_type_as(LengthUnit.M)
+        and not unit.same_type_as(PassengerUnit.PKM)
+        and not unit.same_type_as(FreightUnit.TKM)
     ):
         node_path_str = f"{ec_node.node_path_as_str}|{YAMLKEY_UNIT}"
         raise exceptions.InvalidValueException(
             ec_node.file_path,
             node_path_str,
-            f"Invalid unit {unit} detected for ec {ec_id}. Only mass units or energy "
-            "units are allowed for ecs",
+            f"Invalid unit {unit} detected for ec {ec_id}. Only mass units, energy "
+            "units, length units, passenger units, or freight units are allowed "
+            "for ecs",
             module=LOG_MODULE_STR,
         )
     ecs.set_unit(ec_id, unit)

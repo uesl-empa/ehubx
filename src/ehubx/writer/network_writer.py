@@ -236,6 +236,9 @@ def format_all(
                 energy_system.ecs.get_unit(EcId(e_)),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             flow_unit = ec_unit / TimeUnit.H
             hub_in = TimeSeries()
@@ -265,6 +268,9 @@ def format_all(
                 energy_system.ecs.get_unit(EcId(e_)),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             flow_unit = ec_unit / TimeUnit.H
             hub_out = TimeSeries()
@@ -371,6 +377,9 @@ def _format_link(
                 energy_system.ecs.get_unit(e),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             cap_min = energy_system.net_links.get_cap_min(s, li, e)
             cap_unit = ec_unit / TimeUnit.H
@@ -394,6 +403,9 @@ def _format_link(
                 energy_system.ecs.get_unit(e),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             cap_max = energy_system.net_links.get_cap_max(s, li, e)
             cap_unit = ec_unit / TimeUnit.H
@@ -451,6 +463,9 @@ def _format_link(
                 energy_system.ecs.get_unit(e),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             sum_min = energy_system.net_links.get_sum_min(
                 s, li, e, NetLinkDirection.FORWARD
@@ -491,6 +506,9 @@ def _format_link(
                 energy_system.ecs.get_unit(e),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             sum_max = energy_system.net_links.get_sum_max(
                 s, li, e, NetLinkDirection.FORWARD
@@ -532,6 +550,9 @@ def _format_link(
                 energy_system.ecs.get_unit(EcId(e_)),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             flow_unit = ec_unit / TimeUnit.H
             link_in = TimeSeries()
@@ -566,6 +587,9 @@ def _format_link(
                 energy_system.ecs.get_unit(EcId(e_)),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             flow_unit = ec_unit / TimeUnit.H
             link_out = TimeSeries()
@@ -600,6 +624,9 @@ def _format_link(
             energy_system.ecs.get_unit(e),
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.length_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         flow_unit = ec_unit / TimeUnit.H
         tech_in = TimeSeries()
@@ -633,6 +660,9 @@ def _format_link(
             energy_system.ecs.get_unit(e),
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.length_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         flow_unit = ec_unit / TimeUnit.H
         tech_out = TimeSeries()
@@ -666,6 +696,9 @@ def _format_tech(
         energy_system.ecs.get_unit(ec),
         energy_system.mass_unit,
         energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
     cap_unit = ec_unit / TimeUnit.H
     # Allowed stages
@@ -1215,7 +1248,7 @@ def _format_file_granularity(
 
         # Clustered time files
         if df_ts_cl is not None:
-            ids_ts_cl = df_ts_hor.columns.to_frame(index=False)[
+            ids_ts_cl = df_ts_cl.columns.to_frame(index=False)[
                 [DfStColumn.NET_LINK.value, DfStColumn.NET_TECH.value]
             ]
             for li, n in ids_ts_cl:

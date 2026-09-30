@@ -7,7 +7,15 @@ from pyomo.core import Model, Set
 from ehubx.core import logging
 from ehubx.data.ec_data import Ecs
 from ehubx.data.energy_system_data import EnergySystem
-from ehubx.data.unit import MassUnit, PowerUnit, TimeUnit, Unit
+from ehubx.data.unit import (
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+    Unit,
+)
 
 
 # -------- #
@@ -46,11 +54,17 @@ def build(model: Model, system: EnergySystem) -> None:
 
 
 def get_ec_model_unit(
-    ec_unit: Unit, model_mass_unit: MassUnit, model_power_unit: PowerUnit
+    ec_unit: Unit,
+    model_mass_unit: MassUnit,
+    model_power_unit: PowerUnit,
+    model_length_unit: LengthUnit,
+    model_passenger_unit: PassengerUnit,
+    model_freight_unit: FreightUnit,
 ) -> Unit:
     """
     Get the unit of an ec that will be used in the MILP model. This is either
-    the model mass unit or time the model power unit multiplied by hours,
+    the model mass unit, the model power unit multiplied by hours, the model
+    length unit, the model passenger unit, or the model freight unit,
     depending on the unit of the ec.
 
     :param ec_unit: Unit of the ec
@@ -59,6 +73,12 @@ def get_ec_model_unit(
     :type model_mass_unit: MassUnit
     :param model_power_unit: Power unit used in the model
     :type model_power_unit: PowerUnit
+    :param model_length_unit: Length unit used in the model
+    :type model_length_unit: LengthUnit
+    :param model_passenger_unit: Passenger unit used in the model
+    :type model_passenger_unit: PassengerUnit
+    :param model_freight_unit: Freight unit used in the model
+    :type model_freight_unit: FreightUnit
     :raises RuntimeError: If the ec_unit is not a valid unit for an ec
     :return: The model unit corresponding to the ec_unit
     :rtype: Unit
@@ -67,6 +87,12 @@ def get_ec_model_unit(
         return model_mass_unit
     elif ec_unit.same_type_as(PowerUnit.KW * TimeUnit.H):
         return model_power_unit * TimeUnit.H
+    elif ec_unit.same_type_as(LengthUnit.M):
+        return model_length_unit
+    elif ec_unit.same_type_as(PassengerUnit.PKM):
+        return model_passenger_unit
+    elif ec_unit.same_type_as(FreightUnit.TKM):
+        return model_freight_unit
     else:
         raise RuntimeError(
             f"Unexpected ec_unit {ec_unit} encountered. This should never happen."

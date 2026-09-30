@@ -16,8 +16,10 @@ from ehubx.data.time_data import TimeId, Times
 from ehubx.data.unit import (
     CurrencyUnit,
     DimlessUnit,
+    FreightUnit,
     LengthUnit,
     MassUnit,
+    PassengerUnit,
     PowerUnit,
     TimeUnit,
 )
@@ -221,6 +223,8 @@ def build(model: Model, system: EnergySystem) -> None:
     length_unit: LengthUnit = system.length_unit
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     currency_unit: CurrencyUnit = system.currency_unit
     # Start measuring build time
     start = datetime.now()
@@ -238,6 +242,8 @@ def build(model: Model, system: EnergySystem) -> None:
         length_unit,
         mass_unit,
         power_unit,
+        passenger_unit,
+        freight_unit,
     )
     _build_co2(
         model,
@@ -249,6 +255,8 @@ def build(model: Model, system: EnergySystem) -> None:
         length_unit,
         mass_unit,
         power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # Logging
     elapsed = datetime.now() - start
@@ -268,6 +276,8 @@ def _build_base_trans(model: Model, system: EnergySystem) -> None:
     length_unit = system.length_unit
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
     # [SET] Network Links
     setattr(model, SET_NETLINK, Set(initialize=[li.key for li in net_links.ids]))
     # [SET] Network techs
@@ -481,7 +491,15 @@ def _build_base_trans(model: Model, system: EnergySystem) -> None:
         cap_min = net_links.get_cap_min(StageId(s), NetLinkId(li), ec)
         cap_max = net_links.get_cap_max(StageId(s), NetLinkId(li), ec)
         cap_unit = (
-            get_ec_model_unit(ecs.get_unit(ec), mass_unit, power_unit) / TimeUnit.H
+            get_ec_model_unit(
+                ecs.get_unit(ec),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
+            / TimeUnit.H
         )
         if cap_min.is_positive:
             cap_min_fl = cap_min.to_float(unit=cap_unit)
@@ -512,7 +530,17 @@ def _build_base_trans(model: Model, system: EnergySystem) -> None:
     # [CON] Transmissions dynamics including transmission loss per m
     _con_net_trans_dynamic(model, net_links, net_techs, length_unit)
     # [CON] Constraints setting minimal and maximal summed-up transmissions
-    _con_net_trans_sum_minmax(model, ecs, net_links, times, mass_unit, power_unit)
+    _con_net_trans_sum_minmax(
+        model,
+        ecs,
+        net_links,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [VAR] Binary monitoring network tech usage
     setattr(
         model, VAR_YNETTECHUSED, Var(getattr(model, SET_NETTECHTUPLE), domain=Binary)
@@ -529,6 +557,9 @@ def _build_base_cap(model: Model, system: EnergySystem) -> None:
     net_links = system.net_links
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    length_unit = system.length_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
     # [SET] Tuples of links and ECs
     setattr(
         model,
@@ -541,7 +572,17 @@ def _build_base_cap(model: Model, system: EnergySystem) -> None:
         ),
     )
     # [CON] Minimal and maximal capacities (per link and EC)
-    _con_net_tech_cap_minmax(model, ecs, net_links, net_techs, mass_unit, power_unit)
+    _con_net_tech_cap_minmax(
+        model,
+        ecs,
+        net_links,
+        net_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [VAR] Newly installed network tech capacity
     setattr(
         model,
@@ -550,7 +591,17 @@ def _build_base_cap(model: Model, system: EnergySystem) -> None:
     )
     # [CON] Define NetTechCap as the sum of initial capacity and installed
     #       capacity from previous stages for which lifetime has not run out
-    _con_net_tech_cap(model, stages, ecs, net_techs, mass_unit, power_unit)
+    _con_net_tech_cap(
+        model,
+        stages,
+        ecs,
+        net_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [CON] Respect network tech capacity (pertains to input power) and
     #       availability
     _con_net_tech_trans_cap_and_availability(model, net_links, net_techs)
@@ -563,7 +614,16 @@ def _build_base_cap(model: Model, system: EnergySystem) -> None:
     # [CON] Force YNetTechCapInstl to 1 if TechCapInstl is nonzero
     _con_y_net_tech_instl(model)
     # Enforce the minimal unit capacity during installation
-    _con_net_tech_unit_cap_min(model, ecs, net_techs, mass_unit, power_unit)
+    _con_net_tech_unit_cap_min(
+        model,
+        ecs,
+        net_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
 
 
 def _build_cost(
@@ -577,6 +637,8 @@ def _build_cost(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] CAPEX cost
     setattr(
@@ -593,6 +655,8 @@ def _build_cost(
         length_unit,
         mass_unit,
         power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] OPEX (operation & maintenance) cost from capacity
     setattr(
@@ -610,6 +674,8 @@ def _build_cost(
         length_unit,
         mass_unit,
         power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] OPEX (operation & maintenance) cost from transmission
     setattr(
@@ -628,6 +694,8 @@ def _build_cost(
         length_unit,
         mass_unit,
         power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Total cost
     setattr(model, VAR_NETTECHCOSTTOTAL, Var(domain=Reals))
@@ -645,6 +713,8 @@ def _build_co2(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [VAR] CO2 emissions from installation
     setattr(
@@ -654,7 +724,16 @@ def _build_co2(
     )
     # [CON] CO2 emissions from installation
     _con_net_tech_co2_instl(
-        model, stages, ecs, net_links, net_techs, length_unit, mass_unit, power_unit
+        model,
+        stages,
+        ecs,
+        net_links,
+        net_techs,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] CO2 emissions from transmission
     setattr(
@@ -664,7 +743,16 @@ def _build_co2(
     )
     # [CON] CO2 emissions from transmission
     _con_net_tech_co2_trans(
-        model, ecs, net_links, net_techs, times, length_unit, mass_unit, power_unit
+        model,
+        ecs,
+        net_links,
+        net_techs,
+        times,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [VAR] Total CO2 emissions from network techs
     setattr(
@@ -806,13 +894,23 @@ def _con_net_trans_sum_minmax(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_trans_sum_min(model, s, h_out, li, e):
         # Get parameters
         link_dir = NetLinkDirection.FORWARD
         if HubId(h_out) == net_links.get_hub_start(NetLinkId(li)):
             link_dir = NetLinkDirection.BACKWARD
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         trans_sum_min = net_links.get_sum_min(
             StageId(s), NetLinkId(li), EcId(e), link_dir
         ).to_float(unit=ec_unit)
@@ -835,7 +933,14 @@ def _con_net_trans_sum_minmax(
         link_dir = NetLinkDirection.FORWARD
         if HubId(h_out) == net_links.get_hub_start(NetLinkId(li)):
             link_dir = NetLinkDirection.BACKWARD
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         trans_sum_max = net_links.get_sum_max(
             StageId(s), NetLinkId(li), EcId(e), link_dir
         ).to_float(unit=ec_unit)
@@ -881,11 +986,21 @@ def _con_net_tech_used(model: Model, system: EnergySystem) -> None:
     times: Times = system.times
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
 
     def __rule_net_tech_used(model, s, li, n):
         # Parameters
         ec = net_techs.get_ec(NetTechId(n))
-        ec_unit = get_ec_model_unit(ecs.get_unit(ec), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(ec),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         # a) bigM by maximal transmission sum
         trans_sum_max = net_links.get_sum_max(
             StageId(s), NetLinkId(li), ec, NetLinkDirection.FORWARD
@@ -936,10 +1051,20 @@ def _con_net_tech_cap_minmax(
     net_techs: NetworkTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_tech_cap_min(model, s, li, e):
         # Parameter
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         cap_min = net_links.get_cap_min(StageId(s), NetLinkId(li), EcId(e)).to_float(
             unit=(ec_unit / TimeUnit.H)
         )
@@ -959,7 +1084,14 @@ def _con_net_tech_cap_minmax(
 
     def __rule_net_tech_cap_max(model, s, li, e):
         # Parameter
-        ec_unit = get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(EcId(e)),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         cap_max = net_links.get_cap_max(StageId(s), NetLinkId(li), EcId(e)).to_float(
             unit=(ec_unit / TimeUnit.H)
         )
@@ -1004,6 +1136,9 @@ def _con_net_tech_cap(
     net_techs: NetworkTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_tech_cap(model, s, li, n):
         # Parameters
@@ -1013,7 +1148,12 @@ def _con_net_tech_cap(
             TimeUnit.A
         )
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(net_techs.get_ec(NetTechId(n))), mass_unit, power_unit
+            ecs.get_unit(net_techs.get_ec(NetTechId(n))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         cap_init = net_techs.get_cap_init(NetLinkId(li), NetTechId(n)).to_float(
             unit=(ec_unit / TimeUnit.H)
@@ -1103,10 +1243,18 @@ def _con_net_tech_unit_cap_min(
     net_techs: NetworkTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_tech_unit_cap_min(model, s, li, n):
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(net_techs.get_ec(NetTechId(n))), mass_unit, power_unit
+            ecs.get_unit(net_techs.get_ec(NetTechId(n))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         unit_cap_min = net_techs.get_unit_cap_min(StageId(s), NetTechId(n)).to_float(
             unit=(ec_unit / TimeUnit.H)
@@ -1132,6 +1280,8 @@ def _con_net_tech_cost_capex(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_tech_cost_capex(model, s, li, n):
         # Parameters
@@ -1140,7 +1290,12 @@ def _con_net_tech_cost_capex(
         interest_rate = net_techs.get_interest_rate(NetTechId(n)).to_float()
         net_tech_lifetime = net_techs.get_lifetime(NetTechId(n)).to_float(TimeUnit.A)
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(net_techs.get_ec(NetTechId(n))), mass_unit, power_unit
+            ecs.get_unit(net_techs.get_ec(NetTechId(n))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         crf = calculate_crf(interest_rate, net_tech_lifetime)
         cost_capex = 0
@@ -1192,11 +1347,18 @@ def _con_net_tech_cost_opex_cap(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_tech_cost_opex_cap(model, s, li, n):
         # Parameters
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(net_techs.get_ec(NetTechId(n))), mass_unit, power_unit
+            ecs.get_unit(net_techs.get_ec(NetTechId(n))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         link_length = net_links.get_length(NetLinkId(li)).to_float(unit=length_unit)
         opex_per_cap = net_techs.get_opex_per_cap(StageId(s), NetTechId(n)).to_float(
@@ -1234,12 +1396,19 @@ def _con_net_tech_cost_opex_trans(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_tech_cost_opex_trans(model, s, li, n):
         # Parameters
         link_length = net_links.get_length(NetLinkId(li)).to_float(unit=length_unit)
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(net_techs.get_ec(NetTechId(n))), mass_unit, power_unit
+            ecs.get_unit(net_techs.get_ec(NetTechId(n))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         opex_per_energy = net_techs.get_opex_per_energy(
             StageId(s), NetTechId(n)
@@ -1292,12 +1461,19 @@ def _con_net_tech_co2_instl(
     length_unit,
     mass_unit,
     power_unit,
+    passenger_unit,
+    freight_unit,
 ) -> None:
     def __rule_net_tech_co2_instl(model, s, li, n):
         # Parameters
         link_length = net_links.get_length(NetLinkId(li)).to_float(unit=length_unit)
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(net_techs.get_ec(NetTechId(n))), mass_unit, power_unit
+            ecs.get_unit(net_techs.get_ec(NetTechId(n))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         current_year = stages.get_start_year(StageId(s))
         net_tech_lifetime = net_techs.get_lifetime(NetTechId(n)).to_float(TimeUnit.A)
@@ -1340,12 +1516,19 @@ def _con_net_tech_co2_trans(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_net_tech_co2_trans(model, s, li, n):
         # Parameters
         link_length = net_links.get_length(NetLinkId(li)).to_float(unit=length_unit)
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(net_techs.get_ec(NetTechId(n))), mass_unit, power_unit
+            ecs.get_unit(net_techs.get_ec(NetTechId(n))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         co2_per_energy = net_techs.get_co2_per_energy(
             StageId(s), NetTechId(n)

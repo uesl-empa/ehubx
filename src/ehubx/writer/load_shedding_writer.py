@@ -103,6 +103,9 @@ def _format_tuple(
         energy_system.ecs.get_unit(e),
         energy_system.mass_unit,
         energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
     # max_abs
     max_abs = energy_system.load_shedding.get_max_abs(s, h, e)
@@ -265,6 +268,9 @@ def write_data_time_series(energy_system: EnergySystem, dir_path: str) -> None:
             energy_system.ecs.get_unit(EcId(ids[1])),
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.length_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         if kind == TimeSeriesKind.LOADSHEDMAXABS:
             unit = ec_unit / TimeUnit.H

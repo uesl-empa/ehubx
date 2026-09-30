@@ -20,7 +20,15 @@ from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.time_data import TimeId
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model import (
     ates_tech_model,
     autonomy_model,
@@ -178,6 +186,9 @@ def _build_self(model: Model, energy_system: EnergySystem) -> None:
         energy_system.demands,
         energy_system.mass_unit,
         energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
     # [CON] Energy balance
     _con_energy_balance(model)
@@ -245,10 +256,22 @@ def _build_self_demand_supply_profile(
     demands: Demands,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # [CON] Define demand supply for tuples with demand-profiles by respecting
     #       load shedding and load shifting
-    _con_demand_supply_profile(model, ecs, demands, mass_unit, power_unit)
+    _con_demand_supply_profile(
+        model,
+        ecs,
+        demands,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
 
 
 def _con_system_cost_co2_penalty(
@@ -446,10 +469,20 @@ def _con_demand_supply_profile(
     demands: Demands,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_demand_supply_profile(model, s, h, e, t):
         unit = (
-            ec_model.get_ec_model_unit(ecs.get_unit(EcId(e)), mass_unit, power_unit)
+            ec_model.get_ec_model_unit(
+                ecs.get_unit(EcId(e)),
+                mass_unit,
+                power_unit,
+                length_unit,
+                passenger_unit,
+                freight_unit,
+            )
             / TimeUnit.H
         )
         demand_supply = (

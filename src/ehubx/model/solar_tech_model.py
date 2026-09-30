@@ -14,7 +14,14 @@ from ehubx.data.solar_tech_data import SolarTechs
 from ehubx.data.stage_data import StageId
 from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.time_data import TimeId
-from ehubx.data.unit import LengthUnit, MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.conv_tech_model import (
     CON_CONVTECHCAPANDAVAILABILITY,
     SET_CONVTECHTUPLE,
@@ -87,6 +94,8 @@ def build(model: Model, system: EnergySystem) -> None:
     length_unit: LengthUnit = system.length_unit
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     # Start measuring build time
     start = datetime.now()
     # [SET] Solar tech tuples
@@ -118,7 +127,15 @@ def build(model: Model, system: EnergySystem) -> None:
     _con_replace_y_tech_instl(model, techs, conv_techs, solar_data, length_unit)
     # [CON] Solar incident
     _con_solar_tech_incident(
-        model, ecs, conv_techs, solar_data, length_unit, mass_unit, power_unit
+        model,
+        ecs,
+        conv_techs,
+        solar_data,
+        length_unit,
+        mass_unit,
+        power_unit,
+        passenger_unit,
+        freight_unit,
     )
     # [CON] Conversion input to solar tech is bound above by solar incident and
     #       tech availability
@@ -195,11 +212,20 @@ def _con_solar_tech_incident(
     length_unit: LengthUnit,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_solarar_tech_incident(model, s, h, x, t):
         # Get parameters
         e_solar = conv_techs.get_in_ec_main(TechId(x))
-        ec_unit = get_ec_model_unit(ecs.get_unit(e_solar), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(e_solar),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         solar_irradiation = (
             solar_data.get_irradiation(StageId(s), e_solar)
             .get_value(TimeId(t))

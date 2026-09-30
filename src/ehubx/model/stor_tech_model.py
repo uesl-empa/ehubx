@@ -12,7 +12,14 @@ from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.stor_tech_data import StorageTechs
 from ehubx.data.tech_data import TechId, Techs
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import CurrencyUnit, MassUnit, PowerUnit
+from ehubx.data.unit import (
+    CurrencyUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+)
 from ehubx.model.ec_model import get_ec_model_unit
 from ehubx.model.tech_model import (
     SET_TECH,
@@ -133,9 +140,6 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     techs: Techs = system.techs
     stor_techs: StorageTechs = system.stor_techs
     times: Times = system.times
-    ecs: Ecs = system.ecs
-    mass_unit: MassUnit = system.mass_unit
-    power_unit: PowerUnit = system.power_unit
     # [SET] Storage techs
     setattr(
         model,
@@ -239,7 +243,7 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     # the charging dynamic at the last horizon timestep
     _con_stor_tech_energy_final(model, stor_techs)
     # [CON] Per-tuple fill cost
-    _con_stor_tech_fill_cost(model, stor_techs, ecs, mass_unit, power_unit)
+    _con_stor_tech_fill_cost(model, system)
     # [CON] Total fill cost
     _con_stor_tech_fill_cost_total(model)
 
@@ -292,11 +296,21 @@ def _con_stor_tech_used(model: Model, system: EnergySystem) -> None:
     times: Times = system.times
     mass_unit: MassUnit = system.mass_unit
     power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
 
     def __rule_stor_tech_used(model, s, h, x):
         # Get parameters
         ec = stor_techs.get_ec(TechId(x))
-        ec_unit = get_ec_model_unit(ecs.get_unit(ec), mass_unit, power_unit)
+        ec_unit = get_ec_model_unit(
+            ecs.get_unit(ec),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         # a) bigM by tech capacity and charge_max, discharge_max
         var_cap = getattr(model, VAR_TECHCAP)[s, h, x]
         cap_max = var_cap.ub
@@ -519,9 +533,14 @@ def _con_stor_tech_fill_cost_total(model: Model) -> None:
     setattr(model, CON_STORTECHFILLCOSTTOTAL, Constraint(rule=__rule_fill_cost_total))
 
 
-def _con_stor_tech_fill_cost(
-    model: Model, stor_techs: StorageTechs, ecs: Ecs, mass_unit, power_unit
-) -> None:
+def _con_stor_tech_fill_cost(model: Model, system: EnergySystem) -> None:
+    ecs: Ecs = system.ecs
+    stor_techs: StorageTechs = system.stor_techs
+    mass_unit: MassUnit = system.mass_unit
+    power_unit: PowerUnit = system.power_unit
+    length_unit: LengthUnit = system.length_unit
+    passenger_unit: PassengerUnit = system.passenger_unit
+    freight_unit: FreightUnit = system.freight_unit
     t_hor_0 = getattr(model, SET_TIMEHORIZON).first()
 
     def __rule_fill_cost(m, s, h, x):
@@ -529,7 +548,14 @@ def _con_stor_tech_fill_cost(
             return getattr(m, VAR_STORTECHFILLCOST)[s, h, x] == 0
         price_val = stor_techs.get_fill_price(HubId(h), TechId(x))
         ec_id = stor_techs.get_ec(TechId(x))
-        unit_energy = get_ec_model_unit(ecs.get_unit(ec_id), mass_unit, power_unit)
+        unit_energy = get_ec_model_unit(
+            ecs.get_unit(ec_id),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
+        )
         price = price_val.to_float(unit=CurrencyUnit.CHF / unit_energy)
         return (
             getattr(m, VAR_STORTECHFILLCOST)[s, h, x]

@@ -180,7 +180,7 @@ def test_parse_ec_with_invalid_unit_raises_exception(tmp_path):
     """Test that invalid unit raises InvalidValueException"""
     yaml_content = """ecs:
   - ec_id: E0
-    unit: m  # Invalid - not mass or energy
+    unit: K  # Invalid - not mass, energy, length, passenger, or freight
 """
     _write_yaml(tmp_path, "ecs.yaml", yaml_content)
 
@@ -188,7 +188,10 @@ def test_parse_ec_with_invalid_unit_raises_exception(tmp_path):
         ec_parser.parse(str(tmp_path))
 
     assert "Invalid unit" in str(exc_info.value)
-    assert "Only mass units or energy units are allowed" in str(exc_info.value)
+    assert (
+        "Only mass units, energy units, length units, passenger units, or "
+        "freight units are allowed" in str(exc_info.value)
+    )
 
 
 def test_parse_ec_with_is_energy_true(tmp_path):

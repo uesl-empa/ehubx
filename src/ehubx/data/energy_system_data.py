@@ -40,8 +40,10 @@ from ehubx.data.time_series import TimeSeries
 from ehubx.data.unit import (
     CurrencyUnit,
     DimlessUnit,
+    FreightUnit,
     LengthUnit,
     MassUnit,
+    PassengerUnit,
     PowerUnit,
     TimeUnit,
 )
@@ -103,6 +105,8 @@ class EnergySystem:
         self._length_unit: LengthUnit = LengthUnit.M
         self._mass_unit: MassUnit = MassUnit.KG
         self._power_unit: PowerUnit = PowerUnit.KW
+        self._passenger_unit: PassengerUnit = PassengerUnit.PKM
+        self._freight_unit: FreightUnit = FreightUnit.TKM
         self._time_unit: TimeUnit = TimeUnit.H
         self._demand_file_paths: Set[str] = set()
         self._heur_limit_max_in_sh: Dict[Tuple[StageId, HubId, EcId], Value] = {}
@@ -262,6 +266,33 @@ class EnergySystem:
     def power_unit(self, power_unit: PowerUnit) -> None:
         self._power_unit = power_unit
 
+    # ------------------------- #
+    # Property: passenger_unit #
+    # ------------------------- #
+    @property
+    def passenger_unit(self) -> PassengerUnit:
+        """Passenger-transport unit used in the system for ecs measuring
+        passenger-kilometers. This is an optional parameter which defaults to
+        pkm."""
+        return self._passenger_unit
+
+    @passenger_unit.setter
+    def passenger_unit(self, passenger_unit: PassengerUnit) -> None:
+        self._passenger_unit = passenger_unit
+
+    # ----------------------- #
+    # Property: freight_unit #
+    # ----------------------- #
+    @property
+    def freight_unit(self) -> FreightUnit:
+        """Freight-transport unit used in the system for ecs measuring
+        tonne-kilometers. This is an optional parameter which defaults to
+        tkm."""
+        return self._freight_unit
+
+    @freight_unit.setter
+    def freight_unit(self, freight_unit: FreightUnit) -> None:
+        self._freight_unit = freight_unit
     # -------------------- #
     # Property: time_unit #
     # -------------------- #

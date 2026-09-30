@@ -6,7 +6,7 @@ from ehubx.data.unit import (
     PowerUnit,
     TimeUnit,
     MassUnit,
-    LengthUnit,
+    TemperatureUnit,
     Unit,
 )
 from ehubx.data.value import Value
@@ -69,7 +69,7 @@ def test_set_and_get_unit_and_invalid_unit():
 
     # Completely unrelated unit also raises
     with pytest.raises(exceptions.UnitException):
-        ecs.set_unit(e, LengthUnit.M)
+        ecs.set_unit(e, TemperatureUnit.K)
 
 
 def test_imp_exp_and_is_energy_behaviour_and_keys():

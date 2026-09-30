@@ -12,7 +12,15 @@ from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.tech_data import TechId
 from ehubx.data.time_data import TimeId, Times
-from ehubx.data.unit import DimlessUnit, MassUnit, PowerUnit, TimeUnit
+from ehubx.data.unit import (
+    DimlessUnit,
+    FreightUnit,
+    LengthUnit,
+    MassUnit,
+    PassengerUnit,
+    PowerUnit,
+    TimeUnit,
+)
 from ehubx.model.ec_model import get_ec_model_unit
 from ehubx.model.tech_model import (
     SET_TECH,
@@ -106,6 +114,9 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     times = system.times
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    length_unit = system.length_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
     # [SET] EBM techs
     setattr(
         model,
@@ -126,7 +137,16 @@ def _build_base(model: Model, system: EnergySystem) -> None:
         ),
     )
     # [CON] Fix tech capacity to storage capacity of entire fleet
-    _con_ebm_tech_cap(model, ecs, ebm_techs, mass_unit, power_unit)
+    _con_ebm_tech_cap(
+        model,
+        ecs,
+        ebm_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [PAR] Stored ec
     setattr(
         model,
@@ -158,9 +178,28 @@ def _build_base(model: Model, system: EnergySystem) -> None:
         ),
     )
     # [CON] Respect maximal inflow and outflow (based on capacity)
-    _con_ebm_tech_inoutflow_max(model, ecs, ebm_techs, mass_unit, power_unit)
+    _con_ebm_tech_inoutflow_max(
+        model,
+        ecs,
+        ebm_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [CON] Tech usage (monitored over summed-up sum of inflow and outflow)
-    _con_ebm_tech_used(model, ecs, ebm_techs, times, mass_unit, power_unit)
+    _con_ebm_tech_used(
+        model,
+        ecs,
+        ebm_techs,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [VAR] EBM tech stored energy
     setattr(
         model,
@@ -175,14 +214,43 @@ def _build_base(model: Model, system: EnergySystem) -> None:
     #       to the next based on flow, standby loss and consumption. A cyclical
     #       SOC approach is used so that the flow at the last horizon_ts
     #       charges the first horizon_ts
-    _con_ebm_tech_charging_dynamic(model, ecs, ebm_techs, times, mass_unit, power_unit)
+    _con_ebm_tech_charging_dynamic(
+        model,
+        ecs,
+        ebm_techs,
+        times,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [CON] Respect minimal and maximal EBM storage energy levels
-    _con_ebm_tech_energy_minmax(model, ecs, ebm_techs, mass_unit, power_unit)
+    _con_ebm_tech_energy_minmax(
+        model,
+        ecs,
+        ebm_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
     # [CON] Initial energy. Constraint depends on initial SOC value in data
     #       model. For inf, the first energy value of the first stage can be
     #       chosen by the optimizer. Otherwise, energy is set in all stages by
     #       the initial SOC value
-    _con_ebm_tech_energy_init(model, stages, ecs, ebm_techs, mass_unit, power_unit)
+    _con_ebm_tech_energy_init(
+        model,
+        stages,
+        ecs,
+        ebm_techs,
+        mass_unit,
+        power_unit,
+        length_unit,
+        passenger_unit,
+        freight_unit,
+    )
 
 
 def _con_ebm_tech_cap(
@@ -191,11 +259,19 @@ def _con_ebm_tech_cap(
     ebm_techs: EbmTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_ebm_tech_cap(model, s, h, x):
         # Get parameters
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         storage_cap = ebm_techs.get_storage_cap(StageId(s), TechId(x)).to_float(
             unit=ec_unit
@@ -219,6 +295,9 @@ def _con_ebm_tech_inoutflow_max(
     ebm_techs: EbmTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # Time series
     availability = {
@@ -229,7 +308,12 @@ def _con_ebm_tech_inoutflow_max(
     def __rule_ebm_tech_inflow_max(model, s, h, x, t):
         # Get parameters
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         charge_max = ebm_techs.get_charge_max(StageId(s), TechId(x)).to_float(
             unit=(ec_unit / TimeUnit.H)
@@ -248,7 +332,12 @@ def _con_ebm_tech_inoutflow_max(
     def __rule_ebm_tech_outflow_max(model, s, h, x, t):
         # Get parameters
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         discharge_max = ebm_techs.get_discharge_max(StageId(s), TechId(x)).to_float(
             unit=(ec_unit / TimeUnit.H)
@@ -296,6 +385,9 @@ def _con_ebm_tech_used(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # Get length of full time horizon
     num_horizon_ts = times.num_horizon_ts
@@ -304,7 +396,12 @@ def _con_ebm_tech_used(
         # Get parameters
         num_vehicles = ebm_techs.get_num_vehicles(StageId(s), HubId(h), TechId(x))
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         charge_max = ebm_techs.get_charge_max(StageId(s), TechId(x)).to_float(
             unit=(ec_unit / TimeUnit.H)
@@ -346,6 +443,9 @@ def _con_ebm_tech_charging_dynamic(
     times: Times,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # Get first and last full-horizon timesteps
     t_hor_first = getattr(model, SET_TIMEHORIZON).first()
@@ -365,7 +465,12 @@ def _con_ebm_tech_charging_dynamic(
             unit=(DimlessUnit() / TimeUnit.H)
         )
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         consumption_t = (
             consumption[s, h, x]
@@ -407,12 +512,20 @@ def _con_ebm_tech_energy_minmax(
     ebm_techs: EbmTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     def __rule_ebm_tech_energy_min(model, s, h, x, t):
         # Get parameters
         soc_min = ebm_techs.get_soc_min(StageId(s), TechId(x)).to_float()
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         storage_cap = ebm_techs.get_storage_cap(StageId(s), TechId(x)).to_float(
             unit=ec_unit
@@ -427,7 +540,12 @@ def _con_ebm_tech_energy_minmax(
         # Get parameters
         soc_max = ebm_techs.get_soc_max(StageId(s), TechId(x)).to_float()
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         storage_cap = ebm_techs.get_storage_cap(StageId(s), TechId(x)).to_float(
             unit=ec_unit
@@ -465,6 +583,9 @@ def _con_ebm_tech_energy_init(
     ebm_techs: EbmTechs,
     mass_unit: MassUnit,
     power_unit: PowerUnit,
+    length_unit: LengthUnit,
+    passenger_unit: PassengerUnit,
+    freight_unit: FreightUnit,
 ) -> None:
     # Get initial stage and first full-horizon timestep
     s_0 = stages.init_stage
@@ -475,7 +596,12 @@ def _con_ebm_tech_energy_init(
         soc_init = ebm_techs.get_soc_init(HubId(h), TechId(x)).to_float()
         num_vehicles = ebm_techs.get_num_vehicles(StageId(s), HubId(h), TechId(x))
         ec_unit = get_ec_model_unit(
-            ecs.get_unit(ebm_techs.get_ec(TechId(x))), mass_unit, power_unit
+            ecs.get_unit(ebm_techs.get_ec(TechId(x))),
+            mass_unit,
+            power_unit,
+            length_unit,
+            passenger_unit,
+            freight_unit,
         )
         storage_cap = ebm_techs.get_storage_cap(StageId(s), TechId(x)).to_float(
             unit=ec_unit

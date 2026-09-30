@@ -67,6 +67,9 @@ def format_all(
                 energy_system.ecs.get_unit(e),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             irradiation = energy_system.solar_data.get_irradiation(s, e)
             irradiation_unit = ec_unit / (TimeUnit.H * (energy_system.length_unit**2))
@@ -156,6 +159,9 @@ def _format_tech(
                 energy_system.ecs.get_unit(e_solar),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             incident_unit = ec_unit / TimeUnit.H
             for t in energy_system.times.ids:
@@ -208,6 +214,9 @@ def write_data_time_series(energy_system: EnergySystem, dir_path: str) -> None:
             energy_system.ecs.get_unit(EcId(ids[0])),
             energy_system.mass_unit,
             energy_system.power_unit,
+            energy_system.length_unit,
+            energy_system.passenger_unit,
+            energy_system.freight_unit,
         )
         if kind == TimeSeriesKind.SOLARIRRAD:
             unit = ec_unit / (TimeUnit.H * (energy_system.length_unit**2))

@@ -137,6 +137,9 @@ def _format_tech(
                 energy_system.ecs.get_unit(e),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             df_st_builder.add_row(
                 ENTRY_INPART,
@@ -155,6 +158,9 @@ def _format_tech(
         energy_system.ecs.get_unit(out_ec_main),
         energy_system.mass_unit,
         energy_system.power_unit,
+        energy_system.length_unit,
+        energy_system.passenger_unit,
+        energy_system.freight_unit,
     )
     df_st_builder.add_row(
         ENTRY_OUTECMAIN,
@@ -176,11 +182,17 @@ def _format_tech(
                 energy_system.ecs.get_unit(e),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             in_ec_main_unit = ec_model.get_ec_model_unit(
                 energy_system.ecs.get_unit(in_ec_main),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             out_eff_unit = out_ec_unit / in_ec_main_unit
             if out_eff.has_values:
@@ -223,6 +235,9 @@ def _format_tech(
                 energy_system.ecs.get_unit(out_ec_main),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             df_st_builder.add_row(
                 ENTRY_OUTSUMMIN,
@@ -247,6 +262,9 @@ def _format_tech(
                 energy_system.ecs.get_unit(out_ec_main),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             df_st_builder.add_row(
                 ENTRY_OUTSUMMAX,
@@ -327,6 +345,9 @@ def _format_tech(
                         energy_system.ecs.get_unit(e),
                         energy_system.mass_unit,
                         energy_system.power_unit,
+                        energy_system.length_unit,
+                        energy_system.passenger_unit,
+                        energy_system.freight_unit,
                     )
                     / TimeUnit.H
                 )
@@ -371,6 +392,9 @@ def _format_tech(
                         energy_system.ecs.get_unit(e),
                         energy_system.mass_unit,
                         energy_system.power_unit,
+                        energy_system.length_unit,
+                        energy_system.passenger_unit,
+                        energy_system.freight_unit,
                     )
                     / TimeUnit.H
                 )
@@ -459,11 +483,17 @@ def write_data_time_series(energy_system: EnergySystem, dir_path: str) -> None:
                 energy_system.ecs.get_unit(e_out),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             unit_e_in_main = ec_model.get_ec_model_unit(
                 energy_system.ecs.get_unit(e_in_main),
                 energy_system.mass_unit,
                 energy_system.power_unit,
+                energy_system.length_unit,
+                energy_system.passenger_unit,
+                energy_system.freight_unit,
             )
             unit = unit_e_out / unit_e_in_main
             data[stage.key, "", ids[1], ids[0], YAMLKEY_OUTEFF, str(unit)] = [

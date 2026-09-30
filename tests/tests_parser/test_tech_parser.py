@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ehubx.data import exceptions as data_exceptions
+from ehubx.data.conv_tech_data import ConversionTechs
 from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
 from ehubx.data.tech_data import ExceptionKey as TechExcKey
@@ -334,6 +335,7 @@ def test_parse_emissions_sets_co2_per_cap():
     tech_id = TechId("t1")
     techs.add_id(tech_id)
     techs.set_cap_unit(tech_id, DimlessUnit())
+    conv_techs = MagicMock(spec=ConversionTechs)
 
     stage_id = StageId("S1")
     emissions_node = MagicMock(spec=yaml_parser.YamlDictNode)
@@ -347,7 +349,7 @@ def test_parse_emissions_sets_co2_per_cap():
             return_value={stage_id: Value(4, MassUnit.KG / DimlessUnit())},
         ),
     ):
-        tech_parser._parse_emissions(tech_node, tech_id, MagicMock(), techs)
+        tech_parser._parse_emissions(tech_node, conv_techs, tech_id, MagicMock(), techs)
 
     assert techs.get_co2_per_cap(stage_id, tech_id).to_float(
         MassUnit.KG / DimlessUnit()
@@ -426,7 +428,7 @@ def test_parse_primary_calls_parse_and_log():
         patch("ehubx.parser.tech_parser._parse_coupled_techs") as mock_coupled,
         patch("ehubx.parser.tech_parser._log") as mock_log,
     ):
-        tech_parser.parse_primary(root, Techs(), MagicMock(), MagicMock())
+        tech_parser.parse_primary(root, Techs(), MagicMock(), MagicMock(), MagicMock())
 
     mock_parse.assert_called_once()
     mock_coupled.assert_called_once()
