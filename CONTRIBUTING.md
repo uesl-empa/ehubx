@@ -67,7 +67,7 @@ branch. Nobody changes `main` directly.
 
 | # | Step | Who | What it involves |
 |---|---|---|---|
-| 1 | **Raise an issue** | Anyone, often a model user | Describe the bug or the feature on GitHub. For anything larger than a small fix, discuss it before starting, so nobody works in parallel on the same thing. A model user's part usually ends here, apart from answering questions on the issue. |
+| 1 | **Raise an issue** | Anyone, often a model user | Describe the bug or the feature on GitHub ([how](#how-to-create-an-issue)). For anything larger than a small fix, discuss it before starting, so nobody works in parallel on the same thing. A model user's part usually ends here, apart from answering questions on the issue. |
 | 2 | **Create a working branch** | Contributor | A private copy of the code to work in, named after the issue. See [B2](#b2-day-to-day-git-commands) and [B3](#b3-branch-naming). |
 | 3 | **Make the change** | Contributor | Include tests for new functionality, and update the documentation if users will notice the change. Keep unrelated changes apart. |
 | 4 | **Check it locally** | Contributor | Run the automatic checks on your own machine before asking anyone to look. See [B4](#b4-running-the-checks). |
@@ -112,6 +112,12 @@ changes, and the pull request must say so:
 If you are unsure whether a change affects results, assume it does and mention
 it. A reviewer would much rather read one unnecessary paragraph than discover it
 after a paper is submitted.
+
+> **Note:** for a change that affects results, the maintainers should work with
+> the contributor to develop a test that shows the code is correct. The test
+> becomes part of the automatic checks that run on every pull request, in the
+> [GitHub CI pipeline](https://github.com/uesl-empa/ehubx/actions/workflows/ci.yml)
+> (how to run them locally: [B4](#b4-running-the-checks)).
 
 ## A6. Sensitive or restricted work
 
@@ -182,6 +188,21 @@ For model users, issues are the main way to take part. Open one when:
 - a feature you need is missing
 
 You need a free GitHub account, and nothing else.
+
+### How to create an issue
+
+1. Go to the [Issues tab](https://github.com/uesl-empa/ehubx/issues) and click
+   **New issue**. (For a general question rather than a bug or a request, use
+   [GitHub Discussions](https://github.com/uesl-empa/ehubx/discussions).)
+2. Give it a short, specific **title** (for example "Opex per energy is wrong
+   for the main carrier") and describe the problem or request. For a bug,
+   include what a good bug report needs (below).
+3. Click **Submit new issue**. GitHub assigns it a number, such as `#123`.
+
+**There is no branch to create for an issue.** A branch is only needed if
+someone will change the code to fix it. That person creates the branch
+afterwards and names it after the issue number, `issue<number>_<short-description>`,
+for example `issue123_fix-opex-main-carrier`. See [B3](#b3-branch-naming).
 
 Other ways to contribute:
 
