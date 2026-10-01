@@ -1,7 +1,8 @@
 # Contributing to ehubX
 
 > **Version note:** This is the revised version of the document, updated after
-> the internal UESL/Empa team meeting on **2026-09-30**.
+> the internal UESL/Empa team meeting on **2026-09-30**, and reviewed by the
+> repository admin on **2026-10-01**.
 
 Thank you for your interest in contributing to ehubX!
 
@@ -12,10 +13,6 @@ This document has two parts:
   follow it.
 - **[Part B — Technical reference](#part-b--technical-reference)** gives the
   commands and set-up details for each step. Part A links to the right place.
-
-> **Draft status.** Items marked **[decide]** need a decision from the UESL/Empa
-> team before they mean anything. Everything else describes how the repository
-> is actually configured today.
 
 ---
 
@@ -40,8 +37,9 @@ problems is a real contribution.
 |---|---|---|
 | **Model user** | Anyone who runs ehubX for their work | Reporting bugs, unclear documentation and unexpected results as issues; suggesting features. No code changes, no git needed. See [A9](#a9-reporting-problems-and-other-ways-to-contribute). |
 | **Contributor** | Anyone making a change to the code or documentation | Doing the work, opening the pull request, responding to review |
-| **Reviewer** | A team member other than the contributor | Checking the change is correct and that its effect on results is understood; approving or requesting changes |
-| **Maintainer** | **[decide]** — named people in the UESL/Empa team | Granting write access, merging **[decide]**, publishing releases, deciding where sensitive work is hosted |
+| **Reviewer** | All contributors: every contributor also reviews, but never their own change | Checking the change is correct and that its effect on results is understood; approving or requesting changes |
+| **Maintainer** | Barton ([@BartonChenTW](https://github.com/BartonChenTW)); second maintainer [tbd] | Deciding who gets write access, merging (alongside contributors, after approval), publishing releases, deciding where sensitive work is hosted |
+| **Admin** | Robin ([@RobinMutschlerEMPA](https://github.com/RobinMutschlerEMPA)), Binod | Administering the GitHub repository: carrying out access changes, branch protection and required checks, CI settings, and repository secrets (such as the PyPI publishing credentials) |
 
 ## A3. The workflow, step by step
 
@@ -75,9 +73,9 @@ branch. Nobody changes `main` directly.
 | 3 | **Make the change** | Contributor | Include tests for new functionality, and update the documentation if users will notice the change. Keep unrelated changes apart. |
 | 4 | **Check it locally** | Contributor | Run the automatic checks on your own machine before asking anyone to look. See [B4](#b4-running-the-checks). |
 | 5 | **Open a pull request** | Contributor | Explain *why* the change is needed, link the issue, and **state whether it changes model results** (see [A5](#a5-changes-that-affect-results)). |
-| 6 | **Review** | Reviewer | At least one approving review is needed. **[decide]** — number of approvals, and whether this is enforced automatically. |
+| 6 | **Review** | Reviewer | At least one approving review is needed. |
 | 7 | **Respond to review** | Contributor | Make the requested changes. The pull request updates itself, and the automatic checks run again. |
-| 8 | **Merge** | **[decide]** — contributor after approval, or maintainer | The change enters `main`. **[decide]** — squash policy; see [B6](#b6-merging). |
+| 8 | **Merge** | Contributor after approval, or maintainer | The change enters `main`. About squash policy, see [B6](#b6-merging). |
 | 9 | **Release** | Maintainer | Bundling merged changes into a new published version. See [A7](#a7-versions-and-releases). |
 
 ## A4. Internal or external contributor?
@@ -93,9 +91,25 @@ Both end with a pull request into `main`; the route differs.
   fork you **cannot assign reviewers** — mention someone by `@name` in a
   comment instead.
 
+### Branch or fork: which should I use?
+
+| | **Branch** (inside the main repository) | **Fork** (your own copy) |
+|---|---|---|
+| **Who can use it** | People with write access (UESL/Empa team) | Anyone with a GitHub account |
+| **Where your work lives** | In `uesl-empa/ehubx`, visible to the whole team | In your own account, separate from the project |
+| **Assigning reviewers** | Yes | No — mention someone by `@name` in a comment |
+| **Colleagues fixing your work** | They can push to your branch during review | They can only do so if you allow it |
+| **Automatic checks** | Run with the repository's settings | Run, but without access to repository settings |
+| **Keeping up to date** | Always based on the current repository | You must sync your fork with `main` yourself |
+| **Pull request goes** | From your branch to `main` | From `your-username/ehubx` to `uesl-empa/ehubx:main` |
+
+**Rule of thumb:** if you can push to `uesl-empa/ehubx`, use a branch. Use a
+fork only if you cannot.
+
 **Not sure which you are?** If you can push a branch to `uesl-empa/ehubx`, you
 are internal. If you are refused, you are external. Team members who expect
-write access but do not have it should ask a maintainer.
+write access but do not have it should ask a maintainer (Barton); an admin
+(Robin or Binod) then applies the change on GitHub.
 
 Commands for both routes: [B2](#b2-day-to-day-git-commands).
 
@@ -379,10 +393,10 @@ Separate unrelated changes into separate commits, even within one pull request.
 This matters more than it sounds: it is what lets a behaviour change be
 reverted later without unpicking everything around it.
 
-**[decide]** — whether to adopt conventional commit prefixes (`feat:`, `fix:`,
-`docs:`, `refactor:`, `test:`, `chore:`). No commit in the repository currently
-uses them, so this would be a new convention rather than a description of
-existing practice.
+Conventional commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`,
+`chore:`) are **encouraged but not required**. They make the history easier to
+scan, but no commit is rejected for lacking one. Earlier commits in the
+repository do not use them, so there is no need to rewrite history.
 
 ### Code style
 
@@ -402,9 +416,9 @@ rows rather than columns.
 
 ## B6. Merging
 
-**[decide]** — squash policy. If a pull request has deliberately separated
-commits, say so in the description and ask not to squash; otherwise
-squash-merge keeps `main` tidy.
+**Squash policy.** If a pull request has deliberately separated commits, say so
+in the description and ask not to squash; otherwise squash-merge keeps `main`
+tidy.
 
 **Branches built on other branches.** If your branch started from another
 feature branch rather than `main`, and that other branch was later
