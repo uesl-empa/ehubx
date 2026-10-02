@@ -2,7 +2,7 @@
 
 > **Version note:** This is the revised version of the document, updated after
 > the internal UESL/Empa team meeting on **2026-09-30**, and reviewed by the
-> repository admin on **2026-10-01**.
+> repository admin (Robin) on **2026-10-01**.
 
 Thank you for your interest in contributing to ehubX!
 
@@ -37,8 +37,8 @@ problems is a real contribution.
 |---|---|---|
 | **Model user** | Anyone who runs ehubX for their work | Reporting bugs, unclear documentation and unexpected results as issues; suggesting features. No code changes, no git needed. See [A9](#a9-reporting-problems-and-other-ways-to-contribute). |
 | **Contributor** | Anyone making a change to the code or documentation | Doing the work, opening the pull request, responding to review |
-| **Reviewer** | All contributors: every contributor also reviews, but never their own change | Checking the change is correct and that its effect on results is understood; approving or requesting changes |
-| **Maintainer** | Barton ([@BartonChenTW](https://github.com/BartonChenTW)); second maintainer [tbd] | Deciding who gets write access, merging (alongside contributors, after approval), publishing releases, deciding where sensitive work is hosted |
+| **Reviewer** | All internal contributors: every internal contributor also reviews, but never their own change | Checking the change is correct and that its effect on results is understood; approving or requesting changes |
+| **Maintainer** | Barton ([@BartonChenTW](https://github.com/BartonChenTW)); second maintainer [tbd] | Deciding who gets write access, finding a suitable reviewer together with the contributor, merging (alongside contributors, after approval), publishing releases, deciding where sensitive work is hosted |
 | **Admin** | Robin ([@RobinMutschlerEMPA](https://github.com/RobinMutschlerEMPA)), Binod | Administering the GitHub repository: carrying out access changes, branch protection and required checks, CI settings, and repository secrets (such as the PyPI publishing credentials) |
 
 ## A3. The workflow, step by step
@@ -69,27 +69,45 @@ branch. Nobody changes `main` directly.
 | # | Step | Who | What it involves |
 |---|---|---|---|
 | 1 | **Raise an issue** | Anyone, often a model user | Describe the bug or the feature on GitHub ([how](#how-to-create-an-issue)). For anything larger than a small fix, discuss it before starting, so nobody works in parallel on the same thing. A model user's part usually ends here, apart from answering questions on the issue. |
-| 2 | **Create a working branch** | Contributor | A private copy of the code to work in, named after the issue. See [B2](#b2-day-to-day-git-commands) and [B3](#b3-branch-naming). |
+| 2 | **Create a working branch** | Contributor | A separate line of work, named after the issue, so `main` stays untouched until the change is merged. See [B2](#b2-day-to-day-git-commands) and [B3](#b3-branch-naming). |
 | 3 | **Make the change** | Contributor | Include tests for new functionality, and update the documentation if users will notice the change. Keep unrelated changes apart. |
-| 4 | **Check it locally** | Contributor | Run the automatic checks on your own machine before asking anyone to look. See [B4](#b4-running-the-checks). |
+| 4 | **Check it locally** | Contributor | Run the automatic checks on your own machine before asking anyone to look. See [B4](#b4-running-the-checks). Optionally, also ask an AI tool to review your changes (see [AI-assisted checks](#ai-assisted-checks)). |
 | 5 | **Open a pull request** | Contributor | Explain *why* the change is needed, link the issue, and **state whether it changes model results** (see [A5](#a5-changes-that-affect-results)). |
-| 6 | **Review** | Reviewer | At least one approving review is needed. |
+| 6 | **Review** | Maintainer and contributor, then the reviewer | A maintainer discusses with the contributor to find a suitable reviewer. At least one approving review is needed. |
 | 7 | **Respond to review** | Contributor | Make the requested changes. The pull request updates itself, and the automatic checks run again. |
 | 8 | **Merge** | Contributor after approval, or maintainer | The change enters `main`. About squash policy, see [B6](#b6-merging). |
 | 9 | **Release** | Maintainer | Bundling merged changes into a new published version. See [A7](#a7-versions-and-releases). |
+
+### AI-assisted checks
+
+Contributors are **encouraged, not required**, to ask an AI tool (for example
+Claude or Codex) to review their changes **before** opening a pull request. It
+is a cheap way to catch style problems, missing tests and obvious bugs, so the
+human reviewer can spend their time on whether the change is right.
+
+- **It does not replace the human review.** An AI tool is not a reviewer in the
+  sense of step 6: its feedback does not count as the required approval, and a
+  person remains responsible for everything in the pull request, including
+  changes the tool suggested.
+- **Mind confidential work.** Do not paste confidential input data, embargoed
+  methods or code under contractual restrictions into an external AI tool. If
+  unsure, ask a maintainer first; see [A6](#a6-sensitive-or-restricted-work).
+- **Results-affecting changes still need a person.** An AI tool can flag
+  candidates, but it cannot confirm the model is correct
+  ([A5](#a5-changes-that-affect-results)).
 
 ## A4. Internal or external contributor?
 
 Both end with a pull request into `main`; the route differs.
 
 - **Internal contributors** (UESL/Empa team, with write access) work on a
-  branch **inside** the main repository. This lets you assign reviewers, lets
-  the automatic checks use repository settings, and lets colleagues push fixes
-  to your branch during review.
+  branch **inside** the main repository, for work meant to go into `main`. This
+  lets you assign reviewers, lets the automatic checks use repository settings,
+  and lets colleagues push fixes to your branch during review.
 - **External contributors** (no write access) work in their own copy of the
   repository, called a **fork**, and open the pull request from there. From a
-  fork you **cannot assign reviewers** — mention someone by `@name` in a
-  comment instead.
+  fork you **cannot assign reviewers** — mention a maintainer by `@name` in a
+  comment instead, and they will find a reviewer with you.
 
 ### Branch or fork: which should I use?
 
@@ -97,14 +115,23 @@ Both end with a pull request into `main`; the route differs.
 |---|---|---|
 | **Who can use it** | People with write access (UESL/Empa team) | Anyone with a GitHub account |
 | **Where your work lives** | In `uesl-empa/ehubx`, visible to the whole team | In your own account, separate from the project |
-| **Assigning reviewers** | Yes | No — mention someone by `@name` in a comment |
+| **Can assign reviewers** | Yes | No — mention a maintainer by `@name` in a comment |
 | **Colleagues fixing your work** | They can push to your branch during review | They can only do so if you allow it |
 | **Automatic checks** | Run with the repository's settings | Run, but without access to repository settings |
 | **Keeping up to date** | Always based on the current repository | You must sync your fork with `main` yourself |
 | **Pull request goes** | From your branch to `main` | From `your-username/ehubx` to `uesl-empa/ehubx:main` |
 
-**Rule of thumb:** if you can push to `uesl-empa/ehubx`, use a branch. Use a
-fork only if you cannot.
+**Rule of thumb:** the core repository is for work that is meant to go into
+`main`. For that, use a branch if you can push to `uesl-empa/ehubx`, and a fork
+if you cannot. **Experiments that change the ehubX code belong in a fork**, even
+if you have write access. Bring the work back as a pull request once it is
+meant for `main`. A project that only *uses* ehubX does not need a fork: install
+the package and keep the project in its own folder or repository (see
+[For model users](#for-model-users)).
+
+**Keeping the core repository tidy.** A branch in `uesl-empa/ehubx` is
+short-lived: it is linked to an issue, and it is deleted after merging. A
+maintainer may ask for a stale branch to be merged, moved to a fork or deleted.
 
 **Not sure which you are?** If you can push a branch to `uesl-empa/ehubx`, you
 are internal. If you are refused, you are external. Team members who expect
@@ -336,12 +363,12 @@ Then open a pull request from your branch to `main` on GitHub.
 git clone https://github.com/your-username/ehubx.git
 cd ehubx
 git remote add upstream https://github.com/uesl-empa/ehubx.git
-git checkout -b short-description
+git checkout -b issue123_short-description
 # ... work, commit ...
-git push -u origin short-description
+git push -u origin issue123_short-description
 ```
 
-Then open a pull request from `your-username/ehubx:short-description` to
+Then open a pull request from `your-username/ehubx:issue123_short-description` to
 `uesl-empa/ehubx:main`. **Check the base repository** — GitHub sometimes
 defaults it to your own fork.
 
