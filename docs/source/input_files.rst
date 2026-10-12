@@ -10,7 +10,7 @@ Please note that in this chapter, we use the following notation conventions rega
 * **[ec_in]**, **[ec_out]** Units of input/output energy carriers
 * **[ec_in_main]**, **[ec_out_main]**: Unit of main input/output energy carriers of conversion technologies
 * **[CAP_sub]**, **[CAP_main]**: Capacity units of sub/main techs for coupled technologies.
-* We will some of the following units in the list below as stand-ins for the basic units, but these can always be changed to other, equivalent units in the inputs (for example, one could use *EUR* instead of *CHF* for currency units, or *s* instead of *h* for time units).
+* We will use some of the following units in the list below as stand-ins for the basic units, but these can always be changed to other, equivalent units in the inputs (for example, one could use *EUR* instead of *CHF* for currency units, or *s* instead of *h* for time units).
     * **CHF**: Swiss Franc, stand-in for currency units
     * **kg**: kilograms, stand-in for mass units
     * **m**: meters, stand-in for length units
@@ -64,10 +64,10 @@ stages.yaml
 * **interest_rate_def** (*mandatory, [-]*): Default interest rate used across the system when no other rate is specified.
 * **trl_threshold** (*optional, default=0, [-]*): Technology readiness level (TRL) threshold value above which technologies can be installed and used.
 * **num_times_horizon** (*mandatory, [-]*): Number of time steps in the time horizon.
-* **self_sufficiency_calculation_method** (*optional, default="none"*): Method how the system's self-sufficiency value should be calculated. Can be "none" (self-sufficiency is not calcualted), "quadratic" (self-sufficiency value is calculated using its quadratic definition), or "linearized" (self-sufficiency value is calculated using a triangulation-based discretization of the expected domain for internal imports and cross-imports).
+* **self_sufficiency_calculation_method** (*optional, default="none"*): Method how the system's self-sufficiency value should be calculated. Can be "none" (self-sufficiency is not calculated), "quadratic" (self-sufficiency value is calculated using its quadratic definition), or "linearized" (self-sufficiency value is calculated using a triangulation-based discretization of the expected domain for internal imports and cross-imports).
 * **self_sufficiency_min** (*optional, [-], default=0*): Minimal value for the overall system self-sufficiency.
 * **self_sufficiency_max** (*optional, [-], default=1*): Maximal value for the overall system self-sufficiency.
-* **curreny_unit** (*optional, default="CHF"*): Unit for currency values in the result files, see :ref:`units <units>`.
+* **currency_unit** (*optional, default="CHF"*): Unit for currency values in the result files, see :ref:`units <units>`.
 * **length_unit** (*optional, default="m"*): Unit for length values in the result files, see :ref:`units <units>`.
 * **mass_unit** (*optional, default="kg"*): Unit for mass values in the result files, see :ref:`units <units>`.
 * **power_unit** (*optional, default="kW"*): Unit for power values in the result files, see :ref:`units <units>`.
@@ -112,7 +112,7 @@ hubs.yaml
 * **allowed_tech_lists** (*optional, default=[]*): List of tech list ids which are allowed for this hub. If a single tech list id (e.g.; *TechList1* above) is passed, this is equivalent to passing a list with this element (i.e., *TechList1*).
 * **techs** (*optional, default=[]*): Identifiable list of techs for which hub-specific parameters are to be defined.
 
-**Hub-speficic technology parameters**:
+**Hub-specific technology parameters**:
 
 * **tech_params** (*optional, default={}*) Dictionary with parameters for the :ref:`tech model <tech_model>`.
 * **age_init** (*optional, default=0, [a]*): Age of preinstalled technology at this hub.
@@ -121,7 +121,7 @@ hubs.yaml
 * **cap_max** (*optional*, *default=* :math:`\infty`, *[CAP], per-year*): Maximal amount of installed capacity at this hub.
 * **last_inst_year** (*optional*, *default=* :math:`\infty`, *[-]*): Last year where installation of this technology is allowed at this hub.
 
-**Hub-speficic storage technology parameters**:
+**Hub-specific storage technology parameters**:
 
 * **storage_params** (*optional, default={}*) Dictionary with parameters for the :ref:`storage model<storage_model>`.
 * **soc_init** (*optional*, *default=* :math:`\infty`, *[-]*): Initial state of charge at the beginning of each stage's time horizon, as a value between 0 and 1, relative to the total installed storage capacity. Alternatively, setting this value to :math:`\infty` lets the optimizer choose it without any restriction. Due to the periodicity constraint (see :ref:`storage model<storage_model>`), the initial state of charge will also be the stage of charge at the end of the time horizon.
@@ -232,8 +232,8 @@ network_links.yaml
 * **start_hub_id** (*mandatory*): Id of start hub.
 * **end_hubs** (*optional, default=[]*): Identifiable list of end hubs for links.
 * **end_hub_id** (*mandatory*): Id of end hub.
-* **links** (*optional, default=[]*): Identifiable list of links connecting the start hub and the end hub.
-* **link_id** (*mandatory*): Id of link.
+* **net_links** (*optional, default=[]*): Identifiable list of links connecting the start hub and the end hub.
+* **net_link_id** (*mandatory*): Id of link.
 * **ecs** (*mandatory*): List of EC ids which can be transported along this link. Needs to contain at least one EC.
 * **length** (*mandatory, [m]*): Length of link.
 * **bidirectional** (*optional, default=False*): Boolean value indicating whether this link is bidirectional. If the value is True, ECs can be transported along this link in both directions. If the value is False, ECs can only be transported from the start hub to the end hub.
@@ -432,7 +432,7 @@ ecs.yaml
 
 **Input EC groups**:
 
-* **in_ec_groups** (*optional, default=[]*): Group of ECs which can be used to define a conversion technology group of the same size. One conversion technology will be created for every member of the EC group, and this technology will have this EC as input. In the above example, the technology with id *X3* has the EC group *EG1* as an input. Since this EC group contains the ECs *E1* and *E2*, ehubX will create two technologies named *X3_E1* and *X3_E2* which have the input ECs *E1* and *E2*, respectively. All other parameters of these technologies are taken from the yaml node of *X3*. For the specification of hub-dependent technology parameters in :ref:`hubs.yaml <hubs_yaml>`, these have be specified for the actual technologies *X3_E1* and *X3_E2*. Adding a block for *X3* there will not have any effect.
+* **in_ec_groups** (*optional, default=[]*): Group of ECs which can be used to define a conversion technology group of the same size. One conversion technology will be created for every member of the EC group, and this technology will have this EC as input. In the above example, the technology with id *X3* has the EC group *EG1* as an input. Since this EC group contains the ECs *E1* and *E2*, ehubX will create two technologies named *X3_E1* and *X3_E2* which have the input ECs *E1* and *E2*, respectively. All other parameters of these technologies are taken from the yaml node of *X3*. For the specification of hub-dependent technology parameters in :ref:`hubs.yaml <hubs_yaml>`, these have to be specified for the actual technologies *X3_E1* and *X3_E2*. Adding a block for *X3* there will not have any effect.
 * **ec_group_id** (*mandatory*): EC group id.
 * **ecs** (*mandatory*): List of EC ids in the EC group. Must have at least one entry.
 
@@ -510,7 +510,7 @@ demands.yaml
 
 **Load shedding parameters**
 
-* **load_shedding** (*optional, default={}*): Dictionary with parameters for the :ref:`load shifting model <loadshedding_model>`.
+* **load_shedding** (*optional, default={}*): Dictionary with parameters for the :ref:`load shedding model <loadshedding_model>`.
 * **stages** (*mandatory*): List of stage ids for this load shedding entry. Can also be a single stage id.
 * **hubs** (*mandatory*): List of hub ids for this load shedding entry. Can also be a single hub id.
 * **ecs** (*mandatory*): List of EC ids for this load shedding entry. Can also be a single EC id.
@@ -591,3 +591,4 @@ This file contains time series for solar irradiation [(ec/h)/m^2] which are requ
 
 * *stage_id*: Stage id.
 * *ec_id*: EC id.
+* *unit*: unit.
