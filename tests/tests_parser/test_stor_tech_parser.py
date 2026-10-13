@@ -271,6 +271,9 @@ def test_parse_tech_secondary_sets_soc_init():
     with patch("ehubx.parser.yaml_parser.check_node_type"), patch(
         "ehubx.parser.yaml_parser.parse_optional_value_from_dict_node",
         return_value=soc_init,
+    ), patch(
+        "ehubx.parser.yaml_parser.parse_optional_bool_from_dict_node",
+        return_value=None,
     ):
         stor_tech_parser._parse_tech_secondary(tech_node, hub_id, tech_id, stor_techs)
 
