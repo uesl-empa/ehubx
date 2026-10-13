@@ -472,7 +472,7 @@ def parse_optional_bool_from_dict_node(
     return value_as_bool
 
 
-def parse_mandatory_bool_from_dict_node(parent_node: YamlNode, value_key: str) -> int:
+def parse_mandatory_bool_from_dict_node(parent_node: YamlNode, value_key: str) -> bool:
     check_node_type(parent_node, YamlNodeKind.DICT)
     value_node = get_mandatory_subnode_from_dict_node(parent_node, value_key)
     check_node_type(value_node, YamlNodeKind.VALUE)
@@ -1141,17 +1141,27 @@ def _transform_yeartovalue_to_stagetovalue(
 def parse_bool_from_value_node(value_node: YamlNode) -> bool:
     check_node_type(value_node, YamlNodeKind.VALUE)
     value = value_node.value
-    try:
-        value_as_bool = bool(value)
-    except ValueError as exc:
-        raise exceptions.InvalidParamTypeException(
-            value_node.file_path,
-            value_node.node_path_as_str,
-            bool,
-            type(value),
-            module=LOG_MODULE_STR,
-        ) from exc
-    return value_as_bool
+    # PyYAML already turns true/false/yes/no/on/off into Python bools
+    if isinstance(value, bool):
+        return value
+    # Also accept the integers 1 and 0
+    if isinstance(value, int) and value in (0, 1):
+        return bool(value)
+    # Also accept quoted strings if unambiguous
+    if isinstance(value, str):
+        value_lower = value.strip().lower()
+        if value_lower in {"true", "yes", "1"}:
+            return True
+        if value_lower in {"false", "no", "0"}:
+            return False
+    # Reject everything else
+    raise exceptions.InvalidParamTypeException(
+        value_node.file_path,
+        value_node.node_path_as_str,
+        bool,
+        type(value),
+        module=LOG_MODULE_STR,
+    )
 
 
 def parse_int_from_value_node(value_node: YamlNode) -> int:

@@ -1,4 +1,5 @@
 import pytest
+import yaml
 
 from ehubx.data.stage_data import StageId, Stages
 from ehubx.data.unit import CurrencyUnit, PowerUnit
@@ -119,6 +120,85 @@ def test_parse_optional_and_mandatory_primitives():
         yaml_parser.parse_mandatory_int_from_dict_node(bad_node, "i")
     with pytest.raises(exceptions.InvalidParamTypeException):
         yaml_parser.parse_mandatory_float_from_dict_node(bad_node, "f")
+
+
+# Raw YAML text of a bool value, as a user would write it in an input file,
+# and the bool it has to be parsed to
+_BOOL_YAML_ACCEPTED = [
+    # Converted to bool by PyYAML already
+    ("true", True),
+    ("True", True),
+    ("TRUE", True),
+    ("yes", True),
+    ("Yes", True),
+    ("on", True),
+    ("false", False),
+    ("False", False),
+    ("FALSE", False),
+    ("no", False),
+    ("No", False),
+    ("off", False),
+    # Integers
+    ("1", True),
+    ("0", False),
+    # Strings, case-insensitive and stripped
+    ('"true"', True),
+    ("'True'", True),
+    ("TrUe", True),
+    ('"TrUe"', True),
+    ('"yes"', True),
+    ('"1"', True),
+    ('" true "', True),
+    ('"false"', False),
+    ("'False'", False),
+    ("fAlSe", False),
+    ('"fAlSe"', False),
+    ('"no"', False),
+    ('"0"', False),
+]
+
+_BOOL_YAML_REJECTED = [
+    "2",
+    "-1",
+    "1.0",
+    "0.0",
+    "abc",
+    "y",
+    "n",
+    '"on"',
+    '"off"',
+    '""',
+]
+
+
+def _make_bool_node(yaml_text: str) -> YamlDictNode:
+    return _make_dict_node(yaml.safe_load(f"b: {yaml_text}"))
+
+
+@pytest.mark.parametrize("yaml_text, expected", _BOOL_YAML_ACCEPTED)
+def test_parse_bool_accepted_values(yaml_text, expected):
+    node = _make_bool_node(yaml_text)
+    assert yaml_parser.parse_optional_bool_from_dict_node(node, "b") is expected
+    assert yaml_parser.parse_mandatory_bool_from_dict_node(node, "b") is expected
+
+
+@pytest.mark.parametrize("yaml_text", _BOOL_YAML_REJECTED)
+def test_parse_bool_rejected_values(yaml_text):
+    node = _make_bool_node(yaml_text)
+    with pytest.raises(exceptions.InvalidParamTypeException):
+        yaml_parser.parse_optional_bool_from_dict_node(node, "b")
+    with pytest.raises(exceptions.InvalidParamTypeException):
+        yaml_parser.parse_mandatory_bool_from_dict_node(node, "b")
+
+
+def test_parse_bool_missing_or_empty_value():
+    node = _make_dict_node({"empty": None})
+    assert yaml_parser.parse_optional_bool_from_dict_node(node, "missing") is None
+    assert yaml_parser.parse_optional_bool_from_dict_node(node, "empty") is None
+    with pytest.raises(exceptions.MissingNodeException):
+        yaml_parser.parse_mandatory_bool_from_dict_node(node, "missing")
+    with pytest.raises(exceptions.MissingValueException):
+        yaml_parser.parse_mandatory_bool_from_dict_node(node, "empty")
 
 
 def test_parse_units_and_values_with_mismatches():
