@@ -76,7 +76,7 @@ CON_TECHUNITCAPMIN: str = "C_TechUnitCapMin"
 """Name of constraint respecting the unit_cap_min parameter"""
 
 CON_TECHINSTLALLOWED: str = "C_TechInstlAllowed"
-"""Name of constraint respecting the last_instl_year parameter"""
+"""Name of constraint respecting the last_inst_year parameter"""
 
 CON_TECHCOUPLEDCAP: str = "C_TechCoupledCap"
 """Name of constraint respecting capacity for coupled techs"""
@@ -453,9 +453,9 @@ def _con_tech_instl_allowed(model: Model, stages: Stages, techs: Techs) -> None:
     def __rule_tech_instl_allowed(model, s, h, x):
         # Get parameters
         stage_year = stages.get_start_year(StageId(s))
-        last_instl_year = techs.get_last_inst_year(HubId(h), TechId(x))
+        last_inst_year = techs.get_last_inst_year(HubId(h), TechId(x))
         # If installation is allowed, no constraint necessary
-        if stage_year <= last_instl_year:
+        if stage_year <= last_inst_year:
             return Constraint.Skip
         # If installation is not allowed, force installation binary to zero
         return getattr(model, VAR_YTECHCAPINSTL)[s, h, x] == 0
