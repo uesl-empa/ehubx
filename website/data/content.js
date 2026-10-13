@@ -197,6 +197,14 @@ window.EHUBX_CONTENT = {
       url: "https://doi.org/10.1016/j.joule.2026.102533",
     },
     {
+      type: "Preprint",
+      year: 2026,
+      title: "A techno-economic analysis of the integration of edge data centres into tertiary buildings",
+      authors: "Hansson, J., Humbert, G., Koirala, B. P.",
+      venue: "SSRN preprint (2026)",
+      url: "https://doi.org/10.2139/ssrn.7321983",
+    },
+    {
       type: "Conference paper",
       year: 2017,
       title: "The Ehub Modeling Tool: A flexible software package for district energy system optimization",
