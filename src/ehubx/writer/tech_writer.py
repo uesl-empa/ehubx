@@ -68,8 +68,8 @@ ENTRY_OPEXPERCAP: str = "OPEX price per capacity (opex_per_cap)"
 ENTRY_CO2PERCAP: str = "Embodied CO2 per installed capacity (co2_per_cap)"
 """Entry name for tech parameter 'co2_per_cap' in result files"""
 
-ENTRY_LASTINSTLYEAR: str = "Last possible installation year (last_instl_year)"
-"""Entry name for parameter 'last_instl_year' in result files"""
+ENTRY_LASTINSTLYEAR: str = "Last possible installation year (last_inst_year)"
+"""Entry name for parameter 'last_inst_year' in result files"""
 
 ENTRY_CAPINIT: str = "Initially installed capacity (cap_init)"
 """Entry name for parameter 'cap_init' in result files"""
@@ -346,16 +346,16 @@ def _format_tech(
             in_res="input",
         )
 
-    # last_instl_year
+    # last_inst_year
     for h in energy_system.hubs.ids_in_order:
         if h not in energy_system.techs.get_allowed_hubs(x):
             continue
-        last_instl_year = Value(
+        last_inst_year = Value(
             energy_system.techs.get_last_inst_year(h, x), DimlessUnit()
         )
         df_st_builder.add_row(
             ENTRY_LASTINSTLYEAR,
-            str(last_instl_year),
+            str(last_inst_year),
             hub=h.key,
             tech=x.key,
             source=SOURCE,

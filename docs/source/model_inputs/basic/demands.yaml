@@ -18,7 +18,7 @@ load_shedding:
   profile_path: loadshedding_profiles.csv
 
 load_shifting:
-- loadshift_id: LS1
+- load_shift_id: LS1
   stages: [S1, S2]
   hubs: H1
   ec: E1
