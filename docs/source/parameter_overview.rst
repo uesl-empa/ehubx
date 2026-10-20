@@ -256,15 +256,6 @@ Parameter table
       - :code:`hubs[ID]/ates_params/darcy_velocity`
       - :ref:`hubs.yaml<hubs_yaml>`
 
-    * - **Demand** (demand)
-      - ✖
-      - 0
-      - ec
-      - ✖
-      - **✓**
-      - :code:`demands[ID]/profile_path`
-      - :ref:`demands.yaml<demands_yaml>`
-
     * - **Demand modifier** (ebm)
       - ✖
       - 1
@@ -273,6 +264,24 @@ Parameter table
       - ✖
       - :code:`hubs[ID]/techs[ID]/ebm_params/demand_modifier`
       - :ref:`hubs.yaml<hubs_yaml>`
+
+    * - **Demand-profile** (demand)
+      - ✖
+      - 0
+      - ec/h
+      - ✖
+      - **✓**
+      - :code:`demand_profiles[pos]`
+      - :ref:`demands.yaml<demands_yaml>`
+
+    * - **Demand-sum** (demand)
+      - **✓**
+      -
+      - ec
+      - ✖
+      - ✖
+      - :code:`demand_sums[pos]/demand_sum`
+      - :ref:`demands.yaml<demands_yaml>`
 
     * - **Discharge controllability** (ebm)
       - ✖

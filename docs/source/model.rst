@@ -72,7 +72,11 @@ This module introduces an index set :math:`\mathcal{S}_{Ec}` of ecs (energy carr
 Times model
 ------------
 
-This module introduces two index sets :math:`\mathcal{S}_{TimeHorizon}` and :math:`\mathcal{S}_{Time}` (energy carriers). They each consist of unique integers :math:`1, 2, ...` that act as time indices. In case where :ref:`reduced-order modeling <rom>` is employed, :math:`\mathcal{S}_{Time}` holds the cluster indices and :math:`\mathcal{S}_{TimeHorizon}` holds the full-horizon indices. If no clustering is used, these two sets are identical.
+This module introduces two index sets :math:`\mathcal{S}_{TimeHorizon}` and :math:`\mathcal{S}_{Time}`. They each consist of unique integers :math:`1, 2, ...` that act as time indices. In case where :ref:`reduced-order modeling <rom>` is employed, :math:`\mathcal{S}_{Time}` holds the cluster indices and :math:`\mathcal{S}_{TimeHorizon}` holds the full-horizon indices. If no clustering is used, these two sets are identical.
+
+.. _weight:
+
+Each time step additionally carries a **weight** :math:`weight[s, t] \ge 0`, which denotes how many horizon time steps of stage :math:`s` the time step :math:`t` represents. It defaults to :math:`1` for every :math:`(s, t)` and is only set to other values by the TSAM :ref:`clustering <rom_tsam>` procedure, where it equals the size of the cluster represented by :math:`t`. The :ref:`cutting <rom_cut>` method leaves all weights at :math:`1`. The weight appears in every sum over :math:`\mathcal{S}_{Time}` that is meant to reconstruct a full-horizon quantity (costs, CO2, energy sums), so that a clustered model reproduces the totals of the full-order model. Note that it is therefore **not** a free "importance" factor: lowering a weight also rescales summed-up energy limits and the :ref:`heuristic limits <heur_limits>` described below, which can change the feasible region rather than just the objective.
 
 
 
@@ -167,16 +171,20 @@ Now these variables need to be properly constrained according to the type of dem
 
 :raw-math:`$$ \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{DemandSupply}[s, h, e, t] = demand\_sum[s, h, e]. $$`
 
+.. _heur_limits:
+
 Additionally, certain formulations in other modules require a so-called *big-M* parameter which is very common in MILP formulations. Essentially, this is a positive value that is "as large as it needs to be" for the situation at hand. As an example, if a binary variable :math:`y \in \{0,1\}` needs to be true for an associated continuous variable :math:`x \in \mathbb{R}` to be larger than zero, we would use a constraint of the form :math:`x \le M \cdot y` with a value :math:`M > 0`. However, if :math:`y = 1` is the case, the variable :math:`x` should still be allowed to reach any value in its permitted range. If :math:`x` has an upper limit :math:`\overline{x}` from the model formulation already, the case is easy: Just use :math:`M = \overline{x}`. However, this is often not the case from our model formulations (as an example, a technology's capacity variable might not have a *cap_max* setting). For these cases, we require a *generic* big-M parameter that is larger than any value our variables are likely to assume. This is obviously not an exact science since we are dealing with unrestricted variables but we can use the demand module to make an educated guess:
 
 * For a demand-profile tuple :math:`(s, h, e) \in \mathcal{S}_{DemandProfileTuple}` and a time :math:`t \in \mathcal{S}_{Time}`, the value :math:`demand\_profile[s, h, e, t]` can serve as an indicator for the magnitude of the system. We can therefore derive a big-M parameter
   :raw-math:`$$ BigM_{DemandProfile}[s, h, e, t] = C_{BigM} \cdot demand\_profile[s, h, e, t] $$`
-  which we postulate to be larger than an an inflow or outflow to an energy balance node (cf. the energy balance equation in the :ref:`energy system model<energy_system_model>`) from any module. Here, :math:`C_{BigM} \approx \mathcal{O}(10)` is reasonable multiplier. The factor of 10 is somewhat arbitrary but should be large enough to cover most situations.
+  which we postulate to be larger than an an inflow or outflow to an energy balance node (cf. the energy balance equation in the :ref:`energy system model<energy_system_model>`) from any module. Here, :math:`C_{BigM} \approx \mathcal{O}(10)` is reasonable multiplier. The factor of 10 is somewhat arbitrary but should be large enough to cover most situations. Larger values are equally admissible; the value actually used by the implementation is the constant :code:`MULT_HEUR_LIMIT_FROM_DEMAND` in :code:`core/common.py`, currently set to :math:`1000`.
 * Similar to the point above, we sometimes require a big-M parameter for the *sum* of inflows/outflows to energy balance nodes. For this, we use
-  :raw-math:`$$ BigM_{DemandProfileSum}[s, h, e] = C_{BigMSum} \cdot \max\limits_{t \in \mathcal{S}_{Time}} demand\_profile[s, h, e, t] $$`
-  with a similar logic than above. Since these values tend to be much larger than the per-timestep values above, we tend to use a smaller multiplier of :math:`C_{BigMSum} \approx \mathcal{O}(1)` to keep the system relatively well-scaled.
+  :raw-math:`$$ BigM_{DemandProfileSum}[s, h, e] = C_{BigMSum} \cdot \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot demand\_profile[s, h, e, t] $$`
+  with a similar logic than above. Since these values tend to be much larger than the per-timestep values above, we tend to use a smaller multiplier of :math:`C_{BigMSum} \approx \mathcal{O}(1)` to keep the system relatively well-scaled. Larger values are equally admissible; the value actually used by the implementation is the constant :code:`MULT_HEUR_SUM_LIMIT_FROM_DEMAND` in :code:`core/common.py`, currently set to :math:`100`.
 
-Note the underlying assumption in this approach that the demand series will be able to quantify the general dimensionality of the system. Especially in systems with small demand profiles (but also in general), it might be prudent to explicitly set values for certain parameters so that the generic big-M parameter does not have to be used. Tailored warning messages are routinely logged for this reason, notifying the user which parameters are missing to calculate a specific big-M parameter (the most common candidate for this is :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>` and :ref:`network_links.yaml<network_links_yaml>`). Additionally, if no demand series exists for a specific carrier, a fallback option is required. For our case, this comes in the form of the parameter *heur_max* from :ref:`ecs.yaml<ecs_yaml>` which is therefore mandatory for ecs without a demand series.
+Note the underlying assumption in this approach that the demand series will be able to quantify the general dimensionality of the system. Especially in systems with small demand profiles (but also in general), it might be prudent to explicitly set values for certain parameters so that the generic big-M parameter does not have to be used. Tailored warning messages are routinely logged for this reason, notifying the user which parameters are missing to calculate a specific big-M parameter (the most common candidate for this is :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>` and :ref:`network_links.yaml<network_links_yaml>`). Additionally, if no demand-profile exists for a specific carrier, a fallback option is required. In this case, the largest heuristic limit derived from the demand-profiles of other carriers with the same unit type is used. If there are no such carriers, the parameters *heur_max* and *heur_sum_max* from :ref:`ecs.yaml<ecs_yaml>` are used instead, where a missing *heur_sum_max* is replaced by *heur_max* multiplied by the number of horizon time steps. If a heuristic limit is required but none of these values is available, an error is raised when the model is built. Note that demand-sums do not contribute to the heuristic limits: a carrier whose demand is only given as a demand-sum is treated like a carrier without a demand-profile.
+
+These heuristic limits are not only used as big-M parameters, but also as **actual bounds** of the capacity variable :math:`\mathcal{V}_{TechCap}` whenever *cap_max* is not set in :ref:`hubs.yaml<hubs_yaml>`: conversion and heat pump technologies are bounded by the per-time-step limit, storage technologies by the summed-up limit. Since the summed-up limit contains the time step :ref:`weights <weight>`, the weights influence not only cost and energy sums but also the maximal installable storage capacity. Setting *cap_max* explicitly removes this coupling.
 
 
 Furthermore, in certain formulations demand satisfaction may be relaxed through the introduction of an unmet demand variable. For this purpose, we define
@@ -218,7 +226,7 @@ Shedding loads is associated with certain costs. These are measure by the fixed 
 \mathcal{V}_{LoadSheddingCost}: \mathcal{S}_{LoadShedding} &\to \mathbb{R}^+_0, \\ \mathcal{V}_{LoadSheddingCost}[s, h, e] &= \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot energy\_cost[s, h, e, t] \cdot \mathcal{V}_{LoadShedding}[s, h, e, t]
 \end{align*}`
 
-Here, :math:`energy\_cost` is a parameter from :ref:`demands.yaml<demands_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value. Inforomation about these costs are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variable for convenience:
+Here, :math:`energy\_cost` is a parameter from :ref:`demands.yaml<demands_yaml>` and :math:`weight` is a :ref:`clustering<rom>` value. Information about these costs are required in the :ref:`energy system model<energy_system_model>`. They are bundled in the following fixed variable for convenience:
 
 :raw-math:`$$ \mathcal{V}_{LoadSheddingCostTotal} \in \mathbb R^+_0, \quad \mathcal{V}_{LoadSheddingCostTotal} = \sum\limits_{(s, h, e) \in \mathcal{S}_{LoadSheddingTuple}} \mathcal{V}_{LoadSheddingCost}[s, h, e] $$`
 
@@ -439,9 +447,9 @@ Another set of parameters that limits the capacity are :math:`cap\_min` and :mat
 
 :raw-math:`\begin{align*} cap\_min[s, h, x] \le \mathcal{V}_{TechCap}[s, h, x] \le cap\_max[s, h, x] \end{align*}`
 
-Furthermore, there is the parameter :math:`last_inst_year` from :ref:`techs.yaml<techs_yaml>` which may forbid any installation after that year:
+Furthermore, there is the parameter :math:`last\_inst\_year` from :ref:`techs.yaml<techs_yaml>` which may forbid any installation after that year:
 
-:raw-math:`\begin{align*} \mathcal{V}_{YTechCapInstl}[s, h, x] = 0 \text{ if } start\_year[s] > last\_instl\_year[x] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{YTechCapInstl}[s, h, x] = 0 \text{ if } start\_year[s] > last\_inst\_year[x] \end{align*}`
 
 For technologies, we allow the concept of *coupled technologies* (based on the section *coupling\_params* in :ref:`techs.yaml<techs_yaml>`). All technologies with this field are collected in a subset :math:`\mathcal{S}_{SubTech} \subset \mathcal{S}_{Tech}` and every :math:`x \in \mathcal{S}_{SubTech}` is assigned a :math:`main\_tech\_id[x] \in \mathcal{S}_{Tech}` with their associated main technology, and a :math:`cap\_factor[x] \in \mathbb{R}^+_0` describing the factor relating the capacities between this tech and their main tech:
 
@@ -1097,7 +1105,7 @@ In ehubX, the concept of self-sufficiency is calculated by two kinds of energy i
 
 The ec-specific parameters :math:`is\_energy` and :math:`imp\_exp\_type` can be specified in :ref:`ecs.yaml<ecs_yaml>`, and :math:`weight` is a :ref:`clustering<rom>` parameter. The idea behind this variable is that it should measure all imports into the system that would be unavailable if neighboring energy systems were not able to provide them. We think of energy carriers like electricity or gas that are purchased from different countries or regions.
 
-In contrast the these cross-import, the ehubX model also allows for "imports" that originate in natural resources and would remain be available if the energy system became completely isolated. These are e.g.; solar energy or thermal resources. The total amount of these imports is measured in the fixed scalar variable
+In contrast to these cross-imports, the ehubX model also allows for "imports" that originate in natural resources and would remain available if the energy system became completely isolated. These are e.g.; solar energy or thermal resources. The total amount of these imports is measured in the fixed scalar variable
 
 :raw-math:`\begin{align*} \mathcal{V}_{SelfSufficiencyImpInternal} &\in \mathbb{R}_0^+, \\ \mathcal{V}_{SelfSufficiencyImpInternal} &= \sum\limits_{\substack{(s, h, e) \in \mathcal{S}_{ImpTuple} \\ is\_energy[e] = True \\ imp\_exp\_type[e] = internal}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{Imp}[s, h, e, t] + \sum\limits_{\substack{(s, h, x, e) \in \mathcal{S}_{ConvTechOut} \\ x \in \mathcal{S}_{ConvTechInternal}}} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s, t] \cdot \mathcal{V}_{ConvTechOut}[s, h, x, e, t] \end{align*}`
 
