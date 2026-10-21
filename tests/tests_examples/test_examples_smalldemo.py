@@ -1,4 +1,5 @@
 import os
+import re
 
 import pytest
 from pyomo.core import value
@@ -311,3 +312,36 @@ def test_examples_smalldemo():
             "S1", "H15", "X15Ates", "E15b", 3
         ]
     ) == pytest.approx(1000)
+
+
+def test_examples_smalldemo_co2_per_in_on_storage_tech():
+    """Regression: emissions/co2_per_in on a non-conversion tech must not crash parsing.
+
+    co2_per_in is owned by conv_tech_parser, which only handles conversion and solar
+    techs. A second copy in tech_parser once forwarded it for every tech, so a storage
+    tech crashed with UnknownIdException in ConversionTechs.get_in_ecs.
+    """
+    # Init
+    example_model_dir = os.path.join(DIRNAME_EXAMPLES, "small_demo")
+    init_tmp_model(example_model_dir)
+
+    # Add co2_per_in to storage tech X2Stor, directly after its co2_per_cap line
+    techs_file = os.path.join(DIRNAME_TMPTESTMODEL, "inputs", "basic", "techs.yaml")
+    with open(techs_file, encoding="utf-8") as f:
+        content = f.read()
+    stor_block = re.search(r"- tech_id: X2Stor\n.*?(?=\n- tech_id:|\Z)", content, re.S)
+    assert stor_block is not None, "small_demo no longer contains storage tech X2Stor"
+    old_block = stor_block.group(0)
+    new_block = old_block.replace(
+        "    co2_per_cap: 50 kg/kWh\n",
+        "    co2_per_cap: 50 kg/kWh\n    co2_per_in:\n      E0: 0.1 kg/kWh\n",
+        1,
+    )
+    assert new_block != old_block, "could not insert co2_per_in into X2Stor"
+    with open(techs_file, "w", encoding="utf-8") as f:
+        f.write(content.replace(old_block, new_block, 1))
+
+    # Run: parsing must not raise UnknownIdException
+    ehubx = EhubX()
+    ehubx.model_dir_path = DIRNAME_TMPTESTMODEL
+    ehubx.parse()
