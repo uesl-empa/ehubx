@@ -317,9 +317,10 @@ def test_examples_smalldemo():
 def test_examples_smalldemo_co2_per_in_on_storage_tech():
     """Regression: emissions/co2_per_in on a non-conversion tech must not crash parsing.
 
-    co2_per_in is owned by conv_tech_parser, which only handles conversion and solar
-    techs. A second copy in tech_parser once forwarded it for every tech, so a storage
-    tech crashed with UnknownIdException in ConversionTechs.get_in_ecs.
+    co2_per_in is owned by conv_tech_parser, which only handles conversion techs. 
+    A second copy in tech_parser once forwarded it for every tech, so a storage
+    tech crashed with UnknownIdException in ConversionTechs.get_in_ecs. Now the value
+    is ignored for such techs and a warning is logged instead.
     """
     # Init
     example_model_dir = os.path.join(DIRNAME_EXAMPLES, "small_demo")
@@ -345,3 +346,9 @@ def test_examples_smalldemo_co2_per_in_on_storage_tech():
     ehubx = EhubX()
     ehubx.model_dir_path = DIRNAME_TMPTESTMODEL
     ehubx.parse()
+
+    # The ignored value must be reported to the user
+    log_file = os.path.join(DIRNAME_TMPTESTMODEL, "ehubX.log")
+    with open(log_file, encoding="utf-8") as f:
+        log = f.read()
+    assert "Ignoring 'co2_per_in' of tech X2Stor" in log

@@ -250,6 +250,35 @@ def parse_primary(
     return conv_techs
 
 
+def _warn_if_co2_per_in_ignored(
+    tech_node: yaml_parser.YamlDictNode,
+    tech_id_str: str,
+    tech_type: str | None,
+) -> None:
+    """Warn if emissions/co2_per_in is set on a tech that cannot use it.
+
+    co2_per_in is read from the emissions block that every tech has, but it is
+    defined per input energy carrier, which only conversion techs have.
+    For all other tech types the value is ignored.
+    """
+    emissions_node = tech_node[tech_parser.YAMLKEY_EMISSIONS]
+    # Malformed emissions nodes are reported by tech_parser._parse_emissions
+    if not isinstance(emissions_node, yaml_parser.YamlDictNode):
+        return
+    co2_per_in_node = emissions_node[YAMLKEY_CO2PERIN]
+    if co2_per_in_node is None:
+        return
+    logging.log_warning(
+        (
+            f"Warning in file {tech_node.file_path}: Ignoring '{YAMLKEY_CO2PERIN}' "
+            f"of tech {tech_id_str} (type '{tech_type}') at node "
+            f"{co2_per_in_node.node_path_as_str}, since it is only supported for "
+            "conversion techs"
+        ),
+        module=LOG_MODULE_STR,
+    )
+
+
 def _parse_conv_tech_primary(
     tech_node: yaml_parser.YamlDictNode,
     stages: Stages,
@@ -270,6 +299,7 @@ def _parse_conv_tech_primary(
         tech_parser.TechType.CONVERSION.value,
         tech_parser.TechType.SOLAR.value,
     }:
+        _warn_if_co2_per_in_ignored(tech_node, tech_id_str, tech_type)
         return
     # Add id
     conv_techs.add_id(tech_id)

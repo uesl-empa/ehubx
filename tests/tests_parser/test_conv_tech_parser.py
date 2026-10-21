@@ -360,26 +360,58 @@ class TestParseConvTechPrimary:
 
         assert TechId("tech_test") not in conv_techs.ids
 
-    @pytest.mark.parametrize("tech_type", ["storage", "demand"])
-    def test_non_conversion_tech_with_co2_per_in_is_skipped(
-        self, tech_type, stages, ecs, techs, conv_techs
+    def test_non_conversion_tech_with_co2_per_in_is_skipped_with_warning(
+        self, stages, ecs, techs, conv_techs
     ):
-        """Regression: co2_per_in on a non-conversion tech must not reach ConversionTechs"""
+        """Regression: co2_per_in on a non-conversion tech must not reach ConversionTechs.
+
+        The value is ignored, but the user is warned about it.
+        """
+        co2_per_in_node = MagicMock(spec=yaml_parser.YamlDictNode)
+        emissions_node = MagicMock(spec=yaml_parser.YamlDictNode)
+        emissions_node.__getitem__ = MagicMock(return_value=co2_per_in_node)
         tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
         tech_node.file_path = "test.yaml"
+        tech_node.__getitem__ = MagicMock(return_value=emissions_node)
         co2_value = {StageId("S1"): Value(0.2, MassUnit.KG / (PowerUnit.KW * TimeUnit.H))}
 
         with (
             patch("ehubx.parser.yaml_parser.check_node_type"),
             patch("ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node", return_value="storage_tank"),
-            patch("ehubx.parser.yaml_parser.parse_optional_str_from_dict_node", return_value=tech_type),
+            patch("ehubx.parser.yaml_parser.parse_optional_str_from_dict_node", return_value="storage"),
             patch("ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node", return_value=co2_value),
             patch.object(conv_techs, "set_co2_per_in", wraps=conv_techs.set_co2_per_in) as spy_set_co2,
+            patch("ehubx.parser.conv_tech_parser.logging.log_warning") as mock_warn,
         ):
             conv_tech_parser._parse_conv_tech_primary(tech_node, stages, ecs, techs, conv_techs)
 
+        # Skipped: not registered, value never stored
         assert TechId("storage_tank") not in conv_techs.ids
         spy_set_co2.assert_not_called()
+        # Warned: exactly one message naming the tech and the key
+        mock_warn.assert_called_once()
+        msg = mock_warn.call_args.args[0]
+        assert "storage_tank" in msg
+        assert "co2_per_in" in msg
+
+    def test_non_conversion_tech_without_co2_per_in_logs_no_warning(
+        self, stages, ecs, techs, conv_techs
+    ):
+        """No warning when a non-conversion tech has emissions but no co2_per_in"""
+        emissions_node = MagicMock(spec=yaml_parser.YamlDictNode)
+        emissions_node.__getitem__ = MagicMock(return_value=None)  # no co2_per_in
+        tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
+        tech_node.file_path = "test.yaml"
+        tech_node.__getitem__ = MagicMock(return_value=emissions_node)
+
+        with (
+            patch("ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node", return_value="storage_tank"),
+            patch("ehubx.parser.yaml_parser.parse_optional_str_from_dict_node", return_value="storage"),
+            patch("ehubx.parser.conv_tech_parser.logging.log_warning") as mock_warn,
+        ):
+            conv_tech_parser._parse_conv_tech_primary(tech_node, stages, ecs, techs, conv_techs)
+
+        mock_warn.assert_not_called()
 
     @patch("ehubx.parser.yaml_parser.parse_optional_yeardep_value_from_dict_node")
     @patch("ehubx.parser.conv_tech_parser._parse_out_ecs")
