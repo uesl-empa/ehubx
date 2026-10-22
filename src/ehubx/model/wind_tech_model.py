@@ -1273,6 +1273,8 @@ def _override_wind_tech_costs(model: Model, system: EnergySystem) -> None:
     length_unit = system.length_unit
     mass_unit = system.mass_unit
     power_unit = system.power_unit
+    passenger_unit = system.passenger_unit
+    freight_unit = system.freight_unit
 
     logging.log_file(
         "Applying terrain cost multipliers to wind tech cost constraints",
@@ -1347,7 +1349,12 @@ def _override_wind_tech_costs(model: Model, system: EnergySystem) -> None:
         tech_lifetime = techs.get_lifetime(TechId(x)).to_float(TimeUnit.A)
         crf = calculate_crf(interest_rate, tech_lifetime)
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         cost_capex = 0
         for s_instl in getattr(model, SET_STAGE):
@@ -1399,7 +1406,12 @@ def _override_wind_tech_costs(model: Model, system: EnergySystem) -> None:
     # opex_per_cap is applied directly per (w, terrain) sub-group.
     def __rule_terrain_opex(model, s, h, x):
         cap_unit = get_model_cap_unit(
-            techs.get_cap_unit(TechId(x)), length_unit, mass_unit, power_unit
+            techs.get_cap_unit(TechId(x)),
+            length_unit,
+            mass_unit,
+            power_unit,
+            passenger_unit,
+            freight_unit,
         )
         opex_per_cap = techs.get_opex_per_cap(StageId(s), TechId(x)).to_float(
             unit=(currency_unit / cap_unit)
