@@ -514,6 +514,48 @@ class TestParseConvTechPrimary:
         )
 
         assert TechId("solar_1") in conv_techs.ids
+        
+    @patch("ehubx.parser.conv_tech_parser._parse_out_ecs")
+    @patch("ehubx.parser.conv_tech_parser._parse_in_ecs")
+    @patch("ehubx.parser.yaml_parser.get_mandatory_subnode_from_dict_node")
+    @patch("ehubx.parser.yaml_parser.parse_optional_str_from_dict_node", return_value="solar")
+    @patch("ehubx.parser.yaml_parser.parse_mandatory_str_from_dict_node", return_value="solar_1")
+    @patch("ehubx.parser.yaml_parser.check_node_type")
+    def test_solar_tech_with_co2_per_in_is_ignored_with_warning(
+        self, mock_check, mock_tech_id, mock_type, mock_get_subnode, mock_parse_in, mock_parse_out,
+        stages, ecs, techs, conv_techs
+    ):
+        """co2_per_in is not used for solar techs; embodied emissions belong in co2_per_cap"""
+        # Tech node with emissions/co2_per_in, and no costs block
+        co2_per_in_node = MagicMock(spec=yaml_parser.YamlDictNode)
+        emissions_node = MagicMock(spec=yaml_parser.YamlDictNode)
+        emissions_node.__getitem__ = MagicMock(return_value=co2_per_in_node)
+        tech_node = MagicMock(spec=yaml_parser.YamlDictNode)
+        tech_node.file_path = "test.yaml"
+        emissions_key = conv_tech_parser.tech_parser.YAMLKEY_EMISSIONS
+        tech_node.__getitem__ = MagicMock(
+            side_effect=lambda key: emissions_node if key == emissions_key else None
+        )
+
+        mock_get_subnode.return_value = MagicMock(spec=yaml_parser.YamlDictNode)
+        ecs.get_unit.return_value = PowerUnit.KW
+        mock_parse_in.side_effect = _setup_conv_tech_in
+        mock_parse_out.side_effect = _setup_conv_tech_out
+
+        with (
+            patch.object(conv_techs, "set_co2_per_in") as mock_set_co2,
+            patch("ehubx.parser.conv_tech_parser.logging.log_warning") as mock_warn,
+        ):
+            conv_tech_parser._parse_conv_tech_primary(tech_node, stages, ecs, techs, conv_techs)
+
+        # Still a valid solar tech, but co2_per_in is not stored
+        assert TechId("solar_1") in conv_techs.ids
+        mock_set_co2.assert_not_called()
+        # One warning naming the tech and the key
+        mock_warn.assert_called_once()
+        msg = mock_warn.call_args.args[0]
+        assert "solar_1" in msg
+        assert "co2_per_in" in msg
 
 
 # ============================================================================
