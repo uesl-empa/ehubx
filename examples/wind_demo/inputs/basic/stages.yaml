@@ -1,0 +1,11 @@
+system_params:
+  interest_rate_def: 0.05
+  num_times_horizon: 8760
+  currency_unit: CHF
+  mass_unit: kg
+  length_unit: m
+  power_unit: kW
+
+stages:
+- stage_id: Y2030
+  start_year: 2030

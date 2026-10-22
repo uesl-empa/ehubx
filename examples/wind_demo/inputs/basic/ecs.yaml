@@ -1,0 +1,3 @@
+ecs:
+- ec_id: Elec
+  unit: kWh
