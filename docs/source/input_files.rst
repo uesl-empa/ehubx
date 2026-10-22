@@ -304,6 +304,7 @@ techs.yaml
 
 * **emissions** (*optional, default={}*): Dictionary with emission parameters for the :ref:`tech model <tech_model>`.
 * **co2_per_cap** (*optional, default=0, [kg/CAP], per-year*): Embodied CO2 that arises per amount of newly installed capacity for this technology.
+* **co2_per_in** (*optional, default=0, [kg/ec_in], per-year*): Operational CO2 that arises per amount of input carrier consumed by this conversion technology. Given per input carrier.
 
 **Storage parameters**:
 

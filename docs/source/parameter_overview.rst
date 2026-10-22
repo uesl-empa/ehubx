@@ -192,6 +192,15 @@ Parameter table
       - :code:`techs[ID]/emissions/co2_per_cap`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **CO2 per input** (conversion)
+      - ✖
+      - 0
+      - kg/ec_in
+      - **✓**
+      - ✖
+      - :code:`techs[ID]/emissions/co2_per_in/EC_ID`
+      - :ref:`techs.yaml<techs_yaml>`
+
     * - **CO2 per transported energy** (net_tech)
       - ✖
       - 0
