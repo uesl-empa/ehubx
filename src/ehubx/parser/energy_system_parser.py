@@ -32,6 +32,7 @@ from ehubx.parser import (
     stor_tech_parser,
     tech_parser,
     time_parser,
+    wind_parser,
     yaml_parser,
 )
 
@@ -171,6 +172,7 @@ def _parse_modules(input_path: str, energy_system: EnergySystem) -> None:
     stor_techs = stor_tech_parser.parse_primary(tech_root_node, stages, ecs, techs)
     conv_techs = conv_tech_parser.parse_primary(tech_root_node, stages, ecs, techs)
     solar_techs = solar_parser.parse_techs(tech_root_node, stages, techs)
+    wind_techs = wind_parser.parse_techs_primary(tech_root_node, techs, ecs)
     hp_techs = hp_tech_parser.parse_primary(tech_root_node, stages, ecs, techs)
     ates_techs = ates_parser.parse_primary(tech_root_node, stages, ecs, techs)
     ebm_techs = ebm_tech_parser.parse_primary(tech_root_node, stages, ecs, techs)
@@ -180,6 +182,7 @@ def _parse_modules(input_path: str, energy_system: EnergySystem) -> None:
     )
     ates_data = ates_parser.parse_data(hub_root_node, stages)
     solar_data = solar_parser.parse_data(renewables_subpath, ecs)
+    wind_data = wind_parser.parse_data(renewables_subpath)
     self_sufficiency = self_sufficiency_parser.parse(stage_root_node)
 
     # Secondary module parsing (interdependent module parsing)
@@ -190,6 +193,7 @@ def _parse_modules(input_path: str, energy_system: EnergySystem) -> None:
     ates_parser.parse_secondary(hub_root_node, stages, ates_techs)
     stor_tech_parser.parse_secondary(hub_root_node, stor_techs)
     ebm_tech_parser.parse_secondary(hub_root_node, stages, ecs, ebm_techs)
+    wind_parser.parse_techs_secondary(hub_root_node, stages, wind_techs)
     times = time_parser.parse(energy_system.num_times_horizon)
 
     # Pass data classes
@@ -199,6 +203,7 @@ def _parse_modules(input_path: str, energy_system: EnergySystem) -> None:
     energy_system.techs = techs
     energy_system.conv_techs = conv_techs
     energy_system.solar_techs = solar_techs
+    energy_system.wind_techs = wind_techs
     energy_system.hp_techs = hp_techs
     energy_system.ates_techs = ates_techs
     energy_system.stor_techs = stor_techs
@@ -212,6 +217,7 @@ def _parse_modules(input_path: str, energy_system: EnergySystem) -> None:
     energy_system.load_shifting = load_shifting
     energy_system.ates_data = ates_data
     energy_system.solar_data = solar_data
+    energy_system.wind_data = wind_data
     energy_system.self_sufficiency = self_sufficiency
     energy_system.times = times
 

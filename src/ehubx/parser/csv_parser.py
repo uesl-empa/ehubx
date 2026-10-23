@@ -17,6 +17,10 @@ class HeaderId(Enum):
     ECID = "ec_id"
     LOADSHIFTID = "loadshift_id"
     ATESSCHEDULEID = "ates_schedule_id"
+    WINDGROUPID = "wind_group_id"
+    TERRAINID = "terrain_id"
+    HEIGHT = "height"
+    ROUGHNESS = "roughness"
     TIMEID = "time_id"
     PROFILEKEY = "profile_key"
     UNIT = "unit"
@@ -120,14 +124,16 @@ def _format(
     df.index = df.index.set_names([HeaderId.TIMEID.value])
     df = df.drop(columns=[df.columns[0]])
 
-    # Reorder levels
-    df.columns = df.columns.reorder_levels(order=header_ids_as_str)
+    # Reorder levels (only applicable for MultiIndex columns)
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.reorder_levels(order=header_ids_as_str)
     df = df.sort_index(axis=1)
 
     # Determine units row (if it exists), otherwise assign empty strings
     unit_row_name = HeaderId.UNIT.value
     if unit_row_name in df.index:
-        df.columns = df.columns.reorder_levels(order=header_ids_as_str)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.reorder_levels(order=header_ids_as_str)
         df = df.sort_index(axis=1)
 
         units = (
@@ -143,7 +149,8 @@ def _format(
         )
         df = df.drop(index=unit_row_name)
     else:
-        df.columns = df.columns.reorder_levels(order=header_ids_as_str)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.reorder_levels(order=header_ids_as_str)
         df = df.sort_index(axis=1)
 
         units = pd.Series([""] * df.shape[1], index=df.columns)

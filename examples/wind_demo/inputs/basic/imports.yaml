@@ -1,0 +1,7 @@
+# Grid electricity: time-of-use tariff (see profiles/imports.csv) and the
+# CO2 intensity of the Swiss consumption mix including imports.
+- stages: Y2030
+  hubs: Village
+  ec: Elec
+  profile_path: profiles/imports.csv
+  co2: 0.128 kg/kWh

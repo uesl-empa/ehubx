@@ -15,6 +15,7 @@ from ehubx.writer import (
     ebm_tech_writer,
     hp_tech_writer,
     stor_tech_writer,
+    wind_writer,
 )
 from ehubx.writer.common_writer import (
     DfStBuilder,
@@ -168,6 +169,7 @@ def format_all(
     hp_tech_writer.format_all(energy_system, model, df_st_builder, df_ts_hor, df_ts_cl)
     ates_writer.format_all(energy_system, model, df_st_builder, df_ts_hor)
     ebm_tech_writer.format_all(energy_system, model, df_st_builder, df_ts_hor, df_ts_cl)
+    wind_writer.format_all(energy_system, model, df_st_builder, df_ts_hor, df_ts_cl)
 
     # Flag unused columns
     cols_to_drop_st = {
@@ -175,11 +177,13 @@ def format_all(
         DfStColumn.NET_LINK_DIR,
         DfStColumn.NET_TECH,
         DfStColumn.LOAD_SHIFT,
+        DfStColumn.WIND_HEIGHT,
     }
     cols_to_drop_ts = [
         DfStColumn.NET_LINK.value,
         DfStColumn.NET_TECH.value,
         DfStColumn.LOAD_SHIFT.value,
+        DfStColumn.WIND_HEIGHT.value,
     ]
     df_ts_hor.columns = df_ts_hor.columns.droplevel(cols_to_drop_ts)
     if df_ts_cl is not None:
