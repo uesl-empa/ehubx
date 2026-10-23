@@ -16,6 +16,7 @@ ehubX is developed and maintained by the `Urban Energy Systems Lab <https://www.
    input_files
    parameter_overview
    model
+   wind_module
    ehubx
    :maxdepth: 2
    :caption: Contents:

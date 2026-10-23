@@ -905,57 +905,93 @@ We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M param
 Wind model
 -----------
 
-*Wind technologies* are modelled as standalone generation units that convert
-kinetic wind energy into electrical power. The wind technology model defines
-its own set of tech tuples
+*Wind technologies* are generation units that convert kinetic wind energy into electrical power. An overview of the wind inputs and data structures is given in :ref:`wind_module`. The wind technology model defines its own set of tech tuples
 
 :raw-math:`\begin{align*} \mathcal{S}_{WindTechTuple} = \big \{ (s, h, x) \in \mathcal{S}_{TechTuple}: x \text{ is a wind technology} \big \} \end{align*}`
 
-For each tuple :math:`(s, h, x) \in \mathcal{S}_{WindTechTuple}`, the installed capacity :math:`\mathcal{V}_{TechCap}[s, h, x]` represents the **number of turbines** of type :math:`x` at hub :math:`h` in stage :math:`s`.
+For each tuple :math:`(s, h, x) \in \mathcal{S}_{WindTechTuple}`, the capacity :math:`\mathcal{V}_{TechCap}[s, h, x]` is the installed rated power of turbine type :math:`x` at hub :math:`h` in stage :math:`s`, in the model power unit (e.g. kW). It is continuous, so a solution can correspond to a fractional number of turbines.
 
-**Wind groups**
+**Wind groups and terrain sub-groups**
 
-Each hub :math:`h` may be associated with one or more *wind groups* :math:`w \in \mathcal{S}_{WindGroups}`, each representing a geographic wind zone. Wind speed and turbulence intensity data are provided per (stage, wind group) combination (see :ref:`wind_speed_csv`, :ref:`wind_turbulence_intensity_fixed_csv`, and :ref:`wind_turbulence_intensity_profile_csv`). Installed capacity is tracked per wind group via the variable :math:`\mathcal{V}_{WindTechCapInGroup}`, with the total capacity being the sum over all wind groups:
+Each *wind group* :math:`w \in \mathcal{S}_{WindGroups}` represents a geographic wind zone with its own wind-speed time series (:ref:`wind_speed_csv`) and reference height (:ref:`wind_groups_csv`). If :ref:`wind_terrain_areas_csv` is given, each wind group is split into *terrain sub-groups* :math:`(w, \tau)`, where the terrain :math:`\tau` (:ref:`wind_terrains_csv`) determines the surface roughness :math:`z_0[\tau]`. Otherwise, each wind group forms a single sub-group without a terrain. We collect all sub-groups in the set :math:`\mathcal{S}_{WindSubGroup}`.
 
-:raw-math:`\begin{align*} \mathcal{V}_{WindTechCapInGroup}&: \mathcal{S}_{WindTechTuple} \times \mathcal{S}_{WindGroups} \to \mathbb{R}_0^+ \\ \mathcal{V}_{TechCap}[s, h, x] &= \sum_{w \in \mathcal{S}_{WindGroups}} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w] \end{align*}`
+The installed capacity is distributed over the sub-groups:
 
-The output and curtailment variables are also defined per wind group, with the total output being their sum:
+:raw-math:`\begin{align*} \mathcal{V}_{WindTechCapInGroup}&: \mathcal{S}_{WindTechTuple} \times \mathcal{S}_{WindSubGroup} \to \mathbb{R}_0^+ \\ \mathcal{V}_{TechCap}[s, h, x] &= \sum_{(w, \tau) \in \mathcal{S}_{WindSubGroup}} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \end{align*}`
 
-:raw-math:`\begin{align*} \mathcal{V}_{WindTechOutInGroup},\, \mathcal{V}_{WindTechCurt}&: \mathcal{S}_{WindTechTuple} \times \mathcal{S}_{WindGroups} \times \mathcal{S}_{Time} \to \mathbb{R}_0^+ \\ \mathcal{V}_{WindTechOut}[s, h, x, t] &= \sum_{w \in \mathcal{S}_{WindGroups}} \mathcal{V}_{WindTechOutInGroup}[s, h, x, w, t] \end{align*}`
+If *allowed_terrains* is set for technology :math:`x` in :ref:`techs_yaml`, its capacity is forced to zero in all other terrains:
 
-**Available power per turbine**
+:raw-math:`\begin{align*} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] = 0 \quad \text{if } \tau \notin allowed\_terrains[x] \end{align*}`
 
-The available power per turbine :math:`P_{avail}[s, x, w, t]` is a fixed parameter computed before the optimisation from the mean wind speed and the selected turbulence intensity of wind group :math:`w`. The TI source is selected in this order: time-varying profile data from :ref:`wind_turbulence_intensity_profile_csv`, fixed stage/group data from :ref:`wind_turbulence_intensity_fixed_csv`, then the roughness-derived fallback :math:`1 / \ln(hub\_height / roughness)`. It represents the expected power output of a single turbine of type :math:`x` at time :math:`t`. The power is calculated using a discrete Gaussian-kernel integration over the wind speed distribution:
+**Available capacity factor**
 
-:raw-math:`\begin{align*} P_{avail}[s, x, w, t] = \frac{\sum_i w_i \cdot P(v_i)}{\sum_i w_i}, \quad w_i = \exp\!\left(-\frac{(v_i - \bar{v})^2}{2\sigma^2}\right) \end{align*}`
+The available output per unit of capacity, :math:`CF_{avail}[s, x, w, \tau, t] \in [0, 1]`, is a parameter computed before the optimization in four steps.
 
-where :math:`\bar{v} = wind\_speed[s, w, t]` is the mean wind speed at wind group :math:`w`, :math:`\sigma = \max(TI \cdot \bar{v},\, \sigma_{floor})`, and :math:`TI` is the selected profile, fixed, or roughness-derived turbulence intensity. The per-sample power :math:`P(v_i)` follows the theoretical power curve:
+1. The wind speed :math:`\bar{v}_{ref} = wind\_speed[s, w, t]` at the reference height :math:`z_{ref}[w]` is adjusted to the hub height :math:`z_{hub}[x]` with the logarithmic wind profile of the sub-group's terrain:
 
-:raw-math:`\begin{align*} P(v) = \begin{cases} 0 & \text{if } v < v_{in} \text{ or } v \ge v_{out} \\ \min\!\big(P_{rated},\; \tfrac{1}{2}\,\rho\, A\, C_p\, v^3\big) & \text{otherwise} \end{cases} \end{align*}`
+   :raw-math:`\begin{align*} \bar{v} = \bar{v}_{ref} \cdot \frac{\ln \big( z_{hub}[x] / z_0[\tau] \big)}{\ln \big( z_{ref}[w] / z_0[\tau] \big)} \end{align*}`
 
-with rotor swept area :math:`A = \pi (d/2)^2`, rated power :math:`P_{rated}`, power coefficient :math:`C_p`, and air density :math:`\rho`. If :math:`\bar{v} \le 0` or :math:`TI \le 0`, the theoretical curve is used directly. The parameters :math:`v_{in}`, :math:`v_{out}`, :math:`P_{rated}`, :math:`d`, and :math:`C_p` are specified per technology in :ref:`techs_yaml`.
+2. The turbulence intensity :math:`TI` is taken, in order of precedence, from :ref:`wind_turbulence_intensity_profile_csv` (per time step), from :ref:`wind_turbulence_intensity_fixed_csv` (per stage and wind group), or derived from the roughness as :math:`TI = 1 / \ln \big( z_{hub}[x] / z_0[\tau] \big)`.
 
-**Capacity constraint**
+3. Short-term fluctuations around :math:`\bar{v}` are represented by a normal distribution with standard deviation :math:`\sigma = \max(TI \cdot \bar{v},\, 0.05 \text{ m/s})`. The expected power per turbine is evaluated on a grid of wind speeds :math:`v_i` with spacing 0.25 m/s:
 
-For each wind group, the available power is split between useful output and curtailment:
+   :raw-math:`\begin{align*} P_{avail}[s, x, w, \tau, t] = \frac{\sum_i \omega_i \cdot P(v_i)}{\sum_i \omega_i}, \quad \omega_i = \exp\!\left(-\frac{(v_i - \bar{v})^2}{2\sigma^2}\right) \end{align*}`
 
-:raw-math:`\begin{align*} \mathcal{V}_{WindTechOutInGroup}[s, h, x, w, t] + \mathcal{V}_{WindTechCurt}[s, h, x, w, t] = P_{avail}[s, x, w, t] \cdot \mathcal{V}_{WindTechCapInGroup}[s, h, x, w] \end{align*}`
+   with the idealized power curve
 
-**Curtailment bounds**
+   :raw-math:`\begin{align*} P(v) = \begin{cases} 0 & \text{if } v < v_{in} \text{ or } v \ge v_{out} \\ \min\!\big(P_{rated},\; \tfrac{1}{2}\,\rho\, A\, C_p\, v^3\big) & \text{otherwise} \end{cases} \end{align*}`
 
-Curtailment can be bounded from above and below using the parameters :math:`curtail\_max\_rel` and :math:`curtail\_min\_rel`, which may be specified both at the technology level (in :ref:`techs_yaml`) and at the hub level (in :ref:`hubs_yaml`). When both are given, the more restrictive value is used. These parameters yield:
+   Here :math:`v_{in}` and :math:`v_{out}` are *cut_in_speed* (applied with a tolerance of 0.1 m/s) and *cut_out_speed*, :math:`P_{rated}` is *rated_power*, :math:`C_p` is *power_coefficient*, :math:`A = \pi (d/2)^2` is the rotor swept area for the *rotor_diameter* :math:`d`, and :math:`\rho = 1.225` kg/m³ is the air density at sea level. *rated_speed* is not used. If :math:`TI \le 0`, :math:`P(\bar{v})` is used directly.
 
-:raw-math:`\begin{align*} \mathcal{V}_{WindTechCurt}[s, h, x, w, t] &\le curtail\_max\_rel[s, h, x] \cdot P_{avail}[s, x, w, t] \cdot \mathcal{V}_{WindTechCapInGroup}[s, h, x, w] \\ \mathcal{V}_{WindTechCurt}[s, h, x, w, t] &\ge curtail\_min\_rel[s, h, x] \cdot P_{avail}[s, x, w, t] \cdot \mathcal{V}_{WindTechCapInGroup}[s, h, x, w] \end{align*}`
+4. The capacity factor is the expected power relative to the rated power:
 
-**Area constraint**
+   :raw-math:`\begin{align*} CF_{avail}[s, x, w, \tau, t] = P_{avail}[s, x, w, \tau, t] \, / \, P_{rated}[x] \end{align*}`
 
-The total area occupied by installed turbines may not exceed the available wind area :math:`wind\_area[s, h, w]` per (stage, hub, wind group) from :ref:`wind_areas_csv`:
+**Output and curtailment**
 
-:raw-math:`\begin{align*} \sum_{\substack{x \in \mathcal{S}_{Tech} \\ (s, h, x) \in \mathcal{S}_{WindTechTuple}}} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w] \cdot area\_per\_turbine[x] \le wind\_area[s, h, w] \end{align*}`
+In each sub-group, the available output is split between useful output and curtailment, and the total output is the sum over the sub-groups:
 
-where :math:`area\_per\_turbine[x]` [mÂ²] is a technology-level parameter from :ref:`techs_yaml`.
+:raw-math:`\begin{align*} \mathcal{V}_{WindTechOutInGroup}[s, h, x, w, \tau, t] + \mathcal{V}_{WindTechCurt}[s, h, x, w, \tau, t] &= CF_{avail}[s, x, w, \tau, t] \cdot \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \\ \mathcal{V}_{WindTechOut}[s, h, x, t] &= \sum_{(w, \tau) \in \mathcal{S}_{WindSubGroup}} \mathcal{V}_{WindTechOutInGroup}[s, h, x, w, \tau, t] \end{align*}`
 
+Curtailment can be bounded with :math:`curtail\_max\_rel` and :math:`curtail\_min\_rel`, which may be given at the technology level (:ref:`techs_yaml`) and at the hub level (:ref:`hubs_yaml`); the more restrictive value is used:
 
+:raw-math:`\begin{align*} curtail\_min\_rel[s, h, x] \cdot CF_{avail} \cdot \mathcal{V}_{WindTechCapInGroup} \le \mathcal{V}_{WindTechCurt}[s, h, x, w, \tau, t] \le curtail\_max\_rel[s, h, x] \cdot CF_{avail} \cdot \mathcal{V}_{WindTechCapInGroup} \end{align*}`
+
+where :math:`CF_{avail}` and :math:`\mathcal{V}_{WindTechCapInGroup}` carry the same indices as the curtailment.
+
+**Area constraints**
+
+Where :ref:`wind_areas_csv` defines an area :math:`wind\_area[s, h, w]`, each sub-group may use its share of it,
+
+:raw-math:`\begin{align*} Area_{avail}[s, h, w, \tau] = wind\_area[s, h, w] \cdot \frac{frac[w, \tau]}{\sum_{\tau'} frac[w, \tau']} \end{align*}`
+
+with the terrain shares :math:`frac` from :ref:`wind_terrain_areas_csv`. Since capacity is in power units, the footprint of a technology is its capacity divided by the rated power of one turbine, times *area_per_turbine*. The area limit applies both to the capacity present in a stage and to all installations still within their lifetime:
+
+:raw-math:`\begin{align*} \sum_{x} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \cdot \frac{area\_per\_turbine[x]}{P_{rated}[x]} &\le Area_{avail}[s, h, w, \tau] \\ \sum_{s_{instl}} \sum_{x} \mathcal{V}_{WindTechCapInstlInGroup}[s_{instl}, h, x, w, \tau] \cdot \frac{area\_per\_turbine[x]}{P_{rated}[x]} &\le Area_{avail}[s, h, w, \tau] \end{align*}`
+
+where the second sum runs over the installation stages :math:`s_{instl}` whose installations are still within their lifetime in stage :math:`s`. Without :ref:`wind_areas_csv`, wind capacity is not limited by area.
+
+**Location of installed capacity**
+
+New installations are also tracked per sub-group, and a turbine stays in the sub-group where it was built for its whole lifetime:
+
+:raw-math:`\begin{align*} \mathcal{V}_{TechCapInstl}[s, h, x] &= \sum_{(w, \tau) \in \mathcal{S}_{WindSubGroup}} \mathcal{V}_{WindTechCapInstlInGroup}[s, h, x, w, \tau] \\ \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] &\ge \sum_{s_{instl}} \mathcal{V}_{WindTechCapInstlInGroup}[s_{instl}, h, x, w, \tau] \end{align*}`
+
+with the sum again over installations still within their lifetime in stage :math:`s`.
+
+**Terrain-adjusted costs**
+
+If :ref:`wind_terrain_multipliers_csv` is given, the cost variables :math:`\mathcal{V}_{TechCostCapex}` and :math:`\mathcal{V}_{TechCostOpexCap}` of the :ref:`technology model <tech_model>` are evaluated per sub-group for wind technologies, with the multipliers :math:`m^{one\_time\_capex}`, :math:`m^{capex\_per\_cap}`, :math:`m^{one\_time\_opex}` and :math:`m^{opex\_per\_cap}` (default 1):
+
+:raw-math:`\begin{align*} \mathcal{V}_{TechCostCapex}[s, h, x] &= CRF \cdot \sum_{s_{instl}} \sum_{(w, \tau)} \Big( one\_time\_capex \cdot m^{one\_time\_capex}[w, \tau] \cdot \mathcal{V}_{YWindTechCapInstlGroup}[s_{instl}, h, x, w, \tau] + capex\_per\_cap \cdot m^{capex\_per\_cap}[w, \tau] \cdot \mathcal{V}_{WindTechCapInstlInGroup}[s_{instl}, h, x, w, \tau] \Big) \\ \mathcal{V}_{TechCostOpexCap}[s, h, x] &= \sum_{(w, \tau)} \Big( one\_time\_opex \cdot m^{one\_time\_opex}[w, \tau] \cdot \mathcal{V}_{YWindTechUsedGroup}[s, h, x, w, \tau] + opex\_per\_cap \cdot m^{opex\_per\_cap}[w, \tau] \cdot \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \Big) \end{align*}`
+
+where the cost parameters are those of technology :math:`x` (CAPEX in the installation stage, OPEX in stage :math:`s`), the sum over :math:`s_{instl}` again runs over installations within their lifetime, and the binary variables :math:`\mathcal{V}_{YWindTechCapInstlGroup}` and :math:`\mathcal{V}_{YWindTechUsedGroup}` indicate whether capacity is installed or present in a sub-group (big-M constraints). The one-time costs are therefore charged once per sub-group in which a technology is built.
+
+**Assumptions and limitations**
+
+* The power curve is idealized: a constant power coefficient up to rated power instead of a manufacturer's curve.
+* The air density is fixed at its sea-level value; at higher sites it is lower (about 12% at 1200 m), so the output is overestimated there.
+* Roughness enters only through the logarithmic wind profile and the derived turbulence intensity. There is no displacement height for tall vegetation such as forest, so a rougher terrain can yield *more* output above the reference height than a smoother one.
 
 .. _network_model:
 

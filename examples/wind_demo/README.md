@@ -21,7 +21,7 @@ python examples/wind_demo/main_wind_demo.py
 | Wind area | 4 km², 60% pasture (roughness 0.1 m), 40% forest (0.8 m) | Assumption |
 | Forest cost multipliers | CAPEX ×1.1, one-time CAPEX ×1.2, OPEX ×1.05 | Assumption (clearing, access roads) |
 | Turbines | Enercon E-82 E2 (2.3 MW, 108 m hub, pasture only), Vestas V112 (3.45 MW, 119 m), Enercon E-138 EP3 (4.26 MW, 131 m) | Approximate public manufacturer data |
-| Costs | CAPEX 2800 / 2600 / 2400 CHF/kW, 1.5 M CHF one-time per turbine type, O&M 60 CHF/kW/a, lifetime 20 / 20 / 25 a, interest 5% | Rough estimates for Switzerland |
+| Costs | CAPEX 2800 / 2600 / 2400 CHF/kW, 1.5 M CHF one-time per turbine type and terrain in which it is built, O&M 60 CHF/kW/a, lifetime 20 / 20 / 25 a, interest 5% | Rough estimates for Switzerland |
 | Time resolution | 8760 h, clustered to 50 representative hours (TSAM) | Remove the `rom` call in `main_wind_demo.py` to solve the full year |
 
 ## Expected result
@@ -46,6 +46,9 @@ more would mainly add exports.
   fractional number of turbines.
 - The turbine power curve is idealized (constant power coefficient up to rated
   power) rather than the manufacturer's curve.
+- The air density is fixed at its sea-level value (1.225 kg/m³). At the
+  Jura crest, about 1200 m above sea level, it is roughly 12% lower, so the
+  output is somewhat overestimated.
 - Terrain roughness only enters the height extrapolation above the 100 m
   reference height and the turbulence intensity. There is no displacement
   height for the forest canopy, so forest sites come out with a slightly

@@ -74,7 +74,7 @@ Make sure that the ``PYTHON_VERSION`` you choose is a compatible with the curren
 
 ## Examples
 
-The ``examples`` directory contains demo projects that give an impression on how to work with ehubX models. The most academic example and a good place to start is the *small_demo*.
+The ``examples`` directory contains demo projects that give an impression on how to work with ehubX models. The most academic example and a good place to start is the *small_demo*. The *wind_demo* shows the wind module on a realistic one-year case.
 
 ## How to cite
 

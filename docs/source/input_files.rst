@@ -358,15 +358,17 @@ techs.yaml
 
 **Wind parameters**
 
-* **wind_params** (*mandatory for wind techs*): Dictionary with parameters for the :ref:`wind_tech_model`. The capacity unit [CAP] for wind technologies is the **number of turbines**.
+* **wind_params** (*mandatory for wind techs*): Dictionary with parameters for the :ref:`wind_tech_model`. The capacity unit [CAP] for wind technologies is **kW of installed rated power** (not the number of turbines), so cost parameters such as *capex_per_cap* are given per kW. Capacity is continuous, so a solution can correspond to a fractional number of turbines. See technology *X9* in the example above.
 * **ec** (*mandatory*): Id of the EC produced by the wind technology. Must be defined in :ref:`ecs_yaml`.
-* **rated_power** (*mandatory, [MW]*): Nameplate (rated) power of a single turbine. Must be given with the unit suffix ``MW``.
-* **v_in** (*mandatory, [m/s]*): Cut-in wind speed. Below this speed the turbine produces no power. Must be given with the unit suffix ``m/s``.
-* **v_out** (*mandatory, [m/s]*): Cut-out wind speed. At or above this speed the turbine shuts down for safety. Must be given with the unit suffix ``m/s``.
-* **rotor_diameter** (*mandatory, [m]*): Rotor diameter of the turbine. Used to compute the rotor swept area. Must be given with the unit suffix ``m``.
-* **power_coefficient** (*mandatory, [-]*): Power coefficient :math:`C_p`. Represents the fraction of kinetic wind energy converted to electrical power. Typical values are 0.35â€“0.50.
-* **area_per_turbine** (*mandatory, [km^2]*): Land area required per turbine. Used together with :ref:`wind_areas_csv` to limit the total number of installable turbines. Must be given with the unit suffix ``km^2``.
-* **allowed_terrains** (*optional, default=all terrains*): List of terrain ids (from :ref:`wind_terrains_csv`) in which this wind technology is allowed to operate. If set, the model enforces zero installed capacity for this tech in all non-listed terrains.
+* **rated_power** (*mandatory, [MW]*): Nameplate (rated) power of a single turbine. Must be given with a power unit, e.g. ``4.2 MW``.
+* **cut_in_speed** (*mandatory, [m/s]*): Cut-in wind speed. Below this speed the turbine produces no power.
+* **rated_speed** (*mandatory, [m/s]*): Rated wind speed of the turbine. It is parsed and validated, but **currently not used** by the model: the power curve reaches rated power where :math:`\tfrac{1}{2} \rho A C_p v^3` equals *rated_power* (see :ref:`wind_tech_model`).
+* **cut_out_speed** (*mandatory, [m/s]*): Cut-out wind speed. At or above this speed the turbine shuts down for safety.
+* **rotor_diameter** (*mandatory, [m]*): Rotor diameter of the turbine. Used to compute the rotor swept area.
+* **hub_height** (*mandatory, [m]*): Hub height of the turbine. Wind speeds are adjusted from the wind-group reference height (:ref:`wind_groups_csv`) to this height.
+* **power_coefficient** (*mandatory, [-]*): Power coefficient :math:`C_p`, the fraction of the kinetic wind energy converted to electrical power. It is assumed constant up to rated power. Typical values are 0.35–0.50.
+* **area_per_turbine** (*mandatory, [km^2]*): Land area required per turbine. Used together with :ref:`wind_areas_csv` and :ref:`wind_terrain_areas_csv` to limit the installable capacity.
+* **allowed_terrains** (*optional, default=all terrains*): List of terrain ids (from :ref:`wind_terrains_csv`) in which this wind technology may be installed. If set, the model enforces zero installed capacity for this tech in all non-listed terrains.
 * **curtail_max_rel** (*optional, default=1, [-]*): Maximum fraction of available wind power that may be curtailed. A value of 1 means any amount of power can be curtailed; a value of 0 means no curtailment is allowed. If also specified at the hub level in :ref:`hubs_yaml`, the more restrictive (smaller) value is used.
 * **curtail_min_rel** (*optional, default=0, [-]*): Minimum fraction of available wind power that must be curtailed. A value of 0 imposes no lower curtailment bound. If also specified at the hub level in :ref:`hubs_yaml`, the more restrictive (larger) value is used.
 
@@ -655,6 +657,8 @@ These values are used by :ref:`wind_module` when adjusting a speed profile from
 the wind-group reference height to a wind turbine hub height.
 
 
+.. _wind_terrains_csv:
+
 wind_terrains.csv
 -----------------
 
@@ -664,14 +668,51 @@ wind_terrains.csv
 
 Each column is identified by ``terrain_id``. The ``roughness`` row defines the
 terrain surface roughness length, using the length unit in the ``unit`` row.
+Typical values are about 0.03 m for open grassland, 0.1 m for farmland and
+0.5–1 m for forest. The roughness is used to adjust wind speeds to the hub
+height and, if no turbulence intensity file is given, to derive the turbulence
+intensity (see :ref:`wind_tech_model`).
 
+
+.. _wind_terrain_areas_csv:
 
 wind_terrain_areas.csv
 ----------------------
 
-This optional file splits each wind group into terrain subgroups. Columns are
-identified by ``wind_group_id`` and rows are terrain ids. Values are fractions
-of the wind-group area and should sum to 1 for each wind-group column.
+.. literalinclude:: model_inputs/renewables/wind_terrain_areas.csv
+    :language: ruby
+    :caption: *wind_terrain_areas.csv*: Terrain shares per wind group.
+
+This optional file splits each wind group into terrain sub-groups. Columns are
+identified by ``wind_group_id``, followed by a ``unit`` row; the remaining rows
+are terrain ids from :ref:`wind_terrains_csv`. Values are the shares of the
+wind-group area that each terrain covers. They are normalized per wind group,
+so they may be given as fractions or as percentages.
+
+If the file is absent, each wind group forms a single sub-group without a
+terrain.
+
+
+.. _wind_terrain_multipliers_csv:
+
+wind_terrain_multipliers.csv
+----------------------------
+
+.. literalinclude:: model_inputs/renewables/wind_terrain_multipliers.csv
+    :language: ruby
+    :caption: *wind_terrain_multipliers.csv*: Terrain cost multipliers per wind group and terrain.
+
+This optional file scales the cost parameters of wind technologies per
+``(wind_group_id, terrain_id)`` sub-group, given in the two header rows,
+followed by a ``unit`` row. The data rows are the cost components
+``one_time_capex``, ``capex_per_cap``, ``one_time_opex`` and ``opex_per_cap``
+from :ref:`techs_yaml`; a missing component or sub-group defaults to 1, i.e.
+the standard cost applies.
+
+When this file is present, the wind cost constraints are evaluated per
+sub-group. Note that the one-time costs (*one_time_capex*, *one_time_opex*)
+are then charged once **per sub-group** in which a technology is built, not
+once per technology.
 
 
 .. _wind_speed_csv:
@@ -737,7 +778,10 @@ Each data row corresponds to one *wind_group_id*. In other words:
 * row index: ``wind_group_id``
 
 The parser reads one area value for each ``(stage, hub, wind_group)`` tuple.
-The area value limits the total turbine footprint per wind group via
-:math:`\sum_x \mathcal{V}_{WindTechCapInGroup}[s,h,x,w] \cdot area\_per\_turbine[x] \le wind\_area[s,h,w]`,
-where :math:`area\_per\_turbine` is specified per technology in :ref:`techs_yaml`.
+The area is split into terrain sub-groups with :ref:`wind_terrain_areas_csv`,
+and the turbine footprint in each sub-group is limited to its share of the
+area. Since capacity is in kW, the footprint of a technology is its capacity
+divided by *rated_power*, times *area_per_turbine* from :ref:`techs_yaml`
+(see the area constraints in :ref:`wind_tech_model`). Without this file, wind
+capacity is not limited by area.
 
