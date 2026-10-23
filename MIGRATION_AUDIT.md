@@ -98,10 +98,41 @@ Substantial work from the last three months; almost certainly still wanted.
 | Branch | Commits | Last activity | Author |
 |---|---|---|---|
 | `issue268_wind-module-reintroduction` | 66 | 2026-07-24 | chyi |
-| `issue268_wind-module-reintroduction-lele` | 39 | 2026-08-20 | Barton Chen |
+| `issue268_wind-module-reintroduction-lele` | 55 | 2026-10-05 | Xinge Gao |
 | `issue277_improve-parser-lifetime-and-technology-summary-logging` | 3 | 2026-07-21 | chyi |
 
-The two wind branches overlap and should be reconciled into one before porting.
+The two wind branches overlap. They were reconciled as follows when the wind
+module was ported in #40 (issue #23):
+
+- `issue268_wind-module-reintroduction` is the source of the port, at
+  `7affa272`, its tip at the time of porting.
+- `issue268_wind-module-reintroduction-lele` is **not ported**. It holds an
+  **older version of the same module**, branched before the turbulence-intensity
+  and terrain rework of 2026-07-18 to 07-21 on the main wind branch:
+  - a single static turbulence intensity per turbine and terrain, read from
+    `wind_turbulence_intensity.csv` (precomputed as `1 / ln(hub height /
+    roughness)`), instead of the three options of the ported version
+    (time series, fixed per wind group, or derived from roughness)
+  - reference height and roughness per terrain in `wind_groups.csv`, instead
+    of height per wind group (`wind_groups.csv`) and roughness per terrain
+    (`wind_terrains.csv`)
+  - `wind_terrain_areas.csv` with wind groups as rows and terrains as columns,
+    the transpose of the ported layout
+
+  Its only code commit beyond the shared history is `ea4248f2` (2026-06-26,
+  "updated wind module with terrain specific data"), whose terrain changes the
+  main wind branch later reworked. Its extra test `test_wind_allowed_groups.py`
+  tests `is_wind_group_allowed`, which exists on neither branch. The
+  remaining commits are SwissX scenario runs for Xinge Gao's thesis (inputs
+  and outputs), which stay on GitLab as the record of what was run.
+
+**Note for anyone reproducing those SwissX results:** they were produced with
+the older module. Their inputs do not load into the ported module without
+conversion (split `wind_groups.csv` into `wind_groups.csv` and
+`wind_terrains.csv`, transpose `wind_terrain_areas.csv`, drop
+`wind_turbulence_intensity.csv`). The model equations are otherwise the same,
+so converted inputs should give the same results, but this has not yet been
+verified.
 
 ### Small and specific — cheap to port, decide individually
 
