@@ -1,4 +1,4 @@
-.. only:: latex
+﻿.. only:: latex
 
    .. raw:: latex
 
@@ -35,10 +35,18 @@ The ehubX model is built from sub-models (or *modules*) that address different a
         |-- ebm_tech_model
         |-- ates_model
         |-- hp_tech_model
+        |-- wind_tech_model
     |-- self_sufficiency_model
-    |-- autonomy_model
 
-Each model is responsible for a specific aspect of the energy system and most models are built independently from each other, relying only on models which lie higher up in the hierarchy. This modular structure allows for easy extension of the framework by adding new models or modifying existing ones. The :ref:`energy system model<energy_system_model>` serves as the overarching bridge that integrates all sub-models into a cohesive whole. We will start here with the individual model although some users may find it more intuitive to start with the :ref:`energy system model<energy_system_model>` first.
+Each model is responsible for a specific aspect of the energy system and most models are built independently from each other, relying only on models which lie higher up in the hierarchy. This modular structure allows for easy extension of the framework by adding new models or modifying existing ones. The :ref:`energy system model<energy_system_model>` serves as the overarching bridge that integrates all sub-models into a cohesive whole. We will start here with the individual model although some users may find it more intuitive to start with the :ref:`energy system model<energy_system_model>` first.For wind-specific implementation details and data flow, see :ref:`wind_module`.
+
+
+.. toctree::
+   :maxdepth: 1
+
+   wind_module
+
+
 
 .. _stage_model:
 
@@ -185,21 +193,6 @@ Additionally, certain formulations in other modules require a so-called *big-M* 
 Note the underlying assumption in this approach that the demand series will be able to quantify the general dimensionality of the system. Especially in systems with small demand profiles (but also in general), it might be prudent to explicitly set values for certain parameters so that the generic big-M parameter does not have to be used. Tailored warning messages are routinely logged for this reason, notifying the user which parameters are missing to calculate a specific big-M parameter (the most common candidate for this is :math:`cap\_max` from :ref:`hubs.yaml<hubs_yaml>` and :ref:`network_links.yaml<network_links_yaml>`). Additionally, if no demand-profile exists for a specific carrier, a fallback option is required. In this case, the largest heuristic limit derived from the demand-profiles of other carriers with the same unit type is used. If there are no such carriers, the parameters *heur_max* and *heur_sum_max* from :ref:`ecs.yaml<ecs_yaml>` are used instead, where a missing *heur_sum_max* is replaced by *heur_max* multiplied by the number of horizon time steps. If a heuristic limit is required but none of these values is available, an error is raised when the model is built. Note that demand-sums do not contribute to the heuristic limits: a carrier whose demand is only given as a demand-sum is treated like a carrier without a demand-profile.
 
 These heuristic limits are not only used as big-M parameters, but also as **actual bounds** of the capacity variable :math:`\mathcal{V}_{TechCap}` whenever *cap_max* is not set in :ref:`hubs.yaml<hubs_yaml>`: conversion and heat pump technologies are bounded by the per-time-step limit, storage technologies by the summed-up limit. Since the summed-up limit contains the time step :ref:`weights <weight>`, the weights influence not only cost and energy sums but also the maximal installable storage capacity. Setting *cap_max* explicitly removes this coupling.
-
-
-Furthermore, in certain formulations demand satisfaction may be relaxed through the introduction of an unmet demand variable. For this purpose, we define
-
-:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \in \mathbb{R}_0^+ \quad \forall (s,h,e) \in \mathcal{S}_{DemandTuple},~ t \in \mathcal{S}_{Time} \end{align*}`
-
-This variable represents the portion of demand that is not satisfied by the system.
-
-Its use is not part of the core demand formulation, but is instead activated by higher-level modules such as the :ref:`autonomy model<autonomy_model>`.
-
-If unmet demand is enabled, the demand-sum constraint is extended such that both served and unmet demand contribute to the total:
-
-:raw-math:`\begin{align*} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s,t] \cdot \left( \mathcal{V}_{DemandSupply}[s,h,e,t] + \mathcal{V}_{DemandUnmet}[s,h,e,t] \right) = demand\_sum[s,h,e] \quad \forall (s,h,e) \in \mathcal{S}_{DemandSumTuple} \end{align*}`
-
-Hence, the prescribed total demand remains fully accounted for, either through actual supply or through unmet demand.
 
 
 
@@ -907,6 +900,99 @@ We recall that :math:`{P}_{BigMGeneric}` is the demand-based default big-M param
 
 
 
+.. _wind_tech_model:
+
+Wind model
+-----------
+
+*Wind technologies* are generation units that convert kinetic wind energy into electrical power. An overview of the wind inputs and data structures is given in :ref:`wind_module`. The wind technology model defines its own set of tech tuples
+
+:raw-math:`\begin{align*} \mathcal{S}_{WindTechTuple} = \big \{ (s, h, x) \in \mathcal{S}_{TechTuple}: x \text{ is a wind technology} \big \} \end{align*}`
+
+For each tuple :math:`(s, h, x) \in \mathcal{S}_{WindTechTuple}`, the capacity :math:`\mathcal{V}_{TechCap}[s, h, x]` is the installed rated power of turbine type :math:`x` at hub :math:`h` in stage :math:`s`, in the model power unit (e.g. kW). It is continuous, so a solution can correspond to a fractional number of turbines.
+
+**Wind groups and terrain sub-groups**
+
+Each *wind group* :math:`w \in \mathcal{S}_{WindGroups}` represents a geographic wind zone with its own wind-speed time series (:ref:`wind_speed_csv`) and reference height (:ref:`wind_groups_csv`). If :ref:`wind_terrain_areas_csv` is given, each wind group is split into *terrain sub-groups* :math:`(w, \tau)`, where the terrain :math:`\tau` (:ref:`wind_terrains_csv`) determines the surface roughness :math:`z_0[\tau]`. Otherwise, each wind group forms a single sub-group without a terrain. We collect all sub-groups in the set :math:`\mathcal{S}_{WindSubGroup}`.
+
+The installed capacity is distributed over the sub-groups:
+
+:raw-math:`\begin{align*} \mathcal{V}_{WindTechCapInGroup}&: \mathcal{S}_{WindTechTuple} \times \mathcal{S}_{WindSubGroup} \to \mathbb{R}_0^+ \\ \mathcal{V}_{TechCap}[s, h, x] &= \sum_{(w, \tau) \in \mathcal{S}_{WindSubGroup}} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \end{align*}`
+
+If *allowed_terrains* is set for technology :math:`x` in :ref:`techs_yaml`, its capacity is forced to zero in all other terrains:
+
+:raw-math:`\begin{align*} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] = 0 \quad \text{if } \tau \notin allowed\_terrains[x] \end{align*}`
+
+**Available capacity factor**
+
+The available output per unit of capacity, :math:`CF_{avail}[s, x, w, \tau, t] \in [0, 1]`, is a parameter computed before the optimization in four steps.
+
+1. The wind speed :math:`\bar{v}_{ref} = wind\_speed[s, w, t]` at the reference height :math:`z_{ref}[w]` is adjusted to the hub height :math:`z_{hub}[x]` with the logarithmic wind profile of the sub-group's terrain:
+
+   :raw-math:`\begin{align*} \bar{v} = \bar{v}_{ref} \cdot \frac{\ln \big( z_{hub}[x] / z_0[\tau] \big)}{\ln \big( z_{ref}[w] / z_0[\tau] \big)} \end{align*}`
+
+2. The turbulence intensity :math:`TI` is taken, in order of precedence, from :ref:`wind_turbulence_intensity_profile_csv` (per time step), from :ref:`wind_turbulence_intensity_fixed_csv` (per stage and wind group), or derived from the roughness as :math:`TI = 1 / \ln \big( z_{hub}[x] / z_0[\tau] \big)`.
+
+3. Short-term fluctuations around :math:`\bar{v}` are represented by a normal distribution with standard deviation :math:`\sigma = \max(TI \cdot \bar{v},\, 0.05 \text{ m/s})`. The expected power per turbine is evaluated on a grid of wind speeds :math:`v_i` with spacing 0.25 m/s:
+
+   :raw-math:`\begin{align*} P_{avail}[s, x, w, \tau, t] = \frac{\sum_i \omega_i \cdot P(v_i)}{\sum_i \omega_i}, \quad \omega_i = \exp\!\left(-\frac{(v_i - \bar{v})^2}{2\sigma^2}\right) \end{align*}`
+
+   with the idealized power curve
+
+   :raw-math:`\begin{align*} P(v) = \begin{cases} 0 & \text{if } v < v_{in} \text{ or } v \ge v_{out} \\ \min\!\big(P_{rated},\; \tfrac{1}{2}\,\rho\, A\, C_p\, v^3\big) & \text{otherwise} \end{cases} \end{align*}`
+
+   Here :math:`v_{in}` and :math:`v_{out}` are *cut_in_speed* (applied with a tolerance of 0.1 m/s) and *cut_out_speed*, :math:`P_{rated}` is *rated_power*, :math:`C_p` is *power_coefficient*, :math:`A = \pi (d/2)^2` is the rotor swept area for the *rotor_diameter* :math:`d`, and :math:`\rho = 1.225` kg/m³ is the air density at sea level. *rated_speed* is not used. If :math:`TI \le 0`, :math:`P(\bar{v})` is used directly.
+
+4. The capacity factor is the expected power relative to the rated power:
+
+   :raw-math:`\begin{align*} CF_{avail}[s, x, w, \tau, t] = P_{avail}[s, x, w, \tau, t] \, / \, P_{rated}[x] \end{align*}`
+
+**Output and curtailment**
+
+In each sub-group, the available output is split between useful output and curtailment, and the total output is the sum over the sub-groups:
+
+:raw-math:`\begin{align*} \mathcal{V}_{WindTechOutInGroup}[s, h, x, w, \tau, t] + \mathcal{V}_{WindTechCurt}[s, h, x, w, \tau, t] &= CF_{avail}[s, x, w, \tau, t] \cdot \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \\ \mathcal{V}_{WindTechOut}[s, h, x, t] &= \sum_{(w, \tau) \in \mathcal{S}_{WindSubGroup}} \mathcal{V}_{WindTechOutInGroup}[s, h, x, w, \tau, t] \end{align*}`
+
+Curtailment can be bounded with :math:`curtail\_max\_rel` and :math:`curtail\_min\_rel`, which may be given at the technology level (:ref:`techs_yaml`) and at the hub level (:ref:`hubs_yaml`); the more restrictive value is used:
+
+:raw-math:`\begin{align*} curtail\_min\_rel[s, h, x] \cdot CF_{avail} \cdot \mathcal{V}_{WindTechCapInGroup} \le \mathcal{V}_{WindTechCurt}[s, h, x, w, \tau, t] \le curtail\_max\_rel[s, h, x] \cdot CF_{avail} \cdot \mathcal{V}_{WindTechCapInGroup} \end{align*}`
+
+where :math:`CF_{avail}` and :math:`\mathcal{V}_{WindTechCapInGroup}` carry the same indices as the curtailment.
+
+**Area constraints**
+
+Where :ref:`wind_areas_csv` defines an area :math:`wind\_area[s, h, w]`, each sub-group may use its share of it,
+
+:raw-math:`\begin{align*} Area_{avail}[s, h, w, \tau] = wind\_area[s, h, w] \cdot \frac{frac[w, \tau]}{\sum_{\tau'} frac[w, \tau']} \end{align*}`
+
+with the terrain shares :math:`frac` from :ref:`wind_terrain_areas_csv`. Since capacity is in power units, the footprint of a technology is its capacity divided by the rated power of one turbine, times *area_per_turbine*. The area limit applies both to the capacity present in a stage and to all installations still within their lifetime:
+
+:raw-math:`\begin{align*} \sum_{x} \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \cdot \frac{area\_per\_turbine[x]}{P_{rated}[x]} &\le Area_{avail}[s, h, w, \tau] \\ \sum_{s_{instl}} \sum_{x} \mathcal{V}_{WindTechCapInstlInGroup}[s_{instl}, h, x, w, \tau] \cdot \frac{area\_per\_turbine[x]}{P_{rated}[x]} &\le Area_{avail}[s, h, w, \tau] \end{align*}`
+
+where the second sum runs over the installation stages :math:`s_{instl}` whose installations are still within their lifetime in stage :math:`s`. Without :ref:`wind_areas_csv`, wind capacity is not limited by area.
+
+**Location of installed capacity**
+
+New installations are also tracked per sub-group, and a turbine stays in the sub-group where it was built for its whole lifetime:
+
+:raw-math:`\begin{align*} \mathcal{V}_{TechCapInstl}[s, h, x] &= \sum_{(w, \tau) \in \mathcal{S}_{WindSubGroup}} \mathcal{V}_{WindTechCapInstlInGroup}[s, h, x, w, \tau] \\ \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] &\ge \sum_{s_{instl}} \mathcal{V}_{WindTechCapInstlInGroup}[s_{instl}, h, x, w, \tau] \end{align*}`
+
+with the sum again over installations still within their lifetime in stage :math:`s`.
+
+**Terrain-adjusted costs**
+
+If :ref:`wind_terrain_multipliers_csv` is given, the cost variables :math:`\mathcal{V}_{TechCostCapex}` and :math:`\mathcal{V}_{TechCostOpexCap}` of the :ref:`technology model <tech_model>` are evaluated per sub-group for wind technologies, with the multipliers :math:`m^{one\_time\_capex}`, :math:`m^{capex\_per\_cap}`, :math:`m^{one\_time\_opex}` and :math:`m^{opex\_per\_cap}` (default 1):
+
+:raw-math:`\begin{align*} \mathcal{V}_{TechCostCapex}[s, h, x] &= CRF \cdot \sum_{s_{instl}} \sum_{(w, \tau)} \Big( one\_time\_capex \cdot m^{one\_time\_capex}[w, \tau] \cdot \mathcal{V}_{YWindTechCapInstlGroup}[s_{instl}, h, x, w, \tau] + capex\_per\_cap \cdot m^{capex\_per\_cap}[w, \tau] \cdot \mathcal{V}_{WindTechCapInstlInGroup}[s_{instl}, h, x, w, \tau] \Big) \\ \mathcal{V}_{TechCostOpexCap}[s, h, x] &= \sum_{(w, \tau)} \Big( one\_time\_opex \cdot m^{one\_time\_opex}[w, \tau] \cdot \mathcal{V}_{YWindTechUsedGroup}[s, h, x, w, \tau] + opex\_per\_cap \cdot m^{opex\_per\_cap}[w, \tau] \cdot \mathcal{V}_{WindTechCapInGroup}[s, h, x, w, \tau] \Big) \end{align*}`
+
+where the cost parameters are those of technology :math:`x` (CAPEX in the installation stage, OPEX in stage :math:`s`), the sum over :math:`s_{instl}` again runs over installations within their lifetime, and the binary variables :math:`\mathcal{V}_{YWindTechCapInstlGroup}` and :math:`\mathcal{V}_{YWindTechUsedGroup}` indicate whether capacity is installed or present in a sub-group (big-M constraints). The one-time costs are therefore charged once per sub-group in which a technology is built.
+
+**Assumptions and limitations**
+
+* The power curve is idealized: a constant power coefficient up to rated power instead of a manufacturer's curve.
+* The air density is fixed at its sea-level value; at higher sites it is lower (about 12% at 1200 m), so the output is overestimated there.
+* Roughness enters only through the logarithmic wind profile and the derived turbulence intensity. There is no displacement height for tall vegetation such as forest, so a rougher terrain can yield *more* output above the reference height than a smoother one.
+
 .. _network_model:
 
 Network model
@@ -1186,7 +1272,7 @@ The goal is to arrive at an equation system where :math:`x` is assigned to exact
 \sum_{\ell=1}^L z_\ell = 1.
 \end{align*}`
 
-Lastly :math:`x` must be connected to the correct triangle. In the expression for :math:`x` above, the convex multipliers :math:`\lambda_{ij}` were used to express :math:`x` via the grid points :math:`\hat{x}_{ij}`. Therefore, what remains is to establish the connection between these multipliers and the triangle indicator variables :math:`z_\ell`. For each triangle :math:`1 \le \ell \le L`, let :math:`\mathcal{E}_\ell` denote the corner points of this triangle. An additional restriction is then imposed to ensure that only the *active* triangle’s grid points may contribute:
+Lastly :math:`x` must be connected to the correct triangle. In the expression for :math:`x` above, the convex multipliers :math:`\lambda_{ij}` were used to express :math:`x` via the grid points :math:`\hat{x}_{ij}`. Therefore, what remains is to establish the connection between these multipliers and the triangle indicator variables :math:`z_\ell`. For each triangle :math:`1 \le \ell \le L`, let :math:`\mathcal{E}_\ell` denote the corner points of this triangle. An additional restriction is then imposed to ensure that only the *active* triangleâ€™s grid points may contribute:
 
 :raw-math:`\begin{align*}
 \lambda_{ij} \;\le\;
@@ -1215,74 +1301,6 @@ where the precomputed values of :math:`\mathcal{V}_{SelfSufficiency}` at the gri
 Finally, independent of the method that is used for the calculation of the variable :math:`\mathcal{V}_{SelfSufficiency}`, two additional constraints based on the parameters *self_sufficiency_min* and *self_sufficiency_max* from :ref:`stages.yaml<stages_yaml>` are added:
 
 :raw-math:`\begin{align*} self\_sufficiency\_min ~\le~ \mathcal{V}_{SelfSufficiency} ~\le~ self\_sufficiency\_max \end{align*}`
-
-
-
-.. _autonomy_model:
-
-Autonomy model
-----------------
-
-In ehubX, the concept of autonomy measures how long an energy system can operate without relying on cross-border imports. The autonomy is defined as the length of the longest consecutive time period during which demand can be satisfied using only internal resources.
-
-The core of the formulation is a binary variable indicating whether the system is still autonomous ("alive") at a given stage and time step:
-
-:raw-math:`\begin{align*} \mathcal{V}_{AutAlive}[s,t] \in \{0,1\} \end{align*}`
-
-where :math:`\mathcal{V}_{AutAlive}[s,t] = 1` indicates that the system is autonomous at stage :math:`s` and time :math:`t`, and :math:`\mathcal{V}_{AutAlive}[s,t] = 0` indicates that autonomy has been lost.
-
-To ensure that autonomy represents a continuous operation until the first failure, a prefix structure is enforced:
-
-:raw-math:`\begin{align*} \mathcal{V}_{AutAlive}[s,t] \ge \mathcal{V}_{AutAlive}[s,t+1] \quad \forall s \in \mathcal{S}_{Stage},~ t \in \mathcal{S}_{TimeHorizon} \end{align*}`
-
-
-The total autonomy duration per stage is defined as
-
-:raw-math:`\begin{align*} \mathcal{V}_{Autonomy}[s] \in \mathbb{R}_0^+, \quad \mathcal{V}_{Autonomy}[s] = \sum\limits_{t \in \mathcal{S}_{TimeHorizon}} \mathcal{V}_{AutAlive}[s,t] \end{align*}`
-
-This variable measures the number of consecutive time steps during which the system remains autonomous.
-
-
-
-While the system is autonomous, cross-border imports are prohibited. Let :math:`imp\_exp\_type[e] = cross` denote energy carriers that represent external imports. Then:
-
-:raw-math:`\begin{align*} \mathcal{V}_{Imp}[s,h,e,t] \le M[s,h,e,t] \cdot (1 - \mathcal{V}_{AutAlive}[s,t]) \end{align*}`
-
-for all :math:`(s,h,e) \in \mathcal{S}_{ImpTuple}` with :math:`imp\_exp\_type[e] = cross` and :math:`t \in \mathcal{S}_{TimeHorizon}`.
-
-Cross-border imports are therefore permitted only once autonomy is no longer maintained.
-
-
-
-The autonomy formulation interacts with the unmet demand variable
-
-:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \in \mathbb{R}_0^+ \end{align*}`
-
-which is defined in the :ref:`demand model<demand_model>`.
-
-
-While the system is autonomous, unmet demand is forbidden. This requirement is enforced by the following constraint:
-
-:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \le M[s,h,e,t] \cdot (1 - \mathcal{V}_{AutAlive}[s,t]) \end{align*}`
-
-As a result, all demand must be satisfied throughout autonomous operation.
-
-
-
-Two different configurations are supported for the autonomy calculation, depending on whether unmet demand is allowed.
-
-1. **Strict autonomy (unmet demand disabled)**
-
-In this case, unmet demand is globally forbidden. The system must fully satisfy demand at all times using only available ressources and technologies. Autonomy therefore measures the longest period during which demand can be met without cross-border imports and without any slack.
-
-This formulation is more restrictive and may lead to infeasibility if the system cannot supply all demand
-
-
-2. **Relaxed autonomy (unmet demand enabled)**
-
-In this configuration, unmet demand is allowed after autonomy failure. During autonomous operation (:math:`\mathcal{V}_{AutAlive}[s,t] = 1`), unmet demand remains forbidden, but once autonomy is lost (:math:`\mathcal{V}_{AutAlive}[s,t] = 0`), unmet demand may be used to maintain feasibility.
-
-Consequently, the model can explore trade-offs between system cost and autonomy while avoiding infeasibility through controlled demand shortfalls after autonomy ends.
 
 
 
@@ -1334,3 +1352,5 @@ This variable is a possible objective function of the system alongside the CO2 t
    .. raw:: latex
 
       \end{landscape}
+
+

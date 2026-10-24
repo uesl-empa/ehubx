@@ -112,3 +112,25 @@ techs:
     charge_max: 45 kW
     discharge_max: 40 kW
     discharge_controllability: 0.8"
+
+- tech_id: X9
+  type: wind
+  tech_params:
+    lifetime: 25 a
+  costs:
+    one_time_capex: 1500000 CHF
+    capex_per_cap: 2400 CHF/kW
+    opex_per_cap: 60 CHF/kW
+  wind_params:
+    ec: E0
+    rated_power: 4.2 MW
+    cut_in_speed: 3.0 m/s
+    rated_speed: 12.0 m/s
+    cut_out_speed: 25.0 m/s
+    rotor_diameter: 136 m
+    hub_height: 125 m
+    power_coefficient: 0.42
+    area_per_turbine: 0.3 km^2
+    allowed_terrains: [Plain, Forest]
+    curtail_max_rel: 1
+    curtail_min_rel: 0

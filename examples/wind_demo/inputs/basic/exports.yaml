@@ -1,0 +1,7 @@
+# Surplus wind power can be fed into the grid at a feed-in remuneration that is
+# lower than the import price, so importing and exporting at the same time
+# never pays off.
+- stages: Y2030
+  hubs: Village
+  ec: Elec
+  price: 0.08 CHF/kWh

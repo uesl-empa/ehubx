@@ -1,0 +1,69 @@
+# Three onshore wind turbine types. Turbine data are approximate public
+# manufacturer specifications; costs are rough estimates for Switzerland.
+# The capacity unit of wind technologies is kW (installed rated power).
+techs:
+
+- tech_id: Wind_E82
+  # Enercon E-82 E2 (2.3 MW), the type installed at Mont Crosin. Its 108 m hub
+  # is too low above a forest canopy, so it is only sited on pasture.
+  type: wind
+  tech_params:
+    lifetime: 20 a
+  wind_params:
+    ec: Elec
+    rated_power: 2.3 MW
+    cut_in_speed: 2.5 m/s
+    rated_speed: 12.5 m/s
+    cut_out_speed: 25.0 m/s
+    rotor_diameter: 82.0 m
+    hub_height: 108 m
+    power_coefficient: 0.42
+    area_per_turbine: 0.15 km^2
+    allowed_terrains: [Pasture]
+  costs:
+    one_time_capex: 1500000 CHF
+    capex_per_cap: 2800 CHF/kW
+    one_time_opex: 50000 CHF
+    opex_per_cap: 60 CHF/kW
+
+- tech_id: Wind_V112
+  # Vestas V112-3.45 MW
+  type: wind
+  tech_params:
+    lifetime: 20 a
+  wind_params:
+    ec: Elec
+    rated_power: 3.45 MW
+    cut_in_speed: 3.0 m/s
+    rated_speed: 12.0 m/s
+    cut_out_speed: 25.0 m/s
+    rotor_diameter: 112.0 m
+    hub_height: 119 m
+    power_coefficient: 0.42
+    area_per_turbine: 0.25 km^2
+  costs:
+    one_time_capex: 1500000 CHF
+    capex_per_cap: 2600 CHF/kW
+    one_time_opex: 50000 CHF
+    opex_per_cap: 60 CHF/kW
+
+- tech_id: Wind_E138
+  # Enercon E-138 EP3 (4.26 MW)
+  type: wind
+  tech_params:
+    lifetime: 25 a
+  wind_params:
+    ec: Elec
+    rated_power: 4.26 MW
+    cut_in_speed: 2.5 m/s
+    rated_speed: 12.0 m/s
+    cut_out_speed: 25.0 m/s
+    rotor_diameter: 138.0 m
+    hub_height: 131 m
+    power_coefficient: 0.42
+    area_per_turbine: 0.35 km^2
+  costs:
+    one_time_capex: 1500000 CHF
+    capex_per_cap: 2400 CHF/kW
+    one_time_opex: 50000 CHF
+    opex_per_cap: 60 CHF/kW

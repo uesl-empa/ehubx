@@ -156,8 +156,11 @@ def _extract_set_components(pyomo_set: Set) -> List[str]:
             "S_EbmTechTuple",
             "S_HpTechTuple",
             "S_AtesTechTuple",
+            "S_WindTechTuple",
         ):
             return ["S_Stage", "S_Hub", "S_Tech"]
+        elif name == "S_WindSubGroup":
+            return ["S_WindGroup", "S_Terrain"]
         elif name in (
             "S_ConvTechIn",
             "S_ConvTechOut",

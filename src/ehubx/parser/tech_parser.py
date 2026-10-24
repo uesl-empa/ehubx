@@ -52,6 +52,7 @@ class TechType(Enum):
     EBM = "ebm"
     HP = "heatpump"
     ATES = "ates"
+    WIND = "wind"
 
 
 def parse_initial(basic_subpath: str) -> Tuple[Techs, Optional[yaml_parser.YamlNode]]:

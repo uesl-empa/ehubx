@@ -17,6 +17,8 @@ class IndexKind(Enum):
     TIME = "time"
     PARETOPOINT = "pareto_point"
     ATESSCHEDULE = "ates_schedule"
+    WINDGROUP = "wind_group"
+    TERRAIN = "terrain"
 
 
 # Main index class

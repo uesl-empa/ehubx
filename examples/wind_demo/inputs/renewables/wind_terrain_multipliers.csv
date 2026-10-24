@@ -1,0 +1,7 @@
+wind_group_id,JuraCrest,JuraCrest
+terrain_id,Pasture,Forest
+unit,1,1
+one_time_capex,1.0,1.2
+capex_per_cap,1.0,1.1
+one_time_opex,1.0,1.05
+opex_per_cap,1.0,1.05
