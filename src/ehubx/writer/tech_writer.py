@@ -177,13 +177,11 @@ def format_all(
         DfStColumn.NET_LINK_DIR,
         DfStColumn.NET_TECH,
         DfStColumn.LOAD_SHIFT,
-        DfStColumn.WIND_HEIGHT,
     }
     cols_to_drop_ts = [
         DfStColumn.NET_LINK.value,
         DfStColumn.NET_TECH.value,
         DfStColumn.LOAD_SHIFT.value,
-        DfStColumn.WIND_HEIGHT.value,
     ]
     df_ts_hor.columns = df_ts_hor.columns.droplevel(cols_to_drop_ts)
     if df_ts_cl is not None:

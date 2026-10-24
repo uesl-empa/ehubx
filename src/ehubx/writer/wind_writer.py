@@ -97,8 +97,6 @@ def _format_tech(
 ) -> None:
     # ec
     ec = energy_system.wind_techs.get_ec(x)
-    hub_height_m = energy_system.wind_techs.get_hub_height(x).to_float(LengthUnit.M)
-    hub_height_str = f"{hub_height_m}m"
     df_st_builder.add_row(ENTRY_EC, ec.key, tech=x.key, source=SOURCE, in_res="input")
 
     # Wind output
@@ -143,7 +141,6 @@ def _format_tech(
                 hub=h.key,
                 tech=x.key,
                 ec=ec.key,
-                wind_height=hub_height_str,
                 source=SOURCE,
                 in_res="result",
             )
@@ -205,7 +202,6 @@ def _format_tech(
                         ec=ec.key,
                         wind_group=w.key,
                         terrain=terrain_key,
-                        wind_height=hub_height_str,
                         source=SOURCE,
                         in_res="result",
                     )
@@ -236,7 +232,6 @@ def _format_tech(
                         ec=ec.key,
                         wind_group=w.key,
                         terrain=terrain_key,
-                        wind_height=hub_height_str,
                         source=SOURCE,
                         in_res="result",
                     )
