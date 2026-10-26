@@ -55,7 +55,8 @@ VAR_STORTECHENERGYFINAL: str = "V_StorTechEnergyFinal"
 """Name of variable for the storage energy level after the last horizon timestep"""
 
 VAR_STORTECHFILLCOST: str = "V_StorTechFillCost"
-"""Name of variable for the storage fill cost"""
+"""Name of variable for the storage fill cost. If the time horizon is
+annualized, the fill is paid once per repetition of the horizon in a year"""
 
 VAR_STORTECHFILLCOSTTOTAL: str = "V_StorTechFillCostTotal"
 """Name of variable for the total cost of pre-filled energy in non-cyclic
@@ -542,6 +543,9 @@ def _con_stor_tech_fill_cost(model: Model, system: EnergySystem) -> None:
     passenger_unit: PassengerUnit = system.passenger_unit
     freight_unit: FreightUnit = system.freight_unit
     t_hor_0 = getattr(model, SET_TIMEHORIZON).first()
+    # An annualized horizon repeats over the year and the storage has to be
+    # refilled at the start of every repetition
+    annualization_factor = system.times.annualization_factor
 
     def __rule_fill_cost(m, s, h, x):
         if stor_techs.get_cyclic(HubId(h), TechId(x)):
@@ -559,7 +563,9 @@ def _con_stor_tech_fill_cost(model: Model, system: EnergySystem) -> None:
         price = price_val.to_float(unit=CurrencyUnit.CHF / unit_energy)
         return (
             getattr(m, VAR_STORTECHFILLCOST)[s, h, x]
-            == getattr(m, VAR_STORTECHENERGY)[s, h, x, t_hor_0] * price
+            == annualization_factor
+            * getattr(m, VAR_STORTECHENERGY)[s, h, x, t_hor_0]
+            * price
         )
 
     setattr(

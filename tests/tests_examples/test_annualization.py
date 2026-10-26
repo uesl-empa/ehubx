@@ -13,7 +13,11 @@ from pyomo.core import value
 
 from ehubx import EhubX, Glpk, ObjectiveType, RomMethod, RomSettings
 from ehubx.core.common import HOURS_PER_YEAR
+from ehubx.data.hub_data import HubId
 from ehubx.data.stage_data import StageId
+from ehubx.data.tech_data import TechId
+from ehubx.data.unit import CurrencyUnit, PowerUnit, TimeUnit
+from ehubx.data.value import Value
 from ehubx.model import (
     conv_tech_model,
     demand_model,
@@ -37,17 +41,31 @@ FACTOR: float = HOURS_PER_YEAR / NUM_TS
 """Annualization factor of the fixture"""
 
 S1 = StageId("S1")
+H1 = HubId("H1")
+XBAT = TechId("XBat")
+
+FILL_PRICE: float = 0.01
+"""Fill price of the battery in the non-cyclic tests [CHF/kWh]"""
 
 
-def _solve(annualize_horizon=None, cut_to=None) -> EhubX:
-    """Parse, optionally override the setting or cut the horizon, build and
-    solve the fixture with GLPK"""
+def _solve(annualize_horizon=None, cut_to=None, fill_price=None) -> EhubX:
+    """Parse, optionally override the setting, make the battery non-cyclic
+    with the given fill price or cut the horizon, build and solve the fixture
+    with GLPK"""
     init_tmp_model(DIRNAME_ANNUALIZATIONMODEL)
     ehubx = EhubX()
     ehubx.model_dir_path = DIRNAME_TMPTESTMODEL
     ehubx.parse()
     if annualize_horizon is not None:
         ehubx.energy_system.annualize_horizon = annualize_horizon
+    if fill_price is not None:
+        # Start full, so that the initial energy (and thus the fill) is not 0
+        stor_techs = ehubx.energy_system.stor_techs
+        stor_techs.set_cyclic(H1, XBAT, False)
+        stor_techs.set_soc_init(H1, XBAT, Value(1))
+        stor_techs.set_fill_price(
+            H1, XBAT, Value(fill_price, CurrencyUnit.CHF / (PowerUnit.KW * TimeUnit.H))
+        )
     if cut_to is not None:
         ehubx.rom(
             rom_settings=RomSettings(method=RomMethod.CUT_TIME, num_ts_target=cut_to),
@@ -120,9 +138,7 @@ def test_cut_horizon_matches_native_short_horizon():
     cut = _solve(cut_to=24)
 
     assert _system(cut).times.num_horizon_ts == 24
-    assert _system(cut).times.annualization_factor == pytest.approx(
-        HOURS_PER_YEAR / 24
-    )
+    assert _system(cut).times.annualization_factor == pytest.approx(HOURS_PER_YEAR / 24)
     cost_full = value(getattr(full._model, energy_system_model.VAR_SYSTEMCOST))
     cost_cut = value(getattr(cut._model, energy_system_model.VAR_SYSTEMCOST))
     assert cost_cut == pytest.approx(cost_full, rel=1e-6)
@@ -140,7 +156,12 @@ def test_big_m_values_follow_the_annualized_weights():
 
     cap_conv = value(var_cap["S1", "H1", "XConv"])
     out_conv = _weighted_sum(
-        ehubx, getattr(model, conv_tech_model.VAR_CONVTECHOUT), "S1", "H1", "XConv", "E0"
+        ehubx,
+        getattr(model, conv_tech_model.VAR_CONVTECHOUT),
+        "S1",
+        "H1",
+        "XConv",
+        "E0",
     )
     assert value(var_used["S1", "H1", "XConv"]) == pytest.approx(1)
     assert out_conv > cap_conv * NUM_TS
@@ -205,3 +226,37 @@ def test_clustering_and_annualization_coexist():
     # The reduced model builds with the scaled weights
     ehubx.build()
     assert ehubx._model is not None
+
+
+def _fill_cost_and_initial_energy(ehubx: EhubX):
+    """Fill cost and initial energy of the battery in stage S1"""
+    model = ehubx._model
+    var_fill_cost = getattr(model, stor_tech_model.VAR_STORTECHFILLCOST)
+    var_energy = getattr(model, stor_tech_model.VAR_STORTECHENERGY)
+    fill_cost = value(var_fill_cost["S1", "H1", "XBat"])
+    energy_init = value(var_energy["S1", "H1", "XBat", 1])
+    return fill_cost, energy_init
+
+
+def test_fill_cost_is_paid_once_per_repetition_of_the_horizon():
+    # The annualized horizon repeats FACTOR times a year, and a non-cyclic
+    # storage has to be refilled at the start of every repetition
+    ehubx = _solve(annualize_horizon=True, fill_price=FILL_PRICE)
+    assert _system(ehubx).times.annualization_factor == pytest.approx(FACTOR)
+    fill_cost, energy_init = _fill_cost_and_initial_energy(ehubx)
+
+    assert energy_init > 0
+    assert fill_cost == pytest.approx(FACTOR * energy_init * FILL_PRICE)
+    fill_cost_total = value(
+        getattr(ehubx._model, stor_tech_model.VAR_STORTECHFILLCOSTTOTAL)
+    )
+    assert fill_cost_total == pytest.approx(fill_cost)
+
+
+def test_fill_cost_is_paid_once_when_switched_off():
+    ehubx = _solve(annualize_horizon=False, fill_price=FILL_PRICE)
+    assert _system(ehubx).times.annualization_factor == 1.0
+    fill_cost, energy_init = _fill_cost_and_initial_energy(ehubx)
+
+    assert energy_init > 0
+    assert fill_cost == pytest.approx(energy_init * FILL_PRICE)

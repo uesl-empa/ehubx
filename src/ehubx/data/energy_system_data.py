@@ -637,6 +637,7 @@ class EnergySystem:
         self._validate_interest_rate_def()
         self._validate_num_times_horizon()
         self._validate_annualize_horizon()
+        self._validate_annualized_fill_cost()
 
     def _validate_trl_threshold(self) -> None:
         if self._trl_threshold is None:
@@ -686,6 +687,32 @@ class EnergySystem:
             "them to a full year"
         )
         logging.log_warning(msg, module=LOG_MODULE_STR)
+
+    def _validate_annualized_fill_cost(self) -> None:
+        # A non-cyclic storage pays for its initial energy once per horizon. An
+        # annualized horizon repeats over the year, so the storage model scales
+        # this fill cost by the annualization factor
+        factor = self.times.annualization_factor
+        if factor == 1:
+            return
+        for h in self.hubs.ids_in_order:
+            for x in self.stor_techs.ids_in_order:
+                if self.stor_techs.get_cyclic(h, x):
+                    continue
+                fill_price = self.stor_techs.get_fill_price(h, x)
+                if fill_price is None or not fill_price.is_positive:
+                    continue
+                msg = (
+                    f"Storage '{x}' at hub '{h}' is non-cyclic and the time "
+                    f"horizon is annualized: its fill cost (fill_price = "
+                    f"{fill_price}) is multiplied by the annualization factor "
+                    f"{factor:.4f}, since the storage is refilled at the start of "
+                    "every repetition of the horizon in a year. If the horizon "
+                    "models a one-off event whose initial storage content is not "
+                    "refilled (e.g. in autonomy studies), set annualize_horizon "
+                    "to False in stages.yaml"
+                )
+                logging.log_warning(msg, module=LOG_MODULE_STR)
 
     def _validate_modules(self) -> None:
         self.stages.validate()
