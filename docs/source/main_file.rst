@@ -139,7 +139,7 @@ ROM method: Cutting
         num_ts_target=150))
 
 
-The first method is straightforward: it drops all horizon time IDs after the :code:`num_ts_target` argument in :code:`RomSettings`. Therefore, the resulting ROM model contains only horizon time steps from *1* to *num_ts_target*.
+The first method is straightforward: it drops all horizon time IDs after the :code:`num_ts_target` argument in :code:`RomSettings`. Therefore, the resulting ROM model contains only horizon time steps from *1* to *num_ts_target*. Unlike clustering, cutting does not represent the dropped time steps by anything: both :math:`\mathcal{S}_{Time}` and :math:`\mathcal{S}_{TimeHorizon}` shrink to the first *num_ts_target* time steps and all time step :ref:`weights <weight>` stay at 1, so the operating costs, emissions and energy sums of the cut model cover only those *num_ts_target* hours while capacity costs remain annual, and ehubX logs a warning. Setting the parameter :code:`annualize_horizon` in :ref:`stages.yaml <stages_yaml>` :ref:`annualizes <annualize_horizon>` the cut horizon, i.e.; scales its weights so that the cut model represents a full year again.
 
 .. _rom_tsam:
 
@@ -153,7 +153,7 @@ ROM method: Time series aggregation (TSAM)
         method=RomMethod.CLUSTER_TSAM,
         num_ts_target=150))
 
-The second ROM method is more sophisticated and utilizes the `tsam <https://tsam.readthedocs.io/en/latest/>`_ Python package. It gathers all time series that have been passed to the data object and uses a clustering algorithm to compute a representative set of time steps whose size will be close to (and not less than) :code:`num_ts_target`. These time steps are then taken as the set :math:`\mathcal{V}_{Time}`, while the original time steps remain as horizon time steps :math:`\mathcal{V}_{TimeHorizon}` (see also the :ref:`times model <times_model>`). As a result, most input series and time-dependent variables will now depend on the smaller set :math:`\mathcal{V}_{Time}` instead of :math:`\mathcal{V}_{TimeHorizon}`, thereby greatly reducing the complexity of the model.
+The second ROM method is more sophisticated and utilizes the `tsam <https://tsam.readthedocs.io/en/latest/>`_ Python package. It gathers all time series that have been passed to the data object and uses a clustering algorithm to compute a representative set of time steps whose size will be close to (and not less than) :code:`num_ts_target`. These time steps are then taken as the set :math:`\mathcal{V}_{Time}`, while the original time steps remain as horizon time steps :math:`\mathcal{V}_{TimeHorizon}` (see also the :ref:`times model <times_model>`). As a result, most input series and time-dependent variables will now depend on the smaller set :math:`\mathcal{V}_{Time}` instead of :math:`\mathcal{V}_{TimeHorizon}`, thereby greatly reducing the complexity of the model. Each clustered time step receives a :ref:`weight <weight>` equal to the size of its cluster, so that the weighted sums of the reduced model reproduce the totals of the full horizon. The :ref:`annualization <annualize_horizon>` of the horizon acts on top of these weights and can be combined with clustering.
 
 
 .. _building:

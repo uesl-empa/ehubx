@@ -1,9 +1,13 @@
 import pytest
 
+from ehubx.core.common import HOURS_PER_YEAR
+from ehubx.data import energy_system_data
 from ehubx.data.energy_system_data import EnergySystem, ExceptionKey as SysExceptionKey
 from ehubx.data.ec_data import EcId, ExceptionKey as EcExceptionKey
 from ehubx.data.stage_data import StageId
 from ehubx.data.hub_data import HubId
+from ehubx.data.tech_data import TechId
+from ehubx.data.time_data import TimeId
 from ehubx.data.value import Value
 from ehubx.data.unit import (
     PowerUnit,
@@ -11,6 +15,7 @@ from ehubx.data.unit import (
     CurrencyUnit,
     LengthUnit,
     MassUnit,
+    TimeUnit,
 )
 from ehubx.data import exceptions
 
@@ -222,6 +227,139 @@ def test_num_times_horizon_one():
     # Should not raise - 1 is the minimum valid value
     sys._validate_num_times_horizon()
     assert sys.num_times_horizon == 1
+
+
+# -------- #
+# Annualize Horizon
+# -------- #
+def _system_with_horizon(num_horizon_ts: int) -> EnergySystem:
+    sys = EnergySystem()
+    for i in range(1, num_horizon_ts + 1):
+        sys.times.add_id(TimeId(i))
+    return sys
+
+
+def _capture_logs(monkeypatch):
+    logged = {"warning": [], "info": []}
+    monkeypatch.setattr(
+        energy_system_data.logging,
+        "log_warning",
+        lambda msg, **_: logged["warning"].append(msg),
+    )
+    monkeypatch.setattr(
+        energy_system_data.logging, "log", lambda msg, **_: logged["info"].append(msg)
+    )
+    return logged
+
+
+def test_annualize_horizon_defaults_to_false_and_delegates_to_times():
+    sys = EnergySystem()
+    assert sys.annualize_horizon is False
+    assert sys.times.annualize_horizon is False
+
+    # The setting lives in the time data object
+    sys.annualize_horizon = True
+    assert sys.times.annualize_horizon is True
+    sys.times.annualize_horizon = False
+    assert sys.annualize_horizon is False
+
+
+def test_validate_annualize_horizon_warns_when_horizon_is_not_a_year(monkeypatch):
+    sys = _system_with_horizon(3)
+    logged = _capture_logs(monkeypatch)
+
+    sys._validate_annualize_horizon()
+
+    assert len(logged["warning"]) == 1
+    assert "annualize_horizon" in logged["warning"][0]
+    assert logged["info"] == []
+
+
+def test_validate_annualize_horizon_logs_factor_when_switched_on(monkeypatch):
+    sys = _system_with_horizon(3)
+    sys.annualize_horizon = True
+    logged = _capture_logs(monkeypatch)
+
+    sys._validate_annualize_horizon()
+
+    assert logged["warning"] == []
+    assert len(logged["info"]) == 1
+    assert f"{HOURS_PER_YEAR / 3:.4f}" in logged["info"][0]
+
+
+def test_validate_annualize_horizon_is_silent_for_a_full_year(monkeypatch):
+    sys = _system_with_horizon(int(HOURS_PER_YEAR))
+    logged = _capture_logs(monkeypatch)
+
+    sys._validate_annualize_horizon()
+    sys.annualize_horizon = True
+    sys._validate_annualize_horizon()
+
+    assert logged["warning"] == []
+    assert logged["info"] == []
+
+
+def test_validate_annualize_horizon_is_silent_without_time_ids(monkeypatch):
+    sys = EnergySystem()
+    logged = _capture_logs(monkeypatch)
+
+    sys._validate_annualize_horizon()
+
+    assert logged["warning"] == []
+    assert logged["info"] == []
+
+
+# -------- #
+# Annualized Fill Cost
+# -------- #
+FILL_PRICE_UNIT = CurrencyUnit.CHF / (PowerUnit.KW * TimeUnit.H)
+
+
+def _system_with_storage(
+    num_horizon_ts: int = 3,
+    annualize_horizon: bool = True,
+    cyclic: bool = False,
+    fill_price: float = 0.1,
+) -> EnergySystem:
+    sys = _system_with_horizon(num_horizon_ts)
+    sys.annualize_horizon = annualize_horizon
+    sys.hubs.add_id(HubId("H1"))
+    sys.stor_techs.add_id(TechId("XBat"))
+    sys.stor_techs.set_cyclic(HubId("H1"), TechId("XBat"), cyclic)
+    sys.stor_techs.set_fill_price(
+        HubId("H1"), TechId("XBat"), Value(fill_price, FILL_PRICE_UNIT)
+    )
+    return sys
+
+
+def test_validate_annualized_fill_cost_warns_for_non_cyclic_storage(monkeypatch):
+    sys = _system_with_storage()
+    logged = _capture_logs(monkeypatch)
+
+    sys._validate_annualized_fill_cost()
+
+    assert len(logged["warning"]) == 1
+    assert "XBat" in logged["warning"][0]
+    assert f"{HOURS_PER_YEAR / 3:.4f}" in logged["warning"][0]
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"annualize_horizon": False},
+        {"num_horizon_ts": int(HOURS_PER_YEAR)},
+        {"cyclic": True},
+        {"fill_price": 0.0},
+    ],
+    ids=["not_annualized", "full_year", "cyclic", "free_fill"],
+)
+def test_validate_annualized_fill_cost_is_silent_otherwise(monkeypatch, kwargs):
+    sys = _system_with_storage(**kwargs)
+    logged = _capture_logs(monkeypatch)
+
+    sys._validate_annualized_fill_cost()
+
+    assert logged["warning"] == []
 
 
 # -------- #

@@ -19,6 +19,15 @@ def test_parse_returns_times_with_expected_ids_and_logs():
     )
 
 
+def test_parse_annualize_horizon_defaults_to_false_and_is_passed_on():
+    with patch("ehubx.core.logging.log_file"):
+        times_default = time_parser.parse(3)
+        times_on = time_parser.parse(3, True)
+
+    assert times_default.annualize_horizon is False
+    assert times_on.annualize_horizon is True
+
+
 def test_parse_zero_horizon_logs_empty():
     with patch("ehubx.core.logging.log_file") as mock_log_file:
         times = time_parser.parse(0)

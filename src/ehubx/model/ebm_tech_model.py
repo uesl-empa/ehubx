@@ -389,9 +389,6 @@ def _con_ebm_tech_used(
     passenger_unit: PassengerUnit,
     freight_unit: FreightUnit,
 ) -> None:
-    # Get length of full time horizon
-    num_horizon_ts = times.num_horizon_ts
-
     def __rule_ebm_tech_used(model, s, h, x):
         # Get parameters
         num_vehicles = ebm_techs.get_num_vehicles(StageId(s), HubId(h), TechId(x))
@@ -415,8 +412,10 @@ def _con_ebm_tech_used(
         inflow_max = min(charge_max, storage_cap) * num_vehicles
         outflow_max = min(discharge_max, storage_cap) * num_vehicles
 
-        # Calculate big-M parameter
-        big_m = common.EPS_BIGM + (inflow_max + outflow_max) * num_horizon_ts
+        # Calculate big-M parameter from the hours represented by the horizon
+        big_m = common.EPS_BIGM + (inflow_max + outflow_max) * times.get_weight_sum(
+            StageId(s)
+        )
         # Calculate total summed-up flow in both directions
         flow_abs_sum = sum(
             times.get_weight(StageId(s), TimeId(t))

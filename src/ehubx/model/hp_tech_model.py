@@ -365,9 +365,9 @@ def _con_hp_tech_used(model: Model, system: EnergySystem) -> None:
             passenger_unit,
             freight_unit,
         )
-        # a) bigM by tech capacity times horizon length
+        # a) bigM by tech capacity times hours represented by the horizon
         cap_max = getattr(model, VAR_TECHCAP)[s, h, x].ub
-        bigm_cap = cap_max * system.times.num_horizon_ts
+        bigm_cap = cap_max * times.get_weight_sum(StageId(s))
         bigm = bigm_cap
         # b) bigM by heuristic limit
         max_sum_out_ht = system.get_heur_limit_max_sum_out(

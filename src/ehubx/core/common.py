@@ -185,6 +185,11 @@ MULT_HEUR_LIMIT_FROM_DEMAND: float = 1000
 MULT_HEUR_SUM_LIMIT_FROM_DEMAND: float = 100
 """Multiplier used to calculate sum-type heuristic limits from demand profiles"""
 
+HOURS_PER_YEAR: float = 8760.0
+"""Number of hours in a year. Since one time step corresponds to one hour, this
+is the number of horizon time steps that make up a full year. Used to scale
+time-summed quantities of a shorter (or longer) time horizon to a full year"""
+
 
 def get_iterable_filename(path: str, length_iter: int = 2) -> str:
     """
