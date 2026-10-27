@@ -256,6 +256,15 @@ Parameter table
       - :code:`techs[ID]/heatpump_params/cop_factor`
       - :ref:`techs.yaml<techs_yaml>`
 
+    * - **Cyclic** (storage)
+      - ✖
+      - True
+      -
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/storage_params/cyclic`
+      - :ref:`hubs.yaml<hubs_yaml>`
+
     * - **Darcy velocity** (ates)
       - (**✓**)
       -
@@ -290,6 +299,15 @@ Parameter table
       - ✖
       - ✖
       - :code:`demand_sums[pos]/demand_sum`
+      - :ref:`demands.yaml<demands_yaml>`
+
+    * - **Demand unmet penalty** (demand)
+      - ✖
+      - 0
+      - CHF/ec
+      - ✖
+      - ✖
+      - :code:`demand_unmet_penalties[pos]/demand_unmet_penalty`
       - :ref:`demands.yaml<demands_yaml>`
 
     * - **Discharge controllability** (ebm)
@@ -372,6 +390,15 @@ Parameter table
       - **✓**
       - :code:`load_shifting[ID]/energy_cost_below`, :code:`load_shifting[ID]/profile_path`
       - :ref:`demands.yaml<demands_yaml>`
+
+    * - **Fill price** (storage)
+      - (**✓**)
+      -
+      - CHF/ec
+      - ✖
+      - ✖
+      - :code:`hubs[ID]/techs[ID]/storage_params/fill_price`
+      - :ref:`hubs.yaml<hubs_yaml>`
 
     * - **Fix cost** (load_shifting)
       - ✖

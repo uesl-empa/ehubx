@@ -124,7 +124,9 @@ hubs.yaml
 **Hub-specific storage technology parameters**:
 
 * **storage_params** (*optional, default={}*) Dictionary with parameters for the :ref:`storage model<storage_model>`.
-* **soc_init** (*optional*, *default=* :math:`\infty`, *[-]*): Initial state of charge at the beginning of each stage's time horizon, as a value between 0 and 1, relative to the total installed storage capacity. Alternatively, setting this value to :math:`\infty` lets the optimizer choose it without any restriction. Due to the periodicity constraint (see :ref:`storage model<storage_model>`), the initial state of charge will also be the stage of charge at the end of the time horizon.
+* **soc_init** (*optional*, *default=* :math:`\infty`, *[-]*): Initial state of charge at the beginning of each stage's time horizon, as a value between 0 and 1, relative to the total installed storage capacity. Alternatively, setting this value to :math:`\infty` lets the optimizer choose it without any restriction. For cyclic storage (see *cyclic* below), the periodicity constraint (see :ref:`storage model<storage_model>`) makes the initial state of charge also the state of charge at the end of the time horizon.
+* **cyclic** (*optional, default=True*): Whether the storage's energy level at the end of the time horizon has to return to its initial level. If False, the storage starts at its initial level (see *soc_init*) and its final level is only bounded by *soc_min* and *soc_max*: the energy held at the start, e.g.; a reserve for an autonomy period, may be drained over the time horizon without being restored. Non-cyclic storage has to define *fill_price*.
+* **fill_price** (*mandatory if cyclic is False, otherwise ignored, [CHF/ec]*): Price of the energy that a non-cyclic storage holds at the beginning of the time horizon (see :ref:`storage model<storage_model>`). In every stage, the storage pays its initial energy content times *fill_price*, whether or not this energy is used; energy left at the end of the time horizon is not refunded. If the time horizon is annualized (see :code:`annualize_horizon`), the storage is refilled at the start of every repetition of the horizon in a year, so the fill cost is multiplied by the annualization factor :math:`f_{ann}`. A time horizon that models a one-off event, such as a single autonomy period, should therefore not be annualized.
 
 **Hub-specific conversion technology parameters**:
 
@@ -515,6 +517,14 @@ demands.yaml
 .. literalinclude:: model_inputs/basic/profiles/demand_profiles.csv
     :language: ruby
     :caption: *demand_profiles.csv*: Time series file for demand profiles.
+
+**Unmet demand parameters**
+
+* **demand_unmet_penalties** (*optional, default=[]*): List of penalties for unmet demand in the :ref:`demand model <demand_model>`. Unmet demand is only possible in stages where *autonomy_allow_unmet_demand* is set in :ref:`stages.yaml<stages_yaml>`, and only when the autonomy is one of the optimization objectives. The penalty applies to both demand-profiles and demand-sums. Each (stage, hub, EC) tuple may occur in at most one entry.
+* **stages** (*mandatory*): List of stage ids for which the penalty is defined. Can also be a single stage id.
+* **hubs** (*mandatory*): List of hub ids for which the penalty is defined. Can also be a single hub id.
+* **ec** (*mandatory*): EC id for which the penalty is defined.
+* **demand_unmet_penalty** (*mandatory, [CHF/ec]*): Cost per amount of unmet demand energy for the above stages, hubs and EC. The resulting cost is summed over the time horizon like every other operating cost (or over a full year if :code:`annualize_horizon` is set in :ref:`stages.yaml<stages_yaml>`). Tuples without an entry are not penalized, i.e.; their unmet demand is free of charge.
 
 **Load shedding parameters**
 

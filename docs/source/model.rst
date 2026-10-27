@@ -191,15 +191,31 @@ Furthermore, in certain formulations demand satisfaction may be relaxed through 
 
 :raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \in \mathbb{R}_0^+ \quad \forall (s,h,e) \in \mathcal{S}_{DemandTuple},~ t \in \mathcal{S}_{Time} \end{align*}`
 
-This variable represents the portion of demand that is not satisfied by the system.
-
-Its use is not part of the core demand formulation, but is instead activated by higher-level modules such as the :ref:`autonomy model<autonomy_model>`.
-
-If unmet demand is enabled, the demand-sum constraint is extended such that both served and unmet demand contribute to the total:
+This variable represents the portion of demand that is not satisfied by the system. Served and unmet demand together have to add up to the demand: for demand-profiles, this is part of the profile constraint in the :ref:`energy system model<energy_system_model>`, and for demand-sums, the demand-sum constraint above is extended to
 
 :raw-math:`\begin{align*} \sum\limits_{t \in \mathcal{S}_{Time}} weight[s,t] \cdot \left( \mathcal{V}_{DemandSupply}[s,h,e,t] + \mathcal{V}_{DemandUnmet}[s,h,e,t] \right) = demand\_sum[s,h,e] \quad \forall (s,h,e) \in \mathcal{S}_{DemandSumTuple} \end{align*}`
 
 Hence, the prescribed total demand remains fully accounted for, either through actual supply or through unmet demand.
+
+Unmet demand is not part of the core demand formulation and is forbidden unless it is explicitly allowed for a stage. This is controlled by a binary parameter :math:`\mathcal{P}_{DemandUnmetAllowed}[s]` which is :math:`1` only if the :ref:`autonomy <autonomy_model>` is one of the optimization objectives and the parameter :math:`autonomy\_allow\_unmet\_demand[s]` from :ref:`stages.yaml<stages_yaml>` is set, and :math:`0` otherwise. It enters the constraint
+
+:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \le BigM_{DemandUnmet}[s,h,e,t] \cdot \mathcal{P}_{DemandUnmetAllowed}[s] \quad \forall (s,h,e) \in \mathcal{S}_{DemandTuple},~ t \in \mathcal{S}_{Time} \end{align*}`
+
+where the big-M parameter is the demand itself, i.e.; at most the full demand can be unmet:
+
+:raw-math:`\begin{align*} BigM_{DemandUnmet}[s,h,e,t] = \left \{ \begin{array}{rl} demand\_profile[s,h,e,t], &\text{if } (s,h,e) \in \mathcal{S}_{DemandProfileTuple} \\ demand\_sum[s,h,e] ~/~ weight[s,t], &\text{if } (s,h,e) \in \mathcal{S}_{DemandSumTuple} \end{array} \right . \end{align*}`
+
+The :ref:`autonomy model<autonomy_model>` restricts unmet demand further to the time steps after autonomy has been lost.
+
+Unmet demand is penalized with the parameter :math:`demand\_unmet\_penalty` from :ref:`demands.yaml<demands_yaml>`, which denotes a cost per unit of unmet energy. The resulting cost per demand tuple is
+
+:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmetCost}[s,h,e] = \sum\limits_{t \in \mathcal{S}_{Time}} weight[s,t] \cdot demand\_unmet\_penalty[s,h,e] \cdot \mathcal{V}_{DemandUnmet}[s,h,e,t] \quad \forall (s,h,e) \in \mathcal{S}_{DemandTuple} \end{align*}`
+
+Like every other operating cost, it is summed with the time step :ref:`weights <weight>`, so it is scaled to a full year together with them if the parameter :code:`annualize_horizon` is set. If no penalty is defined for a tuple, it defaults to :math:`0` and unmet demand is free of charge. The costs are bundled in the fixed variable
+
+:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmetCostTotal} = \sum\limits_{(s,h,e) \in \mathcal{S}_{DemandTuple}} \mathcal{V}_{DemandUnmetCost}[s,h,e] \end{align*}`
+
+which is part of the system cost in the :ref:`energy system model<energy_system_model>`.
 
 
 
@@ -617,23 +633,53 @@ Next, we introduce a *storage energy* variable to the model which keeps track of
 
 Note that this variable is not defined on the (possibly clustered) time domain :math:`\mathcal{S}_{Time}` but on the full time horizon :math:`\mathcal{S}_{TimeHorizon}`. This is done because the dynamics imposed on the variable will rely on comparing adjacent time steps, something that is not possible for clustered time steps. The storage energy's evolution is subject to a standby loss and the charging and discharging process:
 
-:raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergy}[s, h, x, t_h^+] = &(1 - standby\_loss[s, x]) \cdot \mathcal{V}_{StorTechEnergy}[s, h, x, t_h] \\ &+ in\_eff[s, x] \cdot \mathcal{V}_{StorTechInflow}[s, h, x, t\_cl[t_h]] - out\_eff[s, x]^{-1} \cdot \mathcal{V}_{StorTechOutflow}[s, h, x, t\_cl[t_h]] \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergy}^+[s, h, x, t_h] = &(1 - standby\_loss[s, x]) \cdot \mathcal{V}_{StorTechEnergy}[s, h, x, t_h] \\ &+ in\_eff[s, x] \cdot \mathcal{V}_{StorTechInflow}[s, h, x, t\_cl[t_h]] - out\_eff[s, x]^{-1} \cdot \mathcal{V}_{StorTechOutflow}[s, h, x, t\_cl[t_h]] \end{align*}`
 
-The parameters :math:`standby\_loss`, :math:`in\_eff` and :math:`out_eff` come from :ref:`techs.yaml<techs_yaml>`. It is important to note that the above constraint is formulated for every horizon time step :math:`t_h \in \mathcal{S}_{TimeHorizon}`. We have used the parameter :math:`t\_cl[t_h]` from the :ref:`clustering<rom>` procedure which assigns every horizon time step :math:`t_h` to its clustering time step. There is also the concept of a *next* time step which we define as
+The parameters :math:`standby\_loss`, :math:`in\_eff` and :math:`out_eff` come from :ref:`techs.yaml<techs_yaml>`. It is important to note that the above constraint is formulated for every horizon time step :math:`t_h \in \mathcal{S}_{TimeHorizon}`. We have used the parameter :math:`t\_cl[t_h]` from the :ref:`clustering<rom>` procedure which assigns every horizon time step :math:`t_h` to its clustering time step. The left-hand side :math:`\mathcal{V}_{StorTechEnergy}^+[s, h, x, t_h]` is the energy level *after* the time step :math:`t_h`. For all but the last horizon time step, this is the energy level of the next horizon time step. After the last horizon time step, it depends on whether the storage technology is *cyclic*, which is set by the parameter :math:`cyclic[h, x]` from :ref:`hubs.yaml<hubs_yaml>`:
 
-:raw-math:`\begin{align*} t_h^+ = \left \{ \begin{array}{rl} \text{first horizon time step}, &\text{if } t_h \text{ is the last horizon time step } \\ \text{horizon time step after } t_h, &\text{else} \end{array} \right . \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergy}^+[s, h, x, t_h] = \left \{ \begin{array}{rl} \mathcal{V}_{StorTechEnergy}[s, h, x, \text{horizon time step after } t_h], &\text{if } t_h \text{ is not the last horizon time step} \\ \mathcal{V}_{StorTechEnergy}[s, h, x, t_{h,0}], &\text{elif } cyclic[h, x] \\ \mathcal{V}_{StorTechEnergyFinal}[s, h, x], &\text{else} \end{array} \right . \end{align*}`
 
-This way, we use a *circular* time model so no storage energy can be procued or destroyed over the time horizon. This assumption is fairly common in energy system models where no long-term energy storage effects have to be taken into account. For example, if the time horizon :math:`\mathcal{S}_{TimeHorizon}` encompasses a single year, storage technologies will be able to shift around energy throughout the year but not over multiple years.
+Here, :math:`t_{h,0}` is the first horizon time step and
+
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergyFinal}: \mathcal{S}_{StorTechTuple} \to \mathbb{R}_0^+ \end{align*}`
+
+is the *final* energy level of the storage technology at the end of the time horizon.
+
+By default, storage technologies are cyclic: the energy level after the last horizon time step wraps around to the first one, so we use a *circular* time model in which no storage energy can be produced or destroyed over the time horizon. This assumption is fairly common in energy system models where no long-term energy storage effects have to be taken into account. For example, if the time horizon :math:`\mathcal{S}_{TimeHorizon}` encompasses a single year, storage technologies will be able to shift around energy throughout the year but not over multiple years. For cyclic storage, the final energy level is simply set to the initial one:
+
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergyFinal}[s, h, x] = \mathcal{V}_{StorTechEnergy}[s, h, x, t_{h,0}] \qquad \text{if } cyclic[h, x] \end{align*}`
+
+A *non-cyclic* storage technology does not have to return to its initial energy level at the end of the time horizon. The energy it holds at the beginning of the horizon can therefore be drained without being restored, e.g.; a reserve that covers a single autonomy period. Its final energy level is only bounded by the same state-of-charge limits as all other energy levels (see below).
 
 The storage energy levels are additionally constrained by the parameters :math:`soc\_min` and :math:`soc\_max` from :math:`techs_yaml`:
 
 :raw-math:`\begin{align*} soc\_min[s, x] \cdot \mathcal{V}_{TechCap}[s, h, x] \le \mathcal{V}_{StorTechEnergy}[s, h, x, t_h] \le \min(soc\_max[s, x], 1) \cdot \mathcal{V}_{TechCap}[s, h, x] \end{align*}`
+
+For non-cyclic storage technologies, the same bounds apply to the final energy level:
+
+:raw-math:`\begin{align*} soc\_min[s, x] \cdot \mathcal{V}_{TechCap}[s, h, x] \le \mathcal{V}_{StorTechEnergyFinal}[s, h, x] \le \min(soc\_max[s, x], 1) \cdot \mathcal{V}_{TechCap}[s, h, x] \qquad \text{if not } cyclic[h, x] \end{align*}`
 
 For a final consideration, the energy storage level is currently able to 'start' at any initial value on the time horizon but has to follow the prescribed dynamics afterwards. Depending on the model at hand, this behavior may be desirable or we may want to set an initial value for the storage level. ehubX handles this by considering the parameter :math:`soc\_init` from :ref:`hubs.yaml<hubs_yaml>`: If this parameter is infinite (which is its default value), no constraint will be set. Otherwise, the parameter will be used to fix the initial energy storage value:
 
 :raw-math:`\begin{align*} \mathcal{V}_{StorTechEnergy}[s, h, x, t_{h,0}] = \left \{ \begin{array}{rl} \mathcal{V}_{StorTechEnergy}[s_0, h, x, t_{h,0}], &\text{if } s \neq s_0 \\ soc\_init[h, x] \cdot \mathcal{V}_{TechCap}[s, h, x], &\text{if } s = s_0 \text{ and } soc\_init[h, x] < \infty \end{array} \right . \end{align*}`
 
 Here, :math:`s_0 \in \mathcal{S}_{Stage}` is the *first* stage in the model, i.e.; the one with the smallest :math:`start\_year`, and :math:`t_{h,0} \in \mathcal{S}_{TimeHorizon}` is the initial horizon time step. Note that regardless of whether an initial energy level is set in the first stage, the model has to maintain the same initial storage level across all stages.
+
+In a cyclic storage technology, the initial energy is recovered by the end of the time horizon, so it does not have to be paid for. A non-cyclic storage technology, however, may use its initial energy without recharging it. To keep the model from obtaining this energy for free, every non-cyclic storage technology has to pay for its initial energy in every stage at the price :math:`fill\_price[h, x]` from :ref:`hubs.yaml<hubs_yaml>`. This *fill cost* is given by
+
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechFillCost}[s, h, x] = \left \{ \begin{array}{rl} 0, &\text{if } cyclic[h, x] \\ f_{ann} \cdot fill\_price[h, x] \cdot \mathcal{V}_{StorTechEnergy}[s, h, x, t_{h,0}], &\text{else} \end{array} \right . \end{align*}`
+
+where :math:`f_{ann}` is the annualization factor (see :code:`annualize_horizon`). If the time horizon is annualized, it stands for a period that repeats :math:`f_{ann}` times a year, and the storage has to be refilled at the start of every repetition. A time horizon that models a one-off event, such as a single autonomy period, should therefore not be annualized if it contains non-cyclic storage. Note the following properties of the fill cost:
+
+* It is a *gross* cost: the whole initial energy is paid for, whether or not it is used. Energy that is left in the storage at the end of the time horizon is not refunded.
+* If :math:`soc\_init[h, x]` is finite, the initial energy is fixed by the constraint above to :math:`soc\_init[h, x]` times the installed capacity in the first stage, so the fill cost grows proportionally to that capacity. If :math:`soc\_init[h, x]` is infinite, the optimizer chooses the initial energy and weighs the fill cost against its benefit.
+* The fill cost only enters the system cost. The initial energy itself does not cause any CO2 emissions in the model.
+
+All fill costs are bundled in the fixed variable
+
+:raw-math:`\begin{align*} \mathcal{V}_{StorTechFillCostTotal} = \sum\limits_{(s, h, x) \in \mathcal{S}_{StorTechTuple}} \mathcal{V}_{StorTechFillCost}[s, h, x] \end{align*}`
+
+which is part of the system cost in the :ref:`energy system model<energy_system_model>`.
 
 It has to be mentioned at this point that the chosen storage formulation would allow for simultaneous inflow and outflow from the storage technology (i.e.; :math:`mathcal{V}_{StorTechInflow}[s, h, x, t] > 0` and :math:`mathcal{V}_{StorTechOutflow}[s, h, x, t] > 0`). It is generally possible to avoid this by introducing a time-dependent binary variable which monitors whether a charging or discharing process is taking place at the current time step. However, this drastically increases the complexity of the resulting MILP problem which is why ehubX decides to avoid this. Instead, we rely on the fact that if certain costs are associated with the flow variables, an optimal solution will always try to avoid situations where both variables take nonzero values simulteneously. For example, take the case of :math:`\mathcal{V}_{StorTechOutflow} - \mathcal{V}_{StorTechInflow} = 3` which could be comprised of the following two value pairs for the sub-variables:
 
@@ -1263,9 +1309,9 @@ which is defined in the :ref:`demand model<demand_model>`.
 
 While the system is autonomous, unmet demand is forbidden. This requirement is enforced by the following constraint:
 
-:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \le M[s,h,e,t] \cdot (1 - \mathcal{V}_{AutAlive}[s,t]) \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \le BigM_{DemandUnmet}[s,h,e,t] \cdot \mathcal{P}_{DemandUnmetAllowed}[s] \cdot (1 - \mathcal{V}_{AutAlive}[s,t]) \end{align*}`
 
-As a result, all demand must be satisfied throughout autonomous operation.
+The big-M parameter and the flag :math:`\mathcal{P}_{DemandUnmetAllowed}` are defined in the :ref:`demand model<demand_model>`. As a result, all demand must be satisfied throughout autonomous operation.
 
 
 
@@ -1280,7 +1326,7 @@ This formulation is more restrictive and may lead to infeasibility if the system
 
 2. **Relaxed autonomy (unmet demand enabled)**
 
-In this configuration, unmet demand is allowed after autonomy failure. During autonomous operation (:math:`\mathcal{V}_{AutAlive}[s,t] = 1`), unmet demand remains forbidden, but once autonomy is lost (:math:`\mathcal{V}_{AutAlive}[s,t] = 0`), unmet demand may be used to maintain feasibility.
+In this configuration, unmet demand is allowed after autonomy failure. During autonomous operation (:math:`\mathcal{V}_{AutAlive}[s,t] = 1`), unmet demand remains forbidden, but once autonomy is lost (:math:`\mathcal{V}_{AutAlive}[s,t] = 0`), unmet demand may be used to maintain feasibility. It is charged with the penalty :math:`demand\_unmet\_penalty` in the system cost (see :ref:`demand model<demand_model>`).
 
 Consequently, the model can explore trade-offs between system cost and autonomy while avoiding infeasibility through controlled demand shortfalls after autonomy ends.
 
@@ -1303,9 +1349,9 @@ and similarily for other star-notated variables where the tuple :math:`(s, h, e)
 
 We also have to keep in mind that the supply variable :math:`\mathcal{V}_{DemandSupply}` has already been constrained by the :ref:`demand model<demand_model>` in case of a sum-type demand. For profile demands, the constraint needs to be set here in order to include load shedding and load shifting contributions:
 
-:raw-math:`\begin{align*} \mathcal{V}_{DemandSupply}&[s, h, e, t] = demand\_profile[s, h, e, t] - \mathcal{V}_{LoadShedding}^*[s, h, e, t] + \mathcal{V}_{LoadShifting}^*[s, h, e, t] \qquad \text{if } (s, h, e) \in \mathcal{S}_{DemandProfileTuple} \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{DemandSupply}&[s, h, e, t] + \mathcal{V}_{DemandUnmet}[s, h, e, t] = demand\_profile[s, h, e, t] - \mathcal{V}_{LoadShedding}^*[s, h, e, t] + \mathcal{V}_{LoadShifting}^*[s, h, e, t] \qquad \text{if } (s, h, e) \in \mathcal{S}_{DemandProfileTuple} \end{align*}`
 
-Here, :math:`demand\_profile` is the demand-profile from :ref:`demands.yaml<demands_yaml>` and :math:`\mathcal{V}_{LoadShedding}`, :math:`\mathcal{V}_{LoadShifting}` come from the :ref:`load shedding model<loadshedding_model>` and :ref:`load shifting model<loadshifting_model>` respectively.
+Here, :math:`demand\_profile` is the demand-profile from :ref:`demands.yaml<demands_yaml>`, :math:`\mathcal{V}_{DemandUnmet}` is the unmet demand from the :ref:`demand model<demand_model>` (zero unless unmet demand is allowed), and :math:`\mathcal{V}_{LoadShedding}`, :math:`\mathcal{V}_{LoadShifting}` come from the :ref:`load shedding model<loadshedding_model>` and :ref:`load shifting model<loadshifting_model>` respectively.
 
 In addition to energy balancing, the energy system model has the job of defining the overall *CO2 emissions* which are gathered in a global fixed variable
 
@@ -1325,7 +1371,7 @@ Finally, when CO2 emissions are to be chosen as an objective function, they need
 
 Moving from system CO2 emissions to system costs, these are collected in a similar global variable
 
-:raw-math:`\begin{align*} \mathcal{V}_{SystemCost} \in~ &\mathbb{R}, \\ \mathcal{V}_{SystemCost} =~ &\mathcal{V}_{TechCostTotal} + \mathcal{V}_{ConvTechCostTotal} + \mathcal{V}_{ImpCostTotal} - \mathcal{V}_{ExpProfitTotal} \\ &~ + \mathcal{V}_{LoadSheddingCostTotal} + \mathcal{V}_{LoadShiftingCostTotal} + \mathcal{V}_{NetTechCostTotal} + \mathcal{V}_{SystemCostCo2Penalty} \end{align*}`
+:raw-math:`\begin{align*} \mathcal{V}_{SystemCost} \in~ &\mathbb{R}, \\ \mathcal{V}_{SystemCost} =~ &\mathcal{V}_{TechCostTotal} + \mathcal{V}_{ConvTechCostTotal} + \mathcal{V}_{ImpCostTotal} - \mathcal{V}_{ExpProfitTotal} \\ &~ + \mathcal{V}_{LoadSheddingCostTotal} + \mathcal{V}_{LoadShiftingCostTotal} + \mathcal{V}_{NetTechCostTotal} + \mathcal{V}_{SystemCostCo2Penalty} \\ &~ + \mathcal{V}_{DemandUnmetCostTotal} + \mathcal{V}_{StorTechFillCostTotal} \end{align*}`
 
 This variable is a possible objective function of the system alongside the CO2 total emissions.
 
