@@ -201,7 +201,7 @@ Unmet demand is not part of the core demand formulation and is forbidden unless 
 
 :raw-math:`\begin{align*} \mathcal{V}_{DemandUnmet}[s,h,e,t] \le BigM_{DemandUnmet}[s,h,e,t] \cdot \mathcal{P}_{DemandUnmetAllowed}[s] \quad \forall (s,h,e) \in \mathcal{S}_{DemandTuple},~ t \in \mathcal{S}_{Time} \end{align*}`
 
-where the big-M parameter is the demand itself, i.e.; at most the full demand can be unmet:
+where the big-M parameter provides a demand-based upper bound on unmet demand:
 
 :raw-math:`\begin{align*} BigM_{DemandUnmet}[s,h,e,t] = \left \{ \begin{array}{rl} demand\_profile[s,h,e,t], &\text{if } (s,h,e) \in \mathcal{S}_{DemandProfileTuple} \\ demand\_sum[s,h,e] ~/~ weight[s,t], &\text{if } (s,h,e) \in \mathcal{S}_{DemandSumTuple} \end{array} \right . \end{align*}`
 
