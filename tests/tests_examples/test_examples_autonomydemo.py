@@ -54,3 +54,4 @@ def test_autonomy_allow_unmet_demand_reaches_model(flag, expected_if_enabled):
     assert _unmet_allowed_values(model, enabled=True) == {expected_if_enabled}
     # Autonomy disabled: unmet demand is never allowed, whatever the flag
     assert _unmet_allowed_values(model, enabled=False) == {0}
+    
