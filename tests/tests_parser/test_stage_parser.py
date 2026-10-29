@@ -255,3 +255,32 @@ def test_parse_stage_duplicate_id_raises_data_exception_key(tmp_path):
         stage_parser._parse_stage(stage_node, stages)
 
     assert exc_info.value.key == StageExceptionKey.ID_ADD.value
+
+
+# ============================================================================
+# Tests for autonomy_allow_unmet_demand
+# ============================================================================
+
+
+@pytest.mark.parametrize(
+    "yaml_line, expected",
+    [
+        ("  autonomy_allow_unmet_demand: true\n", True),
+        ("  autonomy_allow_unmet_demand: false\n", False),
+        ("", None),  # key absent
+    ],
+    ids=["true", "false", "absent"],
+)
+def test_parse_autonomy_allow_unmet_demand(tmp_path, yaml_line, expected):
+    _write_yaml(
+        tmp_path,
+        "stages.yaml",
+        "stages:\n- stage_id: S1\n  start_year: 2020\n" + yaml_line,
+    )
+
+    stages, _ = stage_parser.parse(str(tmp_path))
+
+    # "is" instead of "==": configure_autonomy checks "user_flag is True",
+    # so the parser must return a real bool (or None), not e.g. 1 or "true"
+    assert stages.get_allow_unmet_demand(StageId("S1")) is expected
+    
