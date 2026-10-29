@@ -283,3 +283,4 @@ def test_parse_autonomy_allow_unmet_demand(tmp_path, yaml_line, expected):
     # "is" instead of "==": configure_autonomy checks "user_flag is True",
     # so the parser must return a real bool (or None), not e.g. 1 or "true"
     assert stages.get_allow_unmet_demand(StageId("S1")) is expected
+    
