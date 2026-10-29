@@ -41,7 +41,9 @@ def _unmet_allowed_values(model, enabled):
 @pytest.mark.parametrize(
     "flag, expected_if_enabled",
     [
-        (True, 1),   # the case the regression broke
+        (True, 1),   # This catches the problem observed in #17 regression:
+                     # demand_model.build() stopped storing the per-stage
+                     # flags, so this silently became 0
         (False, 0),
         (None, 0),   # key absent
     ],
