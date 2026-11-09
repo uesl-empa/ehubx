@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pyomo.core import Binary, Block, Constraint, NonNegativeReals, Param, Var
 
-from ehubx.core import logging
+from ehubx.core import logging, exceptions
 from ehubx.data.ec_data import EcId, Ecs, ImpExpType
 from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.hub_data import HubId
@@ -18,6 +18,7 @@ from ehubx.data.unit import (
     PowerUnit,
     TimeUnit,
 )
+from ehubx.data.autonomy_data import AutonomyStageAggregationMethod
 from ehubx.model.demand_model import (
     PAR_DEMANDSUMBIGM,
     PAR_DEMANDUNMETALLOWED,
@@ -606,4 +607,46 @@ def _con_aut_no_cross_export_while_alive(
             s_time_hor,
             rule=_rule_exp,
         ),
+    )
+
+def build_stage_aggregation(
+    model, system: EnergySystem, var_system_autonomy: Var, con_name: str
+) -> None:
+    """Build the constraint linking the system autonomy to the stage
+    autonomies, according to the selected stage aggregation method. Called by
+    the energy system model after the system autonomy variable is created."""
+    method = system.autonomy.stage_aggregation_method
+    if method == AutonomyStageAggregationMethod.SUM:
+        _con_stage_aggregation_sum(model, var_system_autonomy, con_name)
+    elif method == AutonomyStageAggregationMethod.MAXMIN:
+        _con_stage_aggregation_maxmin(model, var_system_autonomy, con_name)
+    else:
+        raise exceptions.EhubXException(
+            f"Unknown autonomy stage aggregation method: {method}",
+            module=LOG_MODULE_STR,
+        )
+
+# [CON] Sum over stages: V_SystemAutonomy = sum_s V_Autonomy[s]
+def _con_stage_aggregation_sum(
+    model, var_system_autonomy: Var, con_name: str
+) -> None:
+    def __rule_stage_aggregation_sum(model):
+        return var_system_autonomy == sum(
+            getattr(model, VAR_AUTONOMY)[s] for s in getattr(model, SET_STAGE)
+        )
+
+    setattr(model, con_name, Constraint(rule=__rule_stage_aggregation_sum))
+
+
+# [CON] Worst stage: V_SystemAutonomy <= V_Autonomy[s] for all s
+def _con_stage_aggregation_maxmin(
+    model, var_system_autonomy: Var, con_name: str
+) -> None:
+    def __rule_stage_aggregation_maxmin(model, s):
+        return var_system_autonomy <= getattr(model, VAR_AUTONOMY)[s]
+
+    setattr(
+        model,
+        con_name,
+        Constraint(getattr(model, SET_STAGE), rule=__rule_stage_aggregation_maxmin),
     )

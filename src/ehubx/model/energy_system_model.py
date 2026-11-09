@@ -179,7 +179,7 @@ def _build_self(model: Model, energy_system: EnergySystem) -> None:
         energy_system.mass_unit,
     )
     _build_self_self_sufficiency(model)
-    _build_self_autonomy(model)
+    _build_self_autonomy(model, energy_system)
     _build_self_demand_supply_profile(
         model,
         energy_system.ecs,
@@ -238,14 +238,16 @@ def _build_self_self_sufficiency(model: Model) -> None:
     _obj_system_self_sufficiency(model)
 
 
-def _build_self_autonomy(model: Model) -> None:
+def _build_self_autonomy(model: Model, energy_system: EnergySystem) -> None:
     # Skip this without presence of autonomy submodule
     if autonomy_model.VAR_AUTONOMY not in model.component_map(Var):
         return
     # [VAR] System autonomy
     setattr(model, VAR_SYSTEMAUTONOMY, Var(domain=NonNegativeReals))
-    # [CON] System autonomy
-    _con_system_autonomy(model)
+    # [CON] System autonomy, aggregated over stages by the autonomy module
+    autonomy_model.build_stage_aggregation(
+        model, energy_system, getattr(model, VAR_SYSTEMAUTONOMY), CON_SYSTEMAUTONOMY
+    )
     # [OBJ] System autonomy
     _obj_system_autonomy(model)
 

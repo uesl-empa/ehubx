@@ -17,6 +17,7 @@ from ehubx.core.common import (
 from ehubx.data import exceptions
 from ehubx.data.ates_data import AtesData
 from ehubx.data.ates_tech_data import AtesTechs
+from ehubx.data.autonomy_data import Autonomy
 from ehubx.data.conv_tech_data import ConversionTechs
 from ehubx.data.demand_data import Demands
 from ehubx.data.ebm_tech_data import EbmTechs
@@ -139,6 +140,7 @@ class EnergySystem:
         self.net_techs = NetworkTechs()
         self.self_sufficiency = SelfSufficiency()
         self.ates_data = AtesData()
+        self.autonomy = Autonomy()
         self.solar_data = SolarData()
         self.times = Times()
 
