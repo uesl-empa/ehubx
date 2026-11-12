@@ -173,10 +173,12 @@ p { margin: 0 0 1em; }
 .hub-core-t { fill: #fff; font: 600 14px var(--font); }
 .hub-node circle { fill: var(--surface); stroke: var(--accent-2); stroke-width: 2.5; }
 .hub-node.alt circle { stroke: var(--accent); }
-.hub-node text { font-size: 20px; }
+.hub-node text { font-size: 17px; }
 .hub-node .turbine path { stroke: var(--text); stroke-width: 2.5; stroke-linecap: round; fill: none; }
 .hub-node .turbine circle { fill: var(--text); stroke: none; }
-.hub-node text.lbl { font: 500 12px var(--font); fill: var(--muted); }
+.hub-node text.lbl { font: 600 12px var(--font); fill: var(--text); }
+.hub-node .netw path { stroke: var(--text); stroke-width: 2; fill: none; stroke-linejoin: round; }
+.hub-node .netw circle { fill: var(--text); stroke: none; }
 
 @media (max-width: 860px) {
   .hero { padding: 48px 0 56px; }
