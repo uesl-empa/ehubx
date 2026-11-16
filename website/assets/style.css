@@ -107,6 +107,7 @@ p { margin: 0 0 1em; }
 .nav-links { display: flex; gap: 26px; align-items: center; }
 .nav-links a { color: var(--muted); text-decoration: none; font-size: .95rem; font-weight: 500; }
 .nav-links a:hover { color: var(--text); }
+.nav-links a[aria-current="page"] { color: var(--text); font-weight: 600; }
 .nav-links .nav-cta {
   color: #fff; background: var(--accent-fill); padding: 8px 16px; border-radius: 999px;
 }
@@ -382,3 +383,8 @@ pre {
 .footer-links { display: flex; gap: 20px; }
 .footer-links a { color: var(--dark-text); text-decoration: none; }
 .footer-links a:hover { color: var(--dark-accent); }
+
+/* Sub-pages and "see all" links */
+.page-head { padding-top: 64px; }
+.more { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.more .btn { padding: 10px 18px; }

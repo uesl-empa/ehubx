@@ -10,8 +10,10 @@
 window.EHUBX_CONTENT = {
   projects: [
     // `status` is "Ongoing" or "Completed" ("" to hide). Listed in this order.
+    // `featured: true` also shows the project on the home page (keep it to 3–4).
     {
       title: "Energiesystem Bündner Rheintal 2050",
+      featured: true,
       status: "Ongoing",
       place: "Canton of Graubünden, Switzerland",
       years: "Phase I completed · Phase II ongoing",
@@ -27,6 +29,7 @@ window.EHUBX_CONTENT = {
     },
     {
       title: "Net-zero planning for ESP Sisslerfeld",
+      featured: true,
       status: "",
       place: "Canton of Aargau, Switzerland",
       years: "",
@@ -60,6 +63,7 @@ window.EHUBX_CONTENT = {
     },
     {
       title: "SwissX: an open model of the Swiss energy system",
+      featured: true,
       status: "Ongoing",
       place: "Switzerland",
       years: "",
@@ -71,6 +75,7 @@ window.EHUBX_CONTENT = {
     },
     {
       title: "GOES: geothermal-based optimised energy systems",
+      featured: true,
       status: "Completed",
       place: "International · Swiss case: Empa campus, Dübendorf",
       years: "",
@@ -258,11 +263,31 @@ window.EHUBX_CONTENT = {
       url: "",
     },
     {
+      level: "MSc",
+      status: "",
+      year: "",
+      title: "How the projected cryosphere-driven changes in seasonal hydropower inflows affect Switzerland's energy system",
+      student: "Kim Bühler",
+      institution: "ETH Zurich",
+      supervisors: "",
+      url: "",
+    },
+    {
       level: "BSc",
       status: "",
       year: "2026",
       title: "Implementation and Validation of Realistic Wind Power Modelling in the ehubX Energy System Framework",
       student: "Laurenz Ebi",
+      institution: "ETH Zurich",
+      supervisors: "",
+      url: "",
+    },
+    {
+      level: "BSc",
+      status: "",
+      year: "",
+      title: "Compressed air energy storage (CAES) in the Swiss energy system",
+      student: "Janis Hofmänner",
       institution: "ETH Zurich",
       supervisors: "",
       url: "",
