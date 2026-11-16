@@ -3,6 +3,12 @@
 
   var content = window.EHUBX_CONTENT || { projects: [], publications: [], team: [] };
 
+  // Publications and theses moved to research.html; keep old home-page links working.
+  if (/^#(publications|theses)$/.test(location.hash) && document.getElementById("research")) {
+    location.replace("research.html" + location.hash);
+    return;
+  }
+
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
     Object.keys(attrs || {}).forEach(function (k) {
@@ -18,8 +24,13 @@
   }
 
   // Projects
+  // Each list is optional, so the same script serves every page.
+  // data-featured on #project-list shows only `featured: true` projects;
+  // data-limit on #pub-list shows only the newest N publications.
   var projectList = document.getElementById("project-list");
-  content.projects.forEach(function (p) {
+  if (projectList) content.projects.filter(function (p) {
+    return !projectList.hasAttribute("data-featured") || p.featured;
+  }).forEach(function (p) {
     var where = [p.place, p.years].filter(Boolean).join(" · ");
     projectList.appendChild(el("article", { class: "project" }, [
       el("div", { class: "project-head" }, [
@@ -42,9 +53,11 @@
 
   // Publications (newest first)
   var pubList = document.getElementById("pub-list");
-  content.publications
+  var pubLimit = pubList && pubList.hasAttribute("data-limit") ? Number(pubList.getAttribute("data-limit")) : Infinity;
+  if (pubList) content.publications
     .slice()
     .sort(function (a, b) { return (b.year || 0) - (a.year || 0); })
+    .slice(0, pubLimit)
     .forEach(function (pub) {
       var titleNode = pub.url
         ? el("a", { href: pub.url, text: pub.title, rel: "noopener" })
@@ -62,62 +75,70 @@
       ]));
     });
 
-  // Theses (PhD first, then MSc and others; newest first within each level)
   var thesisList = document.getElementById("thesis-list");
-  var levelRank = { PhD: 0, MSc: 1, BSc: 2 };
-  var theses = (content.theses || []).slice().sort(function (a, b) {
-    var ra = a.level in levelRank ? levelRank[a.level] : 3;
-    var rb = b.level in levelRank ? levelRank[b.level] : 3;
-    return ra - rb || String(b.year || "").localeCompare(String(a.year || ""));
-  });
-  theses.forEach(function (t) {
-    var titleNode = t.url
-      ? el("a", { href: t.url, text: t.title, rel: "noopener" })
-      : document.createTextNode(t.title);
-    var details = [t.institution, t.supervisors ? "Supervised by " + t.supervisors : ""]
-      .filter(Boolean).join(" · ");
-    thesisList.appendChild(el("li", { class: "thesis", "data-level": t.level || "" }, [
-      el("div", { class: "thesis-head" }, [
-        el("span", { class: "thesis-level", text: t.level || "" }),
-        t.status ? el("span", { class: "thesis-status" + (t.status === "Ongoing" ? " is-ongoing" : ""), text: t.status }) : null,
-        el("span", { class: "thesis-year", text: String(t.year || "") }),
-      ]),
-      el("h3", {}, [titleNode, draftBadge(t)]),
-      el("p", { class: "thesis-student", text: t.student || "" }),
-      details ? el("p", { class: "thesis-details", text: details }) : null,
-    ]));
-  });
+  if (thesisList) {
+    // Theses (PhD first, then MSc and others; newest first within each level)
+    var levelRank = { PhD: 0, MSc: 1, BSc: 2 };
+    var theses = (content.theses || []).slice().sort(function (a, b) {
+      var ra = a.level in levelRank ? levelRank[a.level] : 3;
+      var rb = b.level in levelRank ? levelRank[b.level] : 3;
+      return ra - rb || String(b.year || "").localeCompare(String(a.year || ""));
+    });
+    theses.forEach(function (t) {
+      var titleNode = t.url
+        ? el("a", { href: t.url, text: t.title, rel: "noopener" })
+        : document.createTextNode(t.title);
+      var details = [t.institution, t.supervisors ? "Supervised by " + t.supervisors : ""]
+        .filter(Boolean).join(" · ");
+      thesisList.appendChild(el("li", { class: "thesis", "data-level": t.level || "" }, [
+        el("div", { class: "thesis-head" }, [
+          el("span", { class: "thesis-level", text: t.level || "" }),
+          t.status ? el("span", { class: "thesis-status" + (t.status === "Ongoing" ? " is-ongoing" : ""), text: t.status }) : null,
+          el("span", { class: "thesis-year", text: String(t.year || "") }),
+        ]),
+        el("h3", {}, [titleNode, draftBadge(t)]),
+        el("p", { class: "thesis-student", text: t.student || "" }),
+        details ? el("p", { class: "thesis-details", text: details }) : null,
+      ]));
+    });
 
-  // Filter chips: "All" plus one per level present in the data (hidden if only one level)
-  var filter = document.querySelector(".thesis-filter");
-  var levels = [];
-  theses.forEach(function (t) { if (t.level && levels.indexOf(t.level) < 0) levels.push(t.level); });
-  if (levels.length < 2) filter.hidden = true;
-  ["all"].concat(levels).forEach(function (level, i) {
-    filter.appendChild(el("button", {
-      type: "button", class: "chip" + (i === 0 ? " is-active" : ""),
-      "data-level": level, "aria-pressed": i === 0 ? "true" : "false",
-      text: level === "all" ? "All" : level,
-    }));
-  });
-  var chips = filter.querySelectorAll(".chip");
-  Array.prototype.forEach.call(chips, function (chip) {
-    chip.addEventListener("click", function () {
-      var level = chip.getAttribute("data-level");
-      Array.prototype.forEach.call(chips, function (c) {
-        var on = c === chip;
-        c.classList.toggle("is-active", on);
-        c.setAttribute("aria-pressed", on ? "true" : "false");
-      });
-      Array.prototype.forEach.call(thesisList.children, function (item) {
-        item.hidden = level !== "all" && item.getAttribute("data-level") !== level;
+    // Filter chips: "All" plus one per level present in the data (hidden if only one level)
+    var filter = document.querySelector(".thesis-filter");
+    var levels = [];
+    theses.forEach(function (t) { if (t.level && levels.indexOf(t.level) < 0) levels.push(t.level); });
+    if (levels.length < 2) filter.hidden = true;
+    ["all"].concat(levels).forEach(function (level, i) {
+      filter.appendChild(el("button", {
+        type: "button", class: "chip" + (i === 0 ? " is-active" : ""),
+        "data-level": level, "aria-pressed": i === 0 ? "true" : "false",
+        text: level === "all" ? "All" : level,
+      }));
+    });
+    var chips = filter.querySelectorAll(".chip");
+    Array.prototype.forEach.call(chips, function (chip) {
+      chip.addEventListener("click", function () {
+        var level = chip.getAttribute("data-level");
+        Array.prototype.forEach.call(chips, function (c) {
+          var on = c === chip;
+          c.classList.toggle("is-active", on);
+          c.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        Array.prototype.forEach.call(thesisList.children, function (item) {
+          item.hidden = level !== "all" && item.getAttribute("data-level") !== level;
+        });
       });
     });
-  });
+  }
 
   // Team
   var teamList = document.getElementById("team-list");
-  content.team.forEach(function (name) { teamList.appendChild(el("li", { text: name })); });
+  if (teamList) content.team.forEach(function (name) { teamList.appendChild(el("li", { text: name })); });
+
+  // Counts, e.g. <span data-count="theses"></span>
+  Array.prototype.forEach.call(document.querySelectorAll("[data-count]"), function (node) {
+    var list = content[node.getAttribute("data-count")];
+    if (list) node.textContent = String(list.length);
+  });
 
   // Mobile nav
   var toggle = document.querySelector(".nav-toggle");

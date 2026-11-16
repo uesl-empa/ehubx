@@ -4,9 +4,15 @@ Static site for GitHub Pages, aimed at non-modellers: what ehubX is, use cases, 
 
 ## Editing content
 
-Projects, publications and the contributor list are in [`data/content.js`](data/content.js). Add or edit entries there; the page renders them automatically. Entries with `todo: true` show a **draft** badge. Remove that line once an entry has been checked.
+Projects, publications, theses and the contributor list are in [`data/content.js`](data/content.js). Add or edit entries there; the pages render them automatically. Projects with `featured: true` also appear on the home page; the home page shows the three newest publications. Entries with `todo: true` show a **draft** badge. Remove that line once an entry has been checked.
 
-Page text (about, how it works, use cases, get started) is in [`index.html`](index.html). Styles are in [`assets/style.css`](assets/style.css).
+The site has three pages:
+
+- [`index.html`](index.html): home page with the about, how it works, use cases, team and get started text, plus featured projects and the newest publications
+- [`projects.html`](projects.html): all projects
+- [`research.html`](research.html): all publications and student theses
+
+The header and footer are repeated in each page, so change them in all three. Styles are in [`assets/style.css`](assets/style.css).
 
 ## Preview locally
 
