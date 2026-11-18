@@ -14,6 +14,13 @@ The site has three pages:
 
 The header and footer are repeated in each page, so change them in all three. The "Sign up for updates" button (home page, "Stay informed" section) and the footer "Updates" link point to the sign-up form; if the form moves, change the link in all three pages. Styles are in [`assets/style.css`](assets/style.css).
 
+## Fonts, citation and search files
+
+- Fonts (Inter, JetBrains Mono) are served from [`assets/fonts/`](assets/fonts/), not from Google. Licence notes are in the README there.
+- The "How to cite" box on the home page cites the ehubX paper first. When the paper is published in a journal, update that BibTeX entry. The software entry has no version on purpose, so it does not go stale.
+- [`sitemap.xml`](sitemap.xml) lists the three pages. Add a line there when you add a page.
+- [`404.html`](404.html) uses absolute paths starting with `/ehubx/`. If the site moves to a different address, update them.
+
 ## Preview locally
 
 Open `index.html` in a browser, or run:

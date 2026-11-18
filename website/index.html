@@ -15,9 +15,7 @@
   <meta property="og:url" content="https://uesl-empa.github.io/ehubx/">
   <meta property="og:image" content="https://uesl-empa.github.io/ehubx/assets/social-preview.png">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -301,13 +299,22 @@
 
       <div class="cite">
         <h3>How to cite</h3>
-        <p>If you use ehubX in your work, please cite the software:</p>
+        <p>If you use ehubX in your work, please cite the paper:</p>
+        <pre><code>@misc{beermann2026ehubx,
+  title  = {ehubX: A Python Framework for Multi-Energy System Modeling},
+  author = {Beermann, D. and Fierz, L. and Upadhyay, A. and Obrist, M. and
+            Chedhli, W. and Chen, Y.-C. B. and Samani, A. and Sulzer, M. and
+            Yazdanie, M. and Mavromatidis, G. and Koirala, B. and Mutschler, R.},
+  year   = {2026},
+  note   = {Preprint, SSRN},
+  doi    = {10.2139/ssrn.7686769},
+  url    = {https://doi.org/10.2139/ssrn.7686769}
+}</code></pre>
+        <p>The software itself can also be cited. Please add the version you used:</p>
         <pre><code>@software{ehubx,
   title   = {ehubX: A Python framework for modeling and optimizing energy systems based on the energy hub concept},
   author  = {{Urban Energy Systems Laboratory, Empa}},
   url     = {https://github.com/uesl-empa/ehubx},
-  version = {2.3.1},
-  year    = {2026},
   license = {GPL-3.0-or-later}
 }</code></pre>
       </div>
