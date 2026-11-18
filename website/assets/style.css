@@ -1,3 +1,16 @@
+/* Fonts are served from this site (no requests to Google). Latin subset only.
+   Inter and JetBrains Mono: SIL Open Font License 1.1, see assets/fonts/README.txt */
+@font-face {
+  font-family: "Inter"; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url("fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   --bg: #ffffff;
   --bg-alt: #f5f5f7;
@@ -105,7 +118,7 @@ p { margin: 0 0 1em; }
   color: var(--text); font-weight: 700; font-size: 1.3rem; letter-spacing: -.02em;
 }
 .nav-links { display: flex; gap: 26px; align-items: center; }
-.nav-links a { color: var(--muted); text-decoration: none; font-size: .95rem; font-weight: 500; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: .95rem; font-weight: 500; white-space: nowrap; }
 .nav-links a:hover { color: var(--text); }
 .nav-links a[aria-current="page"] { color: var(--text); font-weight: 600; }
 .nav-links .nav-cta {
@@ -120,11 +133,11 @@ p { margin: 0 0 1em; }
 .nav-toggle { display: none; background: none; border: 0; padding: 8px; cursor: pointer; }
 .nav-toggle span { display: block; width: 22px; height: 2px; background: var(--text); margin: 5px 0; border-radius: 2px; }
 
-@media (max-width: 1080px) {
+@media (max-width: 1240px) {
   .nav, .nav-links { gap: 20px; }
   .empa-logo { padding-left: 20px; }
 }
-@media (max-width: 960px) {
+@media (max-width: 1120px) {
   .nav { gap: 12px; }
   .nav-toggle { display: block; order: 3; }
   .empa-logo { order: 2; border-left: 0; padding-left: 0; }
@@ -388,3 +401,16 @@ pre {
 .page-head { padding-top: 64px; }
 .more { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 .more .btn { padding: 10px 18px; }
+
+/* Keyboard access */
+a:focus-visible, button:focus-visible, .btn:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px;
+}
+.skip-link {
+  position: absolute; left: 12px; top: -60px; z-index: 100;
+  background: var(--accent-fill); color: #fff; padding: 10px 16px; border-radius: 8px;
+  font-weight: 600; text-decoration: none;
+}
+.skip-link:focus { top: 12px; }
+
+.cite pre + p { margin-top: 1.6em; }
