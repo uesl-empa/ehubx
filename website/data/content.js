@@ -194,6 +194,14 @@ window.EHUBX_CONTENT = {
     // Newest first. `type` is one of: "Journal article", "Preprint",
     // "Conference paper", "Report", "Thesis", "Software".
     {
+      type: "Preprint",
+      year: 2026,
+      title: "ehubX: A Python Framework for Multi-Energy System Modeling",
+      authors: "Beermann, D., Fierz, L., Upadhyay, A., Obrist, M., Chedhli, W., Chen, Y.-C. B., Samani, A., Sulzer, M., Yazdanie, M., Mavromatidis, G., Koirala, B., Mutschler, R.",
+      venue: "SSRN preprint (2026)",
+      url: "https://doi.org/10.2139/ssrn.7686769",
+    },
+    {
       type: "Journal article",
       year: 2026,
       title: "Charting the path to net-zero via CCS and urban-industrial system integration: A Swiss case study",
