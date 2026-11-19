@@ -4,12 +4,13 @@ import re
 import pytest
 from pyomo.core import value
 
-from ehubx import EhubX, Glpk, ObjectiveType
+from ehubx import EhubX, Glpk, Highs, ObjectiveType
 from ehubx.model import (
     ates_tech_model,
     conv_tech_model,
     demand_model,
     ebm_tech_model,
+    energy_system_model,
     export_model,
     hp_tech_model,
     import_model,
@@ -352,3 +353,26 @@ def test_examples_smalldemo_co2_per_in_on_storage_tech():
     with open(log_file, encoding="utf-8") as f:
         log = f.read()
     assert "Ignoring 'co2_per_in' of tech X2Stor" in log
+
+
+def _solve_smalldemo_cost(solver):
+    """Solve a fresh copy of small_demo for cost with the given solver and
+    return the optimal system cost"""
+    init_tmp_model(os.path.join(DIRNAME_EXAMPLES, "small_demo"))
+    ehubx = EhubX()
+    ehubx.model_dir_path = DIRNAME_TMPTESTMODEL
+    ehubx.parse()
+    ehubx.build()
+    ehubx.set_solver(solver)
+    ehubx.solve_single_obj(obj_type=ObjectiveType.COST, write_model=False)
+    # value() raises if no solution was loaded, so a failed solve fails the test
+    return value(getattr(ehubx._model, energy_system_model.VAR_SYSTEMCOST))
+
+
+def test_examples_smalldemo_highs_matches_glpk():
+    """HiGHS must find the same optimal cost as GLPK. Only the objective is
+    compared: small_demo has several optimal solutions (#41), so individual
+    variables may legitimately differ between solvers"""
+    cost_glpk = _solve_smalldemo_cost(Glpk())
+    cost_highs = _solve_smalldemo_cost(Highs())
+    assert cost_highs == pytest.approx(cost_glpk, rel=1e-6)
