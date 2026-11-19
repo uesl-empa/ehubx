@@ -11,7 +11,7 @@ from pyomo.core import Model
 
 from ehubx.core import exceptions, logging, optimizer, rom
 from ehubx.core.common import MultiObjMethod, ObjectiveType, SolverKind
-from ehubx.core.solver import Glpk, Gurobi, Solver
+from ehubx.core.solver import Glpk, Gurobi, Highs, Solver
 from ehubx.data.energy_system_data import EnergySystem
 from ehubx.data.pareto_front_data import ParetoFront
 from ehubx.model import energy_system_model
@@ -54,12 +54,14 @@ FILENAME_OPTVARS_SINGLEOBJ: str = "opt_vars.csv"
 SOLVER_KIND_TO_TYPE: Dict[SolverKind, type] = {
     SolverKind.GUROBI: Gurobi,
     SolverKind.GLPK: Glpk,
+    SolverKind.HIGHS: Highs,
 }
 
 # Dictionary translating from type to solver kind
 SOLVER_TYPE_TO_KIND: Dict[type, SolverKind] = {
     Gurobi: SolverKind.GUROBI,
     Glpk: SolverKind.GLPK,
+    Highs: SolverKind.HIGHS,
 }
 
 
@@ -192,6 +194,8 @@ class EhubX:
             self._solver = Gurobi()
         if solver_kind == SolverKind.GLPK:
             self._solver = Glpk()
+        if solver_kind == SolverKind.HIGHS:
+            self._solver = Highs()
 
     # ------ #
     # Parser #

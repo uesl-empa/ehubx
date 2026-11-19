@@ -13,7 +13,7 @@ __version__ = "2.3.1"
 from .core.common import MultiObjMethod, ObjectiveType, SolverKind  # noqa: F401
 from .core.ehubx import EhubX  # noqa: F401
 from .core.rom import RomMethod, RomSettings  # noqa: F401
-from .core.solver import Glpk, Gurobi  # noqa: F401
+from .core.solver import Glpk, Gurobi, Highs  # noqa: F401
 from .data.ates_data import AtesScheduleId  # noqa: F401
 from .data.ec_data import EcId  # noqa: F401
 from .data.hub_data import HubId  # noqa: F401

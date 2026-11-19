@@ -135,6 +135,9 @@ class SolverKind(Enum):
     GLPK = "GLPK"
     """GLPK (https://www.gnu.org/software/glpk/)"""
 
+    HIGHS = "HiGHS"
+    """HiGHS (https://highs.dev/)"""
+
 
 # -------- #
 # Literals #
