@@ -37,7 +37,7 @@ pip install ehubx==2.3.0  # Install a specific version
 
 For local development, we recommend setting up **ehubX** in a dedicated Python virtual environment to avoid conflicts with other packages. The step-by-step guide below is formulated using [conda](https://docs.conda.io/en/latest/) but can be adapted for other package managers or a manual setup. Similarly, we use [poetry](https://python-poetry.org/) for dependency management, which can be replaced with [pip](https://pip.pypa.io/en/stable/) if preferred.
 
-Since ehubX relies on external MILP solvers, additionally ensure that you have a compatible solver installed and properly configured in your environment (see *Specify solver* in the documentation).
+ehubX relies on external MILP solvers. The open-source solver HiGHS is installed together with ehubX and needs no further setup. To use another solver, such as Gurobi or GLPK, ensure that it is installed and properly configured in your environment (see *Specify solver* in the documentation).
 
 ### Development installation
 

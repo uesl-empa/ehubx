@@ -231,7 +231,23 @@ In the ehubX solving routines :ref:`single-objective solving <single_objective_s
     solver.set_mip_focus(1)
     ehubx.set_solver(solver)
 
-The submodule :code:`ehubx.core.solver` provides interfaces to all supported solvers (currently `Gurobi <https://www.gurobi.com/>`_ and `GLPK <https://www.gnu.org/software/glpk/>`_). Please note that in order to choose a solver, it must be properly installed in the Python environment used to run ehubX. In the example above, the Gurobi solver is chosen and created as an object in line 4. All solver options can then be specified by calling methods of the created object, as illustrated in line 5 for the parameter :code:`mip_focus`. For detailed information about which parameters can be specified, please refer to the classes in the :code:`ehubx.core.solver` submodule. Finally, line 6 sets the customized solver for the :code:`ehubx` object. Please note that if no solver is specified, the methods for :ref:`single-objective solving <single_objective_solving>` and :ref:`double-objective solving <double_objective_solving>` will set a default solver instead.
+The submodule :code:`ehubx.core.solver` provides interfaces to all supported solvers (currently `Gurobi <https://www.gurobi.com/>`_, `GLPK <https://www.gnu.org/software/glpk/>`_ and `HiGHS <https://highs.dev/>`_). Please note that in order to choose a solver, it must be properly installed in the Python environment used to run ehubX. HiGHS is installed together with ehubX. In the example above, the Gurobi solver is chosen and created as an object in line 4. All solver options can then be specified by calling methods of the created object, as illustrated in line 5 for the parameter :code:`mip_focus`. For detailed information about which parameters can be specified, please refer to the classes in the :code:`ehubx.core.solver` submodule. Finally, line 6 sets the customized solver for the :code:`ehubx` object. Please note that if no solver is specified, the methods for :ref:`single-objective solving <single_objective_solving>` and :ref:`double-objective solving <double_objective_solving>` will set a default solver instead.
+
+HiGHS is a free, open-source solver that needs neither a separate installation nor a license. Unlike the Gurobi interface, the HiGHS interface has no methods for individual options. Options are set with :code:`set_option_by_key`, using the names from the `HiGHS option list <https://ergo-code.github.io/HiGHS/stable/options/definitions/>`_:
+
+.. code-block:: ruby
+    :caption: Setting and customizing the HiGHS solver
+    :linenos:
+
+    from ehubx import EhubX, Highs
+
+    ehubx = EhubX()
+    solver = Highs()
+    solver.set_option_by_key("time_limit", 3600)  # in seconds
+    solver.set_option_by_key("mip_rel_gap", 0.001)
+    ehubx.set_solver(solver)
+
+HiGHS does not stop on an unknown option name: a misspelled option only prints an error line in the solver output and is then ignored. HiGHS may also warn that a model is badly scaled, meaning that it contains very large or very small coefficients. This warning does not stop the solve, but it can explain slow solving or numerical inaccuracies.
 
 
 .. _single_objective_solving:
