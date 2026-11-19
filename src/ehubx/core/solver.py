@@ -652,3 +652,58 @@ class Glpk(Solver):
     def __init__(self):
         super().__init__()
         logging.log("Created new GLPK solver", module=LOG_MODULE_STR)
+
+
+class Highs(Solver):
+    """
+    Class for the third-party HiGHS solver. HiGHS is included in the highspy
+    Python package, so it needs no separate installation
+    """
+
+    # --------------- #
+    # Solving routine #
+    # --------------- #
+    def solve(self, model: Model) -> Any:
+        """
+        Solve a pyomo model with HiGHS
+
+        :param model: Pyomo model instance
+        :type model: Model
+        :return: Pyomo result dictionary
+        :rtype: Any
+        """
+        # Pyomo's interface to highspy. Unlike GLPK and Gurobi, it does not
+        # accept the io_format argument
+        solver_factory = SolverFactory("appsi_highs")
+        for key, value in self.options.items():
+            solver_factory.options[key] = value
+        solver_manager = SolverManagerFactory("serial")
+        # With load_solutions=True, this interface raises an error when no
+        # feasible solution exists. Loading the solution only if there is one
+        # returns infeasible results like the other solvers do
+        result = solver_manager.solve(
+            model, opt=solver_factory, tee=True, load_solutions=False
+        )
+        if len(result.solution) > 0:
+            model.solutions.load_from(result)
+        return result
+
+    # ----------- #
+    # Postprocess #
+    # ----------- #
+    def postprocess(self, model: Model, results: Any, **kwargs) -> None:
+        """
+        Post-processing routine. This is empty for the HiGHS solver
+
+        :param model: Pyomo model instance
+        :type model: Model
+        :param results: Pyomo results dictionary obtained from the solve method
+        :type results: Any
+        """
+
+    # ------------ #
+    # Construction #
+    # ------------ #
+    def __init__(self) -> None:
+        super().__init__()
+        logging.log("Created new HiGHS solver", module=LOG_MODULE_STR)

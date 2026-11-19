@@ -3,7 +3,7 @@
 Installation
 ==============
 
-We recommend setting up **ehubX** in a dedicated Python virtual environment to avoid conflicts with other packages. The step-by-step guide below is formulated using `conda <https://docs.conda.io/en/latest/>`_ but can be adapted for other package managers or manual setup. Similarly, we use `poetry <https://python-poetry.org/>`_ for dependency management, which can be replaced with `pip <https://pip.pypa.io/en/stable/>`_ if preferred. Since ehubX relies on external MILP solvers, additionally ensure that you have a compatible solver installed and properly configured in your environment (see :ref:`Specify solver <specify_solver>`).
+We recommend setting up **ehubX** in a dedicated Python virtual environment to avoid conflicts with other packages. The step-by-step guide below is formulated using `conda <https://docs.conda.io/en/latest/>`_ but can be adapted for other package managers or manual setup. Similarly, we use `poetry <https://python-poetry.org/>`_ for dependency management, which can be replaced with `pip <https://pip.pypa.io/en/stable/>`_ if preferred. ehubX relies on external MILP solvers. The open-source solver HiGHS is installed together with ehubX and needs no further setup. To use another solver, such as Gurobi or GLPK, ensure that it is installed and properly configured in your environment (see :ref:`Specify solver <specify_solver>`).
 
 1. Clone the ehubX repository.
 

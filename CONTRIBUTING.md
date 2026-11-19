@@ -328,7 +328,9 @@ code you are editing, and your tests check the wrong code without any warning.
 
 ### Installing a solver (important)
 
-ehubX needs a MILP solver to run models. CI uses GLPK.
+ehubX needs a MILP solver to run models. The open-source solver HiGHS is
+installed together with ehubX and is enough for that. The test suite, like CI,
+solves its example models with GLPK, so contributors also need GLPK:
 
 | Platform | Command |
 |---|---|
@@ -337,7 +339,7 @@ ehubX needs a MILP solver to run models. CI uses GLPK.
 | Windows (no admin) | Download [winglpk](https://sourceforge.net/projects/winglpk/), unzip, put `glpsol.exe` on your `PATH` |
 | macOS | `brew install glpk` |
 
-**Without a solver, roughly 200 tests fail on a clean checkout.** They are not
+**Without GLPK, roughly 250 tests fail on a clean checkout.** They are not
 broken — they simply cannot run. If you see a large number of failures
 immediately after cloning, check `glpsol --help` works before investigating
 anything else.
