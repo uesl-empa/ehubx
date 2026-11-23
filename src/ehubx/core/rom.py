@@ -403,7 +403,8 @@ def _cluster_tsam(
                 f"stages is {num_ts_max}",
                 module=LOG_MODULE_STR,
             )
-            __cluster_stage(s, num_ts_=num_ts_max, extreme_period_method="None")
+            # __cluster_stage(s, num_ts_=num_ts_max, extreme_period_method="None")
+            __cluster_stage(s, num_ts_=num_ts + (num_ts_max - num_ts_s), extreme_period_method="new_cluster_center")
     num_ts = num_ts_max
 
     # Build the time map
