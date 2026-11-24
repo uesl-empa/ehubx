@@ -1,0 +1,142 @@
+import csv
+import os
+from typing import Dict, List, Optional
+
+import numpy as np
+import pytest
+
+from ehubx.core import rom
+from ehubx.core.rom import RomMethod, RomSettings
+from ehubx.data.ec_data import EcId
+from ehubx.data.energy_system_data import EnergySystem
+from ehubx.data.hub_data import HubId
+from ehubx.data.stage_data import StageId
+from ehubx.data.time_data import TimeId, Times
+from ehubx.data.time_series import TimeSeries
+from ehubx.data.unit import CurrencyUnit, PowerUnit, TimeUnit
+from ehubx.data.value import Value
+
+
+HUB = HubId("H1")
+KWH = PowerUnit.KW * TimeUnit.H
+
+Profiles = Dict[str, Dict[str, np.ndarray]]
+
+
+def make_system(demands: Profiles, prices: Optional[Profiles] = None) -> EnergySystem:
+    """
+    Build a minimal energy system with one hub. demands and prices map
+    stage -> ec -> profile. Every stage in demands is added to the system.
+    """
+    system = EnergySystem()
+    num_ts = len(next(iter(next(iter(demands.values())).values())))
+    system.num_times_horizon = num_ts
+    times = Times()
+    for t in range(1, num_ts + 1):
+        times.add_id(TimeId(t))
+    system.times = times
+    system.hubs.add_id(HUB)
+    ecs = {
+        e for profiles in (demands, prices or {}) for p in profiles.values() for e in p
+    }
+    for e in sorted(ecs):
+        system.ecs.add_id(EcId(e))
+        system.ecs.set_unit(EcId(e), KWH)
+    for i, s in enumerate(demands):
+        system.stages.add_id(StageId(s))
+        system.stages.set_start_year(StageId(s), 2025 + 10 * i)
+    for s, profiles in demands.items():
+        for e, vals in profiles.items():
+            system.demands.add_profile_tuple(StageId(s), HUB, EcId(e), KWH)
+            for t, v in enumerate(vals, start=1):
+                system.demands.set_demand_in_profile(
+                    StageId(s), HUB, EcId(e), TimeId(t), Value(float(v), PowerUnit.KW)
+                )
+    for s, profiles in (prices or {}).items():
+        for e, vals in profiles.items():
+            system.imports.add_tuple(StageId(s), HUB, EcId(e), KWH)
+            for t, v in enumerate(vals, start=1):
+                system.imports.set_price(
+                    StageId(s),
+                    HUB,
+                    EcId(e),
+                    TimeId(t),
+                    Value(float(v), CurrencyUnit.CHF / KWH),
+                )
+    return system
+
+
+def cluster(system: EnergySystem, num_ts_target: int) -> Optional[EnergySystem]:
+    return rom.rom(
+        system,
+        RomSettings(method=RomMethod.CLUSTER_TSAM, num_ts_target=num_ts_target),
+        write_rom=False,
+    )
+
+
+def series_by_key(system: EnergySystem) -> Dict[tuple, TimeSeries]:
+    return {(kind, s, ids): series for kind, s, ids, series in system.time_series}
+
+
+def values(series: TimeSeries, ids: List[TimeId]) -> np.ndarray:
+    return np.array([series.get_value(t).to_float() for t in ids])
+
+
+@pytest.fixture(name="multistage")
+def fixture_multistage() -> EnergySystem:
+    """Two stages with a different number of time series and different peaks"""
+    rng = np.random.default_rng(42)
+    num_ts = 300
+    daily = 1 + np.sin(np.arange(num_ts) * 2 * np.pi / 24)
+    return make_system(
+        demands={
+            "S1": {
+                "E1": daily * 100 + rng.uniform(0, 20, num_ts),
+                "E2": rng.uniform(0, 5, num_ts),
+                "E3": rng.gamma(2, 3, num_ts),
+            },
+            "S2": {"E1": daily[::-1] * 80 + rng.uniform(0, 50, num_ts)},
+        },
+        prices={
+            "S1": {"E1": rng.uniform(5, 80, num_ts)},
+            "S2": {"E1": rng.uniform(10, 120, num_ts)},
+        },
+    )
+
+
+def test_no_clustering_if_target_not_smaller_than_horizon():
+    rng = np.random.default_rng(4)
+    system = make_system({"S1": {"E1": rng.uniform(0, 1, 50)}})
+    assert cluster(system, 50) is None
+
+
+def test_input_system_is_not_modified(multistage):
+    before = {
+        key: values(series, multistage.times.ids_horizon_in_order)
+        for key, series in series_by_key(multistage).items()
+    }
+    cluster(multistage, 10)
+    assert not multistage.times.is_clustered
+    for key, series in series_by_key(multistage).items():
+        np.testing.assert_array_equal(
+            values(series, multistage.times.ids_horizon_in_order), before[key]
+        )
+
+
+def test_time_map_is_written(multistage, tmp_path):
+    rom_dir = os.path.join(tmp_path, "rom")
+    sys_rom = rom.rom(
+        multistage,
+        RomSettings(method=RomMethod.CLUSTER_TSAM, num_ts_target=10),
+        write_rom=True,
+        rom_dir_path=rom_dir,
+    )
+    assert sys_rom is not None
+    with open(os.path.join(rom_dir, rom.FILENAME_TIMEMAP), encoding="utf8") as file:
+        rows = list(csv.DictReader(file))
+    num_hor = multistage.times.num_horizon_ts
+    assert len(rows) == num_hor * len(multistage.stages.ids)
+    for row in rows:
+        s, t_hor = StageId(row["stage_id"]), TimeId(int(row["ts_full"]))
+        t_cl = sys_rom.times.get_cluster_ts(s, t_hor)
+        assert int(row["ts_cluster"]) == t_cl.key_as_int
