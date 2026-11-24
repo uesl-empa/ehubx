@@ -347,8 +347,11 @@ def _cluster_tsam(
 
         # Calculate "roundOutput" for tsam which is the decimal to which the
         # output will be rounded
+        # The magnitude is taken from the smallest nonzero absolute value, so
+        # that negative values (e.g. negative prices) are supported
         round_output = 6
-        min_val = np.nanmin(np.where(df_by_s[s].values == 0, np.nan, df_by_s[s].values))
+        abs_vals = np.abs(df_by_s[s].values)
+        min_val = np.nanmin(np.where(abs_vals == 0, np.nan, abs_vals))
         magnitude = math.floor(math.log(min_val, 10))
         if magnitude < -4:
             round_output = 2 - magnitude

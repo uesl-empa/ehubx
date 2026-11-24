@@ -140,3 +140,20 @@ def test_time_map_is_written(multistage, tmp_path):
         s, t_hor = StageId(row["stage_id"]), TimeId(int(row["ts_full"]))
         t_cl = sys_rom.times.get_cluster_ts(s, t_hor)
         assert int(row["ts_cluster"]) == t_cl.key_as_int
+
+
+def test_negative_values_are_supported():
+    # e.g. negative electricity prices
+    rng = np.random.default_rng(6)
+    num_ts = 200
+    prices = rng.uniform(-20, 80, num_ts)
+    system = make_system(
+        demands={"S1": {"E1": rng.uniform(0, 1, num_ts)}},
+        prices={"S1": {"E1": prices}},
+    )
+    sys_rom = cluster(system, 10)
+    assert sys_rom is not None
+    price = sys_rom.imports.get_price(StageId("S1"), HUB, EcId("E1"))
+    v_cl = values(price, sys_rom.times.ids_in_order)
+    assert v_cl.min() == pytest.approx(prices.min())
+    assert v_cl.max() == pytest.approx(prices.max())
