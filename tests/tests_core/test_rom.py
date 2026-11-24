@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import pytest
 
-from ehubx.core import rom
+from ehubx.core import exceptions, rom
 from ehubx.core.rom import RomMethod, RomSettings
 from ehubx.data.ec_data import EcId
 from ehubx.data.energy_system_data import EnergySystem
@@ -347,3 +347,11 @@ def test_no_clustering_if_time_steps_would_not_be_reduced():
     assert cluster(system, 10) is None
     assert system.times.num_horizon_ts == 30
     assert not system.times.is_clustered
+
+
+def test_non_finite_values_raise():
+    vals = np.random.default_rng(5).uniform(0, 1, 100)
+    vals[10] = np.inf
+    system = make_system({"S1": {"E1": vals}})
+    with pytest.raises(exceptions.EhubXException, match="non-finite"):
+        cluster(system, 10)

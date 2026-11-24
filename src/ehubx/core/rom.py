@@ -294,6 +294,14 @@ def _cluster_tsam(
                 "present for every stage",
                 module=LOG_MODULE_STR,
             ) from exc
+        is_finite = np.isfinite(df_by_s[s].to_numpy()).all(axis=0)
+        if not is_finite.all():
+            cols = [str(c) for c in df_by_s[s].columns[~is_finite]]
+            raise exceptions.EhubXException(
+                f"Time series in stage {s} contain non-finite values and "
+                f"cannot be clustered: {cols}",
+                module=LOG_MODULE_STR,
+            )
     # Determine maximal number of time series in each stage
     num_ser_by_s: Dict[StageId, int] = {
         s: len(df_by_s[s].columns) for s in energy_system.stages.ids
