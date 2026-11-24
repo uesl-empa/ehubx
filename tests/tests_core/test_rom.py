@@ -216,3 +216,53 @@ def test_multistage_preserves_extremes_in_every_stage(multistage):
         v_cl = values(reduced[kind, s, ids], times.ids_in_order)
         assert v_cl.max() == pytest.approx(v_full.max(), rel=1e-4), (kind, s, ids)
         assert v_cl.min() == pytest.approx(v_full.min(), rel=1e-4), (kind, s, ids)
+
+
+def test_multistage_stages_share_all_cluster_time_steps(multistage):
+    num_ts_target = 10
+    sys_rom = cluster(multistage, num_ts_target)
+    assert sys_rom is not None
+    times = sys_rom.times
+    # Horizon is untouched
+    assert times.ids_horizon == multistage.times.ids_horizon
+    # Each series contributes at most one max and one min. S1 has the most
+    # extreme periods (4 series -> at most 8)
+    num_ts_cl = times.num_ts
+    assert num_ts_target < num_ts_cl <= num_ts_target + 8
+    assert {t.key_as_int for t in times.ids} == set(range(1, num_ts_cl + 1))
+    for s in sys_rom.stages.ids:
+        # Every clustered time step is used in every stage, with an explicit
+        # weight equal to its number of members
+        members: Dict[TimeId, int] = {}
+        for t_hor in times.ids_horizon:
+            t_cl = times.get_cluster_ts(s, t_hor)
+            members[t_cl] = members.get(t_cl, 0) + 1
+        assert set(members) == times.ids
+        for t_cl, num_members in members.items():
+            assert (s, t_cl) in times._weight
+            assert times.get_weight(s, t_cl) == num_members
+        assert sum(times.get_weight(s, t) for t in times.ids) == times.num_horizon_ts
+
+
+def test_no_phantom_time_step_when_extremes_share_a_cluster():
+    # The peak hours of E1 and E2 are almost identical, so a plain clustering
+    # would put them into one cluster. Both must become clusters of their own
+    # without leaving an empty cluster behind that another stage still uses.
+    rng = np.random.default_rng(0)
+    num_ts = 300
+    e1, e2 = rng.uniform(0, 1, num_ts), rng.uniform(0, 1, num_ts)
+    e1[100], e2[100] = 10.0, 9.95
+    e1[200], e2[200] = 9.95, 10.0
+    system = make_system(
+        {
+            "S1": {"E1": e1, "E2": e2},
+            "S2": {"E1": rng.uniform(0, 2, num_ts), "E2": rng.uniform(0, 3, num_ts)},
+        }
+    )
+    sys_rom = cluster(system, 4)
+    assert sys_rom is not None
+    times = sys_rom.times
+    for s in sys_rom.stages.ids:
+        used = {times.get_cluster_ts(s, t) for t in times.ids_horizon}
+        assert used == times.ids
+        assert sum(times.get_weight(s, t) for t in times.ids) == num_ts

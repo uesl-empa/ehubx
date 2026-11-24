@@ -4,6 +4,7 @@ import copy
 import csv
 import math
 import os
+from collections import Counter
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -350,14 +351,24 @@ def _cluster_tsam(
         for t_full in energy_system.times.ids_horizon
     ]
 
-    # Modify the time data
+    # Modify the time data. Every stage gets an explicit weight for every
+    # clustered time step. A clustered time step without members in a stage
+    # would fall back to the default weight 1 without representing any
+    # horizon time step of that stage, so it is rejected.
     sys.times.clear_ids()
+    for t_key in range(1, num_ts + 1):
+        sys.times.add_id(TimeId(t_key))
     for s, time_dict in time_dict_per_stage.items():
-        for t_cl in set(time_dict.values()):
-            if t_cl not in sys.times.ids:
-                sys.times.add_id(t_cl)
-            weight = list(time_dict.values()).count(t_cl)
-            sys.times.set_weight(s, t_cl, weight)
+        weights = Counter(time_dict.values())
+        empty = [t.key_as_int for t in sys.times.ids_in_order if weights[t] == 0]
+        if empty:
+            raise exceptions.EhubXException(
+                f"Clustered time steps {empty} of stage {s} do not represent any "
+                "horizon time step",
+                module=LOG_MODULE_STR,
+            )
+        for t_cl in sys.times.ids:
+            sys.times.set_weight(s, t_cl, weights[t_cl])
         for t_full, t_cl in time_dict.items():
             sys.times.set_cluster_ts(s, t_cl, t_full)
 
