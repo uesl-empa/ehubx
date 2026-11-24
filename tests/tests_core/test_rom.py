@@ -172,3 +172,47 @@ def test_stage_with_only_zero_series():
     assert sys_rom is not None
     demand = sys_rom.demands.get_demand_profile(StageId("S2"), HUB, EcId("E1"))
     assert not values(demand, sys_rom.times.ids_in_order).any()
+
+
+def test_every_stage_gets_exactly_the_common_number_of_clusters():
+    # A few outlier hours per series. Re-running tsam with more regular
+    # clusters turns outliers into single-hour clusters, so tsam then skips
+    # them as extreme periods and a re-clustered stage came out one cluster
+    # short. The missing cluster was filled with NaN values and weight 1.
+    rng = np.random.default_rng(0)
+    num_ts = 400
+
+    def spiky() -> np.ndarray:
+        vals = rng.uniform(0, 1, num_ts)
+        idx = rng.choice(num_ts, size=6, replace=False)
+        vals[idx] += rng.uniform(3, 8, 6)
+        return vals
+
+    num_ser = {"S1": int(rng.integers(2, 6)), "S2": int(rng.integers(1, 5))}
+    system = make_system(
+        {s: {f"E{i}": spiky() for i in range(n)} for s, n in num_ser.items()}
+    )
+    sys_rom = cluster(system, 2 * max(num_ser.values()))
+    assert sys_rom is not None
+    times = sys_rom.times
+    for kind, s, ids, series in sys_rom.time_series:
+        assert not np.isnan(values(series, times.ids_in_order)).any(), (kind, s, ids)
+    for s in sys_rom.stages.ids:
+        used = {times.get_cluster_ts(s, t) for t in times.ids_horizon}
+        assert len(used) == times.num_ts
+
+
+def test_multistage_preserves_extremes_in_every_stage(multistage):
+    # The stages have a different number of time series and therefore a
+    # different number of extreme periods. Peaks must not be averaged away
+    # (rounding of the clustered values is tolerated here)
+    sys_rom = cluster(multistage, 10)
+    assert sys_rom is not None
+    times = sys_rom.times
+    ids_hor = multistage.times.ids_horizon_in_order
+    reduced = series_by_key(sys_rom)
+    for (kind, s, ids), series in series_by_key(multistage).items():
+        v_full = values(series, ids_hor)
+        v_cl = values(reduced[kind, s, ids], times.ids_in_order)
+        assert v_cl.max() == pytest.approx(v_full.max(), rel=1e-4), (kind, s, ids)
+        assert v_cl.min() == pytest.approx(v_full.min(), rel=1e-4), (kind, s, ids)
