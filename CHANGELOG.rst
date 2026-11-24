@@ -1,6 +1,13 @@
 Changelog
 ==========
 
+**Unreleased**
+------------------------
+- Fixed tsam clustering for multi-stage models. Stages with fewer extreme periods were re-clustered without them, so their peaks were lost. All stages now get the same number of clustered time steps while keeping their extreme periods.
+- Fixed clustered time steps without any member time step. In multi-stage models, these could enter a stage's sums with a weight of 1.
+- Extreme periods are now kept as single-time-step clusters, and every other clustered value is the mean of its members. The weighted sums of all time series now exactly match the full horizon.
+- Fixed crashes when clustering time series with negative values or a stage whose time series are all zero. Fixed the horizon growing when the clustered time steps would outnumber the horizon time steps; clustering is now skipped in that case.
+
 **2.3.1** (26.07.2026)
 ------------------------
 - Automated PyPI release workflow using GitHub actions. Releases will trigger a build of the package and upload it to PyPI.

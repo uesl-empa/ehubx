@@ -2,8 +2,8 @@
 
 import copy
 import csv
-import math
 import os
+from collections import Counter
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -269,7 +269,7 @@ def _cluster_tsam(
 
     # Clustering only makes sense with fewer clustered ts than horizon ts
     if num_ts >= energy_system.times.num_horizon_ts:
-        logging.log(
+        logging.log_warning(
             "Stopped clustering because target number of clustered "
             f"time steps ({num_ts}) is larger than number of horizon "
             f"time steps ({energy_system.times.num_horizon_ts}) "
@@ -294,6 +294,14 @@ def _cluster_tsam(
                 "present for every stage",
                 module=LOG_MODULE_STR,
             ) from exc
+        is_finite = np.isfinite(df_by_s[s].to_numpy()).all(axis=0)
+        if not is_finite.all():
+            cols = [str(c) for c in df_by_s[s].columns[~is_finite]]
+            raise exceptions.EhubXException(
+                f"Time series in stage {s} contain non-finite values and "
+                f"cannot be clustered: {cols}",
+                module=LOG_MODULE_STR,
+            )
     # Determine maximal number of time series in each stage
     num_ser_by_s: Dict[StageId, int] = {
         s: len(df_by_s[s].columns) for s in energy_system.stages.ids
@@ -313,98 +321,49 @@ def _cluster_tsam(
         )
         num_ts = 2 * num_ser_max
 
-    # Prepare per-stage attributes
+    # Determine the extreme periods of each stage. All stages get the same
+    # number of clustered time steps: the target number of regular clusters
+    # plus the largest number of extreme periods among all stages. Stages with
+    # fewer extreme periods get more regular clusters instead.
+    ext_by_s: Dict[StageId, List[int]] = {
+        s: __find_extreme_periods(df_s) for s, df_s in df_by_s.items()
+    }
+    num_ts_reg = num_ts
+    num_ts = num_ts_reg + max(len(ext) for ext in ext_by_s.values())
+
+    # The target may have been raised above, and extreme periods are added on
+    # top. Clustering only makes sense if there are still fewer clustered time
+    # steps than horizon time steps. (Cluster ids beyond the horizon would
+    # also be added to the horizon ids by Times.add_id.)
+    if num_ts >= energy_system.times.num_horizon_ts:
+        logging.log_warning(
+            "Stopped clustering because the number of clustered time steps "
+            f"({num_ts_reg} regular + {num_ts - num_ts_reg} extreme = {num_ts}) "
+            "would not be smaller than the number of horizon time steps "
+            f"({energy_system.times.num_horizon_ts}) in the model",
+            module=LOG_MODULE_STR,
+        )
+        return None
+
+    # Perform clustering in each stage
     df_cl_per_stage: Dict[StageId, pd.DataFrame] = {}
     time_dict_per_stage: Dict[StageId, Dict[TimeId, TimeId]] = {}
-    err_per_stage: Dict[StageId, pd.DataFrame] = {}
-
-    def __cluster_stage(
-        s: StageId,
-        num_ts_: int = num_ts,
-        extreme_period_method: str = "new_cluster_center",
-    ) -> None:
-        """
-        Perform time clustering for the time series in a specific stage
-
-        :param s: Stage
-        :type s: StageId
-        :param num_ts_: Target number of clustered time steps, defaults to
-            num_ts
-        :type num_ts_: int, optional
-        :param extreme_period_method: Method used to ensure time steps with
-            extreme values are included. "new_cluster_center" adds a new
-            cluster timestep for those, "None" does not try to include them,
-            defaults to "new_cluster_center"
-        :type extreme_period_method: str, optional
-        """
-
-        # Log
+    for s, df_s in df_by_s.items():
         logging.log_file(
             f"Started to calculate clustering for stage {s} "
-            f"which has {len(df_by_s[s].columns)} time series ...",
+            f"which has {len(df_s.columns)} time series ...",
             module=LOG_MODULE_STR,
         )
-
-        # Calculate "roundOutput" for tsam which is the decimal to which the
-        # output will be rounded
-        round_output = 6
-        min_val = np.nanmin(np.where(df_by_s[s].values == 0, np.nan, df_by_s[s].values))
-        magnitude = math.floor(math.log(min_val, 10))
-        if magnitude < -4:
-            round_output = 2 - magnitude
-
-        # Construct the tsam aggregation object
-        agg = tsam.TimeSeriesAggregation(
-            df_by_s[s],
-            noTypicalPeriods=num_ts_,
-            hoursPerPeriod=1,
-            clusterMethod="hierarchical",
-            addPeakMax=df_by_s[s].columns.values.tolist(),
-            addPeakMin=df_by_s[s].columns.values.tolist(),
-            rescaleClusterPeriods=False,
-            extremePeriodMethod=extreme_period_method,
-            roundOutput=round_output,
-            representationMethod="durationRepresentation",
-        )
-
-        # Calculate the clustered time series
-        df_cl_per_stage[s] = agg.createTypicalPeriods().reset_index(drop=True)
-        df_cl_per_stage[s].index += 1
-
-        # Save results from stage clustering
+        order, df_cl_per_stage[s] = __cluster_stage(df_s, ext_by_s[s], num_ts)
         time_dict_per_stage[s] = {
-            TimeId(t_full): TimeId(t_cl)
-            for t_full, t_cl in enumerate(agg.clusterOrder + 1, start=1)
+            TimeId(t_full): TimeId(int(t_cl) + 1)
+            for t_full, t_cl in enumerate(order, start=1)
         }
-        err_per_stage[s] = agg.accuracyIndicators()
-
-    # Perform clustering in each stage, starting with the dominant stage
-    num_ts_per_stage: Dict[StageId, int] = {}
-    for s in [num_ser_max_s] + list(
-        energy_system.stages.ids.difference({num_ser_max_s})
-    ):
-        __cluster_stage(s)
-        num_ts_per_stage[s] = df_cl_per_stage[s].shape[0]
         logging.log(
-            f"Finished clustering for stage {s} with {num_ts_per_stage[s]} "
-            f"clustered time steps",
+            f"Finished clustering for stage {s} with {num_ts} clustered time "
+            f"steps, {len(ext_by_s[s])} of which hold extreme values",
             module=LOG_MODULE_STR,
         )
-
-    # Detect mismatch in num_ts between stages. All stages should have the
-    # same amount of clustered timesteps now
-    num_ts_max = max(num_ts_per_stage.values())
-    for s, num_ts_s in num_ts_per_stage.items():
-        if num_ts_s != num_ts_max:
-            # Recluster with maximal order
-            logging.log(
-                f"Restarting clustering in stage {s} to synchronize stages."
-                f"{s} had {num_ts_s} cluster time steps, maximum across "
-                f"stages is {num_ts_max}",
-                module=LOG_MODULE_STR,
-            )
-            __cluster_stage(s, num_ts_=num_ts_max, extreme_period_method="None")
-    num_ts = num_ts_max
 
     # Build the time map
     time_map: List[Tuple[StageId, TimeId, Optional[TimeId]]] = []
@@ -414,14 +373,24 @@ def _cluster_tsam(
         for t_full in energy_system.times.ids_horizon
     ]
 
-    # Modify the time data
+    # Modify the time data. Every stage gets an explicit weight for every
+    # clustered time step. A clustered time step without members in a stage
+    # would fall back to the default weight 1 without representing any
+    # horizon time step of that stage, so it is rejected.
     sys.times.clear_ids()
+    for t_key in range(1, num_ts + 1):
+        sys.times.add_id(TimeId(t_key))
     for s, time_dict in time_dict_per_stage.items():
-        for t_cl in set(time_dict.values()):
-            if t_cl not in sys.times.ids:
-                sys.times.add_id(t_cl)
-            weight = list(time_dict.values()).count(t_cl)
-            sys.times.set_weight(s, t_cl, weight)
+        weights = Counter(time_dict.values())
+        empty = [t.key_as_int for t in sys.times.ids_in_order if weights[t] == 0]
+        if empty:
+            raise exceptions.EhubXException(
+                f"Clustered time steps {empty} of stage {s} do not represent any "
+                "horizon time step",
+                module=LOG_MODULE_STR,
+            )
+        for t_cl in sys.times.ids:
+            sys.times.set_weight(s, t_cl, weights[t_cl])
         for t_full, t_cl in time_dict.items():
             sys.times.set_cluster_ts(s, t_cl, t_full)
 
@@ -455,6 +424,101 @@ def _cluster_tsam(
         module=LOG_MODULE_STR,
     )
     return sys
+
+
+def __find_extreme_periods(df_s: pd.DataFrame) -> List[int]:
+    """
+    Find the extreme periods of the time series of a stage, i.e. the horizon
+    time steps at which a time series attains its maximum or its minimum.
+    Constant time series do not have extreme periods.
+
+    :param df_s: Time series of a stage, one column per series and one row
+        per horizon time step
+    :type df_s: pd.DataFrame
+    :return: Positions (0-based rows of df_s) of the extreme periods, without
+        duplicates
+    :rtype: List[int]
+    """
+    values = df_s.to_numpy()
+    ext: List[int] = []
+    for col in values.T:
+        if col.max() == col.min():
+            continue
+        for pos in (int(np.argmax(col)), int(np.argmin(col))):
+            if pos not in ext:
+                ext.append(pos)
+    return ext
+
+
+def __cluster_stage(
+    df_s: pd.DataFrame, ext: List[int], num_ts_cl: int
+) -> Tuple[np.ndarray, pd.DataFrame]:
+    """
+    Cluster the time series of a stage into exactly num_ts_cl clustered time
+    steps. Every extreme period forms a cluster of its own, all other horizon
+    time steps are clustered with tsam (hierarchical clustering). Each
+    clustered time step takes the mean of its members as value. Clusters are
+    numbered in order of their first appearance in the time horizon.
+
+    :param df_s: Time series of a stage, one column per series and one row
+        per horizon time step
+    :type df_s: pd.DataFrame
+    :param ext: Positions of the extreme periods (see __find_extreme_periods)
+    :type ext: List[int]
+    :param num_ts_cl: Number of clustered time steps. Must be larger than the
+        number of extreme periods and smaller than the number of horizon time
+        steps
+    :type num_ts_cl: int
+    :return: The cluster (0-based) of every horizon time step, and the
+        clustered time series with rows indexed by clustered time step 1, 2, ...
+    :rtype: Tuple[np.ndarray, pd.DataFrame]
+    """
+    num_ts_hor = len(df_s)
+    num_ts_reg = num_ts_cl - len(ext)
+    is_ext = np.zeros(num_ts_hor, dtype=bool)
+    is_ext[ext] = True
+    pos_reg = np.flatnonzero(~is_ext)
+
+    # Cluster the regular time steps. Every tsam period is a single time step,
+    # so the order of the time steps is irrelevant and they can be re-indexed
+    # contiguously after removing the extreme periods. tsam's own handling of
+    # extreme periods is not used, as it does not guarantee the number of
+    # clusters
+    df_reg = df_s.iloc[pos_reg].copy()
+    df_reg.index = pd.to_datetime(np.arange(1, len(pos_reg) + 1), unit="h")
+    agg = tsam.TimeSeriesAggregation(
+        df_reg,
+        noTypicalPeriods=num_ts_reg,
+        hoursPerPeriod=1,
+        clusterMethod="hierarchical",
+        extremePeriodMethod="None",
+        rescaleClusterPeriods=False,
+        representationMethod="meanRepresentation",
+    )
+    agg.createTypicalPeriods()
+
+    # Cluster of every horizon time step (extreme periods are appended after
+    # the regular clusters), then renumber by first appearance
+    order = np.empty(num_ts_hor, dtype=int)
+    order[pos_reg] = np.asarray(agg.clusterOrder, dtype=int)
+    order[ext] = num_ts_reg + np.arange(len(ext))
+    labels, first_pos = np.unique(order, return_index=True)
+    if len(labels) != num_ts_cl:
+        raise exceptions.EhubXException(
+            f"tsam clustering returned {len(labels) - len(ext)} instead of the "
+            f"requested {num_ts_reg} regular clusters",
+            module=LOG_MODULE_STR,
+        )
+    relabel = np.empty(num_ts_cl, dtype=int)
+    relabel[labels[np.argsort(first_pos)]] = np.arange(num_ts_cl)
+    order = relabel[order]
+
+    # Clustered time series: mean over the members of each cluster, computed
+    # from the original values (so weighted sums are preserved exactly and
+    # extreme periods keep their exact values)
+    df_cl = df_s.groupby(order).mean()
+    df_cl.index = df_cl.index + 1
+    return order, df_cl
 
 
 # --------- #

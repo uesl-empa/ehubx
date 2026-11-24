@@ -153,7 +153,14 @@ ROM method: Time series aggregation (TSAM)
         method=RomMethod.CLUSTER_TSAM,
         num_ts_target=150))
 
-The second ROM method is more sophisticated and utilizes the `tsam <https://tsam.readthedocs.io/en/latest/>`_ Python package. It gathers all time series that have been passed to the data object and uses a clustering algorithm to compute a representative set of time steps whose size will be close to (and not less than) :code:`num_ts_target`. These time steps are then taken as the set :math:`\mathcal{V}_{Time}`, while the original time steps remain as horizon time steps :math:`\mathcal{V}_{TimeHorizon}` (see also the :ref:`times model <times_model>`). As a result, most input series and time-dependent variables will now depend on the smaller set :math:`\mathcal{V}_{Time}` instead of :math:`\mathcal{V}_{TimeHorizon}`, thereby greatly reducing the complexity of the model.
+The second ROM method is more sophisticated and utilizes the `tsam <https://tsam.readthedocs.io/en/latest/>`_ Python package. It gathers all time series that have been passed to the data object and uses a clustering algorithm to compute a representative set of time steps whose size will be close to (and not less than) :code:`num_ts_target`. The horizon time steps of each stage are clustered separately:
+
+* For every time series of the stage that is not constant, the time steps holding its maximum and its minimum (*extreme periods*) become clustered time steps of their own, so that peaks are represented exactly.
+* All other time steps of the stage are grouped by hierarchical clustering. Each clustered time step takes the mean of its member time steps, so that the weighted sum of every time series equals its sum over the full horizon.
+* The number of regular (non-extreme) clusters is :code:`num_ts_target`, raised to at least twice the number of time series in the stage with the most time series. The total number of clustered time steps adds the largest number of extreme periods among all stages. All stages share this number of clustered time steps; stages with fewer extreme periods receive more regular clusters instead.
+* If the total number of clustered time steps would not be smaller than the number of horizon time steps, no clustering is performed and the full-order model is kept.
+
+These time steps are then taken as the set :math:`\mathcal{V}_{Time}`, while the original time steps remain as horizon time steps :math:`\mathcal{V}_{TimeHorizon}` (see also the :ref:`times model <times_model>`). As a result, most input series and time-dependent variables will now depend on the smaller set :math:`\mathcal{V}_{Time}` instead of :math:`\mathcal{V}_{TimeHorizon}`, thereby greatly reducing the complexity of the model.
 
 
 .. _building:
