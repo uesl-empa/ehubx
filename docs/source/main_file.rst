@@ -132,8 +132,8 @@ ROM method: Cutting
 ^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: ruby
-
     :caption: ROM method: Cutting the time horizon
+
     ehubx.rom(rom_settings=RomSettings(
         method=RomMethod.CUT_TIME,
         num_ts_target=150))
@@ -147,8 +147,8 @@ ROM method: Time series aggregation (TSAM)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: ruby
-
     :caption: ROM method: Time series aggregation using TSAM
+
     ehubx.rom(rom_settings=RomSettings(
         method=RomMethod.CLUSTER_TSAM,
         num_ts_target=150))

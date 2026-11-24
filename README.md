@@ -1,7 +1,7 @@
 # ehubX
 
 [![CI](https://github.com/uesl-empa/ehubx/actions/workflows/ci.yml/badge.svg)](https://github.com/uesl-empa/ehubx/actions/workflows/ci.yml)
-[![Documentation Status](https://readthedocs.org/projects/ehubx/badge/?version=latest)](https://ehubx.readthedocs.io/)
+[![Docs](https://img.shields.io/readthedocs/ehubx)](https://ehubx.readthedocs.io/)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 [![PyPI version](https://img.shields.io/pypi/v/ehubx.svg)](https://pypi.org/project/ehubx/)

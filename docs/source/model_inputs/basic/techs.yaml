@@ -29,6 +29,10 @@ techs:
     lifetime: 20 a
   costs:
     opex_per_energy: 0.5 CHF/kWh
+  emissions:
+    co2_per_in:
+      E1: 0.4 kg/kWh
+      E2: 0.2 kg/kWh
   conversion_params:
     in_ecs:
     - in_id: E1

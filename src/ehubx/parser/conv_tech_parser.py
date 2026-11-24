@@ -250,6 +250,35 @@ def parse_primary(
     return conv_techs
 
 
+def _warn_if_co2_per_in_ignored(
+    tech_node: yaml_parser.YamlDictNode,
+    tech_id_str: str,
+    tech_type: str | None,
+) -> None:
+    """Warn if emissions/co2_per_in is set on a tech that cannot use it.
+
+    co2_per_in is read from the emissions block that every tech has, but it is
+    defined per input energy carrier, which only conversion techs have.
+    For all other tech types the value is ignored.
+    """
+    emissions_node = tech_node[tech_parser.YAMLKEY_EMISSIONS]
+    # Malformed emissions nodes are reported by tech_parser._parse_emissions
+    if not isinstance(emissions_node, yaml_parser.YamlDictNode):
+        return
+    co2_per_in_node = emissions_node[YAMLKEY_CO2PERIN]
+    if co2_per_in_node is None:
+        return
+    logging.log_warning(
+        (
+            f"Warning in file {tech_node.file_path}: Ignoring '{YAMLKEY_CO2PERIN}' "
+            f"of tech {tech_id_str} (type '{tech_type}') at node "
+            f"{co2_per_in_node.node_path_as_str}, since it is only supported for "
+            "conversion techs"
+        ),
+        module=LOG_MODULE_STR,
+    )
+
+
 def _parse_conv_tech_primary(
     tech_node: yaml_parser.YamlDictNode,
     stages: Stages,
@@ -266,6 +295,9 @@ def _parse_conv_tech_primary(
     tech_type = yaml_parser.parse_optional_str_from_dict_node(
         tech_node, tech_parser.YAMLKEY_TYPE
     )
+    # co2_per_in is only meaningful for conversion techs
+    if tech_type != tech_parser.TechType.CONVERSION.value:
+        _warn_if_co2_per_in_ignored(tech_node, tech_id_str, tech_type)
     if tech_type not in {
         tech_parser.TechType.CONVERSION.value,
         tech_parser.TechType.SOLAR.value,
@@ -300,26 +332,8 @@ def _parse_conv_tech_primary(
             for stage_id, value in opex_per_energy.items():
                 conv_techs.set_opex_per_energy(stage_id, tech_id, value)
     # emissions
-    emissions_node = tech_node[tech_parser.YAMLKEY_EMISSIONS]
-    if emissions_node is not None:
-        co2_per_in_node = emissions_node[YAMLKEY_CO2PERIN]
-        if co2_per_in_node is not None:
-            yaml_parser.check_node_type(co2_per_in_node, yaml_parser.YamlNodeKind.DICT)
-            reference_stage = stages.ids_in_order[0]
-            for ec_id in conv_techs.get_in_ecs(tech_id):
-                input_unit = conv_techs.get_in_part(
-                    reference_stage, tech_id, ec_id
-                ).unit
-                co2_per_in = yaml_parser.parse_optional_yeardep_value_from_dict_node(
-                    co2_per_in_node,
-                    ec_id.key,
-                    stages,
-                    expected_unit=MassUnit.KG / input_unit,
-                )
-                if co2_per_in is None:
-                    continue
-                for stage_id, value in co2_per_in.items():
-                    conv_techs.set_co2_per_in(stage_id, tech_id, ec_id, value)
+    if tech_type == tech_parser.TechType.CONVERSION.value:
+        _parse_co2_per_in(tech_node, tech_id, stages, conv_techs)
 
 
 def _parse_in_ecs(
@@ -454,6 +468,35 @@ def _parse_out_eff(
     )
     for stage_id, value in out_eff.items():
         conv_techs.set_out_eff_def(stage_id, tech_id, ec_id, value)
+
+
+def _parse_co2_per_in(
+    tech_node: yaml_parser.YamlDictNode,
+    tech_id: TechId,
+    stages: Stages,
+    conv_techs: ConversionTechs,
+) -> None:
+    """Parse operational CO2 per unit of input carrier, one value per input ec."""
+    emissions_node = tech_node[tech_parser.YAMLKEY_EMISSIONS]
+    if emissions_node is None:
+        return
+    co2_per_in_node = emissions_node[YAMLKEY_CO2PERIN]
+    if co2_per_in_node is None:
+        return
+    yaml_parser.check_node_type(co2_per_in_node, yaml_parser.YamlNodeKind.DICT)
+    reference_stage = stages.ids_in_order[0]
+    for ec_id in conv_techs.get_in_ecs(tech_id):
+        input_unit = conv_techs.get_in_part(reference_stage, tech_id, ec_id).unit
+        co2_per_in = yaml_parser.parse_optional_yeardep_value_from_dict_node(
+            co2_per_in_node,
+            ec_id.key,
+            stages,
+            expected_unit=MassUnit.KG / input_unit,
+        )
+        if co2_per_in is None:
+            continue
+        for stage_id, value in co2_per_in.items():
+            conv_techs.set_co2_per_in(stage_id, tech_id, ec_id, value)
 
 
 def parse_secondary(

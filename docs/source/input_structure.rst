@@ -57,8 +57,8 @@ The originating file that is referenced in this message had the structure:
   - hub_id: H1
     techs:
     - tech_id: X1
-    tech_params:
-      param_name:  # Missing value
+      tech_params:
+        param_name:  # Missing value
 
 As shown, the node path is a chain of elements of the following two types:
 

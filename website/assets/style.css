@@ -1,3 +1,16 @@
+/* Fonts are served from this site (no requests to Google). Latin subset only.
+   Inter and JetBrains Mono: SIL Open Font License 1.1, see assets/fonts/README.txt */
+@font-face {
+  font-family: "Inter"; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url("fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   --bg: #ffffff;
   --bg-alt: #f5f5f7;
@@ -105,8 +118,9 @@ p { margin: 0 0 1em; }
   color: var(--text); font-weight: 700; font-size: 1.3rem; letter-spacing: -.02em;
 }
 .nav-links { display: flex; gap: 26px; align-items: center; }
-.nav-links a { color: var(--muted); text-decoration: none; font-size: .95rem; font-weight: 500; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: .95rem; font-weight: 500; white-space: nowrap; }
 .nav-links a:hover { color: var(--text); }
+.nav-links a[aria-current="page"] { color: var(--text); font-weight: 600; }
 .nav-links .nav-cta {
   color: #fff; background: var(--accent-fill); padding: 8px 16px; border-radius: 999px;
 }
@@ -119,11 +133,11 @@ p { margin: 0 0 1em; }
 .nav-toggle { display: none; background: none; border: 0; padding: 8px; cursor: pointer; }
 .nav-toggle span { display: block; width: 22px; height: 2px; background: var(--text); margin: 5px 0; border-radius: 2px; }
 
-@media (max-width: 1080px) {
+@media (max-width: 1240px) {
   .nav, .nav-links { gap: 20px; }
   .empa-logo { padding-left: 20px; }
 }
-@media (max-width: 860px) {
+@media (max-width: 1120px) {
   .nav { gap: 12px; }
   .nav-toggle { display: block; order: 3; }
   .empa-logo { order: 2; border-left: 0; padding-left: 0; }
@@ -173,10 +187,12 @@ p { margin: 0 0 1em; }
 .hub-core-t { fill: #fff; font: 600 14px var(--font); }
 .hub-node circle { fill: var(--surface); stroke: var(--accent-2); stroke-width: 2.5; }
 .hub-node.alt circle { stroke: var(--accent); }
-.hub-node text { font-size: 20px; }
+.hub-node text { font-size: 17px; }
 .hub-node .turbine path { stroke: var(--text); stroke-width: 2.5; stroke-linecap: round; fill: none; }
 .hub-node .turbine circle { fill: var(--text); stroke: none; }
-.hub-node text.lbl { font: 500 12px var(--font); fill: var(--muted); }
+.hub-node text.lbl { font: 600 12px var(--font); fill: var(--text); }
+.hub-node .netw path { stroke: var(--text); stroke-width: 2; fill: none; stroke-linejoin: round; }
+.hub-node .netw circle { fill: var(--text); stroke: none; }
 
 @media (max-width: 860px) {
   .hero { padding: 48px 0 56px; }
@@ -275,18 +291,21 @@ p { margin: 0 0 1em; }
 .usecase p { color: var(--muted); margin: 0; font-size: .97rem; }
 
 /* Projects */
-.project-list { display: grid; gap: 20px; }
+.project-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 20px; }
 .project {
-  display: grid; grid-template-columns: 240px 1fr; gap: 28px;
-  border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; background: var(--surface);
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; background: var(--surface);
 }
-.project-meta { border-right: 1px solid var(--border); padding-right: 24px; }
-.project-meta .place { font-weight: 600; margin-bottom: 4px; }
-.project-meta .years { color: var(--muted); font-size: .9rem; }
-.project h3 { font-size: 1.3rem; }
-.project p { color: var(--muted); }
-.project .partners { font-size: .9rem; }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; padding: 0; list-style: none; }
+.project-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 12px; font-size: .82rem; }
+.project-status { font-weight: 600; color: var(--muted); }
+.project-status.is-ongoing { color: var(--accent); }
+.project-status.is-ongoing::before { content: "● "; }
+.project-where { color: var(--muted); font-weight: 500; }
+.project h3 { font-size: 1.18rem; }
+.project p { color: var(--muted); font-size: .96rem; }
+.project .project-summary { flex: 1; }
+.project .partners { font-size: .88rem; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; }
 .tags li {
   font-size: .78rem; font-weight: 500; padding: 3px 10px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent-strong);
@@ -298,8 +317,7 @@ p { margin: 0 0 1em; }
   background: var(--warm-soft); color: var(--warm);
 }
 @media (max-width: 760px) {
-  .project { grid-template-columns: 1fr; gap: 12px; padding: 22px; }
-  .project-meta { border-right: 0; padding-right: 0; }
+  .project { padding: 22px; }
 }
 
 /* Publications */
@@ -316,6 +334,38 @@ p { margin: 0 0 1em; }
 .pub-authors, .pub-venue { color: var(--muted); font-size: .93rem; display: block; }
 .pub-venue { font-style: italic; }
 @media (max-width: 540px) { .pub-list li { grid-template-columns: 1fr; gap: 4px; } }
+
+/* Theses */
+.thesis-filter { display: flex; gap: 8px; margin-bottom: 20px; }
+.chip {
+  font: 500 .88rem var(--font); padding: 6px 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.is-active { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+.thesis-grid {
+  list-style: none; padding: 0; margin: 0 0 24px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
+}
+.thesis {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px; display: flex; flex-direction: column;
+}
+.thesis[hidden], .thesis-filter[hidden] { display: none; }
+.thesis-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: .78rem; }
+.thesis-level {
+  font-weight: 700; letter-spacing: .04em; padding: 2px 9px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent-strong);
+}
+.thesis-status { color: var(--muted); font-weight: 500; }
+.thesis-status.is-ongoing { color: var(--accent); }
+.thesis-status.is-ongoing::before { content: "● "; }
+.thesis-year { margin-left: auto; color: var(--muted); font-weight: 600; }
+.thesis h3 { font-size: 1.05rem; margin-bottom: 8px; }
+.thesis h3 a { color: var(--text); text-decoration: none; }
+.thesis h3 a:hover { color: var(--accent); text-decoration: underline; }
+.thesis-student { font-weight: 500; margin: 0 0 4px; }
+.thesis-details { color: var(--muted); font-size: .9rem; margin: 0; }
 
 /* Team */
 .team { display: grid; grid-template-columns: 1.3fr 1fr; gap: 56px; }
@@ -346,3 +396,21 @@ pre {
 .footer-links { display: flex; gap: 20px; }
 .footer-links a { color: var(--dark-text); text-decoration: none; }
 .footer-links a:hover { color: var(--dark-accent); }
+
+/* Sub-pages and "see all" links */
+.page-head { padding-top: 64px; }
+.more { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.more .btn { padding: 10px 18px; }
+
+/* Keyboard access */
+a:focus-visible, button:focus-visible, .btn:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px;
+}
+.skip-link {
+  position: absolute; left: 12px; top: -60px; z-index: 100;
+  background: var(--accent-fill); color: #fff; padding: 10px 16px; border-radius: 8px;
+  font-weight: 600; text-decoration: none;
+}
+.skip-link:focus { top: 12px; }
+
+.cite pre + p { margin-top: 1.6em; }

@@ -7,6 +7,12 @@ demand_sums:
   ec: E2
   demand_sum: 250 kWh
 
+demand_unmet_penalties:
+- stages: [S1, S2]
+  hubs: H1
+  ec: E1
+  demand_unmet_penalty: 10 CHF/kWh
+
 load_shedding:
 - stages: [S1, S2]
   hubs: H1
@@ -18,7 +24,7 @@ load_shedding:
   profile_path: loadshedding_profiles.csv
 
 load_shifting:
-- loadshift_id: LS1
+- load_shift_id: LS1
   stages: [S1, S2]
   hubs: H1
   ec: E1
