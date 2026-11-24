@@ -2,7 +2,6 @@
 
 import copy
 import csv
-import math
 import os
 from collections import Counter
 from datetime import datetime
@@ -428,35 +427,15 @@ def __find_extreme_periods(df_s: pd.DataFrame) -> List[int]:
     return ext
 
 
-def __round_output(df_s: pd.DataFrame) -> int:
-    """
-    Decimal to which tsam rounds its output. The magnitude is taken from the
-    smallest nonzero absolute value, so that negative values (e.g. negative
-    prices) are supported. If all values are zero, the default is kept.
-
-    :param df_s: Time series of a stage
-    :type df_s: pd.DataFrame
-    :return: Number of decimals
-    :rtype: int
-    """
-    round_output = 6
-    abs_vals = np.abs(df_s.values)
-    abs_vals_nonzero = abs_vals[abs_vals > 0]
-    if abs_vals_nonzero.size > 0:
-        magnitude = math.floor(math.log(abs_vals_nonzero.min(), 10))
-        if magnitude < -4:
-            round_output = 2 - magnitude
-    return round_output
-
-
 def __cluster_stage(
     df_s: pd.DataFrame, ext: List[int], num_ts_cl: int
 ) -> Tuple[np.ndarray, pd.DataFrame]:
     """
     Cluster the time series of a stage into exactly num_ts_cl clustered time
     steps. Every extreme period forms a cluster of its own, all other horizon
-    time steps are clustered with tsam (hierarchical clustering). Clusters
-    are numbered in order of their first appearance in the time horizon.
+    time steps are clustered with tsam (hierarchical clustering). Each
+    clustered time step takes the mean of its members as value. Clusters are
+    numbered in order of their first appearance in the time horizon.
 
     :param df_s: Time series of a stage, one column per series and one row
         per horizon time step
@@ -491,10 +470,9 @@ def __cluster_stage(
         clusterMethod="hierarchical",
         extremePeriodMethod="None",
         rescaleClusterPeriods=False,
-        roundOutput=__round_output(df_s),
-        representationMethod="durationRepresentation",
+        representationMethod="meanRepresentation",
     )
-    df_typ = agg.createTypicalPeriods().reset_index(drop=True)
+    agg.createTypicalPeriods()
 
     # Cluster of every horizon time step (extreme periods are appended after
     # the regular clusters), then renumber by first appearance
@@ -502,7 +480,7 @@ def __cluster_stage(
     order[pos_reg] = np.asarray(agg.clusterOrder, dtype=int)
     order[ext] = num_ts_reg + np.arange(len(ext))
     labels, first_pos = np.unique(order, return_index=True)
-    if len(labels) != num_ts_cl or len(df_typ) != num_ts_reg:
+    if len(labels) != num_ts_cl:
         raise exceptions.EhubXException(
             f"tsam clustering returned {len(labels) - len(ext)} instead of the "
             f"requested {num_ts_reg} regular clusters",
@@ -512,12 +490,10 @@ def __cluster_stage(
     relabel[labels[np.argsort(first_pos)]] = np.arange(num_ts_cl)
     order = relabel[order]
 
-    # Clustered time series: tsam's typical periods for the regular clusters,
-    # the original values for the extreme periods
-    vals_old = np.vstack([df_typ[df_s.columns].to_numpy(), df_s.to_numpy()[ext]])
-    vals = np.empty_like(vals_old)
-    vals[relabel] = vals_old
-    df_cl = pd.DataFrame(vals, columns=df_s.columns)
+    # Clustered time series: mean over the members of each cluster, computed
+    # from the original values (so weighted sums are preserved exactly and
+    # extreme periods keep their exact values)
+    df_cl = df_s.groupby(order).mean()
     df_cl.index = df_cl.index + 1
     return order, df_cl
 

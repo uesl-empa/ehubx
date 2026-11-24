@@ -142,23 +142,6 @@ def test_time_map_is_written(multistage, tmp_path):
         assert int(row["ts_cluster"]) == t_cl.key_as_int
 
 
-def test_negative_values_are_supported():
-    # e.g. negative electricity prices
-    rng = np.random.default_rng(6)
-    num_ts = 200
-    prices = rng.uniform(-20, 80, num_ts)
-    system = make_system(
-        demands={"S1": {"E1": rng.uniform(0, 1, num_ts)}},
-        prices={"S1": {"E1": prices}},
-    )
-    sys_rom = cluster(system, 10)
-    assert sys_rom is not None
-    price = sys_rom.imports.get_price(StageId("S1"), HUB, EcId("E1"))
-    v_cl = values(price, sys_rom.times.ids_in_order)
-    assert v_cl.min() == pytest.approx(prices.min())
-    assert v_cl.max() == pytest.approx(prices.max())
-
-
 def test_stage_with_only_zero_series():
     rng = np.random.default_rng(1)
     num_ts = 200
@@ -200,22 +183,6 @@ def test_every_stage_gets_exactly_the_common_number_of_clusters():
     for s in sys_rom.stages.ids:
         used = {times.get_cluster_ts(s, t) for t in times.ids_horizon}
         assert len(used) == times.num_ts
-
-
-def test_multistage_preserves_extremes_in_every_stage(multistage):
-    # The stages have a different number of time series and therefore a
-    # different number of extreme periods. Peaks must not be averaged away
-    # (rounding of the clustered values is tolerated here)
-    sys_rom = cluster(multistage, 10)
-    assert sys_rom is not None
-    times = sys_rom.times
-    ids_hor = multistage.times.ids_horizon_in_order
-    reduced = series_by_key(sys_rom)
-    for (kind, s, ids), series in series_by_key(multistage).items():
-        v_full = values(series, ids_hor)
-        v_cl = values(reduced[kind, s, ids], times.ids_in_order)
-        assert v_cl.max() == pytest.approx(v_full.max(), rel=1e-4), (kind, s, ids)
-        assert v_cl.min() == pytest.approx(v_full.min(), rel=1e-4), (kind, s, ids)
 
 
 def test_multistage_stages_share_all_cluster_time_steps(multistage):
@@ -266,3 +233,107 @@ def test_no_phantom_time_step_when_extremes_share_a_cluster():
         used = {times.get_cluster_ts(s, t) for t in times.ids_horizon}
         assert used == times.ids
         assert sum(times.get_weight(s, t) for t in times.ids) == num_ts
+
+
+def assert_extremes_and_sums_preserved(full: EnergySystem, red: EnergySystem) -> None:
+    times = red.times
+    ids_hor = full.times.ids_horizon_in_order
+    ids_cl = times.ids_in_order
+    series_full = series_by_key(full)
+    series_red = series_by_key(red)
+    assert series_full.keys() == series_red.keys()
+    for (kind, s, ids), series in series_full.items():
+        v_full = values(series, ids_hor)
+        v_cl = values(series_red[kind, s, ids], ids_cl)
+        weights = np.array([times.get_weight(s, t) for t in ids_cl])
+        assert v_cl.max() == pytest.approx(v_full.max()), (kind, s, ids)
+        assert v_cl.min() == pytest.approx(v_full.min()), (kind, s, ids)
+        assert weights @ v_cl == pytest.approx(v_full.sum(), rel=1e-9), (kind, s, ids)
+        # The horizon time steps holding the extremes map to single-member
+        # clusters with the exact extreme value
+        for pos in (int(np.argmax(v_full)), int(np.argmin(v_full))):
+            t_cl = times.get_cluster_ts(s, ids_hor[pos])
+            assert times.get_weight(s, t_cl) == 1
+            assert series_red[kind, s, ids].get_value(t_cl).to_float() == pytest.approx(
+                v_full[pos]
+            )
+
+
+def test_multistage_preserves_extremes_and_sums_in_every_stage(multistage):
+    # The stages have a different number of time series and therefore a
+    # different number of extreme periods
+    sys_rom = cluster(multistage, 10)
+    assert sys_rom is not None
+    assert_extremes_and_sums_preserved(multistage, sys_rom)
+
+
+def test_negative_values_are_supported():
+    # e.g. negative electricity prices
+    rng = np.random.default_rng(6)
+    num_ts = 200
+    system = make_system(
+        demands={
+            "S1": {"E1": rng.uniform(0, 1, num_ts)},
+            "S2": {"E1": rng.uniform(0, 2, num_ts)},
+        },
+        prices={
+            "S1": {"E1": rng.uniform(-20, 80, num_ts)},
+            "S2": {"E1": -rng.uniform(1, 2, num_ts)},
+        },
+    )
+    sys_rom = cluster(system, 10)
+    assert sys_rom is not None
+    assert_extremes_and_sums_preserved(system, sys_rom)
+
+
+def test_clustered_values_are_member_means(multistage):
+    sys_rom = cluster(multistage, 10)
+    assert sys_rom is not None
+    times = sys_rom.times
+    ids_hor = multistage.times.ids_horizon_in_order
+    full = series_by_key(multistage)
+    reduced = series_by_key(sys_rom)
+    for (kind, s, ids), series in full.items():
+        v_full = values(series, ids_hor)
+        t_cl_of_hor = np.array([times.get_cluster_ts(s, t).key_as_int for t in ids_hor])
+        for t_cl in times.ids:
+            members = v_full[t_cl_of_hor == t_cl.key_as_int]
+            assert reduced[kind, s, ids].get_value(t_cl).to_float() == pytest.approx(
+                members.mean()
+            )
+
+
+def test_small_values_keep_exact_sums_and_extremes():
+    rng = np.random.default_rng(2)
+    num_ts = 200
+    tiny = rng.uniform(1e-9, 5e-9, num_ts)
+    system = make_system({"S1": {"E1": tiny, "E2": rng.uniform(0, 1, num_ts)}})
+    sys_rom = cluster(system, 10)
+    assert sys_rom is not None
+    times = sys_rom.times
+    series = sys_rom.demands.get_demand_profile(StageId("S1"), HUB, EcId("E1"))
+    v_cl = values(series, times.ids_in_order)
+    w = np.array([times.get_weight(StageId("S1"), t) for t in times.ids_in_order])
+    assert w @ v_cl == pytest.approx(tiny.sum(), rel=1e-9, abs=0)
+    assert v_cl.min() == pytest.approx(tiny.min(), rel=1e-12, abs=0)
+    assert v_cl.max() == pytest.approx(tiny.max(), rel=1e-12, abs=0)
+
+
+def test_stage_with_only_zero_or_constant_series():
+    rng = np.random.default_rng(1)
+    num_ts = 200
+    system = make_system(
+        {
+            "S1": {"E1": rng.uniform(0, 1, num_ts)},
+            "S2": {"E1": np.zeros(num_ts), "E2": np.full(num_ts, 3.0)},
+        }
+    )
+    sys_rom = cluster(system, 10)
+    assert sys_rom is not None
+    times = sys_rom.times
+    reduced = series_by_key(sys_rom)
+    for (_, s, _), series in reduced.items():
+        assert sum(times.get_weight(s, t) for t in times.ids) == num_ts
+        if s == StageId("S2"):
+            vals = values(series, times.ids_in_order)
+            assert np.ptp(vals) == 0
