@@ -269,7 +269,7 @@ def _cluster_tsam(
 
     # Clustering only makes sense with fewer clustered ts than horizon ts
     if num_ts >= energy_system.times.num_horizon_ts:
-        logging.log(
+        logging.log_warning(
             "Stopped clustering because target number of clustered "
             f"time steps ({num_ts}) is larger than number of horizon "
             f"time steps ({energy_system.times.num_horizon_ts}) "
@@ -320,7 +320,22 @@ def _cluster_tsam(
     ext_by_s: Dict[StageId, List[int]] = {
         s: __find_extreme_periods(df_s) for s, df_s in df_by_s.items()
     }
-    num_ts = num_ts + max(len(ext) for ext in ext_by_s.values())
+    num_ts_reg = num_ts
+    num_ts = num_ts_reg + max(len(ext) for ext in ext_by_s.values())
+
+    # The target may have been raised above, and extreme periods are added on
+    # top. Clustering only makes sense if there are still fewer clustered time
+    # steps than horizon time steps. (Cluster ids beyond the horizon would
+    # also be added to the horizon ids by Times.add_id.)
+    if num_ts >= energy_system.times.num_horizon_ts:
+        logging.log_warning(
+            "Stopped clustering because the number of clustered time steps "
+            f"({num_ts_reg} regular + {num_ts - num_ts_reg} extreme = {num_ts}) "
+            "would not be smaller than the number of horizon time steps "
+            f"({energy_system.times.num_horizon_ts}) in the model",
+            module=LOG_MODULE_STR,
+        )
+        return None
 
     # Perform clustering in each stage
     df_cl_per_stage: Dict[StageId, pd.DataFrame] = {}

@@ -337,3 +337,13 @@ def test_stage_with_only_zero_or_constant_series():
         if s == StageId("S2"):
             vals = values(series, times.ids_in_order)
             assert np.ptp(vals) == 0
+
+
+def test_no_clustering_if_time_steps_would_not_be_reduced():
+    # 12 series raise the target to 24 regular clusters plus up to 24 extreme
+    # periods, which is more than the 30 horizon time steps
+    rng = np.random.default_rng(3)
+    system = make_system({"S1": {f"E{i}": rng.uniform(0, 1, 30) for i in range(12)}})
+    assert cluster(system, 10) is None
+    assert system.times.num_horizon_ts == 30
+    assert not system.times.is_clustered
