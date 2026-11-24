@@ -157,3 +157,18 @@ def test_negative_values_are_supported():
     v_cl = values(price, sys_rom.times.ids_in_order)
     assert v_cl.min() == pytest.approx(prices.min())
     assert v_cl.max() == pytest.approx(prices.max())
+
+
+def test_stage_with_only_zero_series():
+    rng = np.random.default_rng(1)
+    num_ts = 200
+    system = make_system(
+        {
+            "S1": {"E1": rng.uniform(0, 1, num_ts)},
+            "S2": {"E1": np.zeros(num_ts)},
+        }
+    )
+    sys_rom = cluster(system, 10)
+    assert sys_rom is not None
+    demand = sys_rom.demands.get_demand_profile(StageId("S2"), HUB, EcId("E1"))
+    assert not values(demand, sys_rom.times.ids_in_order).any()
