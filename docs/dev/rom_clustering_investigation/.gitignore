@@ -1,0 +1,5 @@
+# SwissX profiles come from the internal ehubx-swissx-wind repo; copy them
+# locally (see models/swissx/README.md), do not publish them here.
+models/swissx/profiles/
+# Raw experiment outputs (tables, ROM dumps, solver logs)
+results/
