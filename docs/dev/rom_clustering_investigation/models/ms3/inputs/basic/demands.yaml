@@ -1,0 +1,9 @@
+﻿demand_profiles:
+- profiles/demands.csv
+
+load_shedding:
+- stages: [S1]
+  hubs: H1
+  ec: E1
+  profile_path: profiles/load_shedding.csv
+
