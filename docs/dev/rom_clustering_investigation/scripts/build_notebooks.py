@@ -549,7 +549,7 @@ def e1b():
             "- **Crucial gap:** ROM's predicted cost error looks large (`+12.1 %` at `K=96`, `+9.5 %` at `K=192`), yet true **Design Regret is only `0.15–1.25 %`** for `M2` from `K=96` onward.\n"
             "- **Relative backup heat is tiny (`≤ 0.11 %`), even in `M2`:** `0.11 %` (`K=48`), `0.05–0.08 %` (`K=96–192`), `0.04 %` (`K=384`), down to **`0.006 %`** at `K=1460` (better than `M1`'s `0.012 %`). Because emergency heat is priced at `5.0 CHF/kWh` (~40× normal heat cost), even `0.08 %` unmet heat adds `~0.8–1.2 %` to annual cost.\n"
             "- **Why `M2` uses more backup heat than `M1` at small `K` (`48–384`):**\n"
-            "  - **`M2` (1-hour extreme + exact means):** locks only the single `131.4 kW` peak hour as its own cluster (`weight = 1`) and averages surrounding cold-snap hours (`122–127 kW`) down into regular clusters (`108–115 kW`). Since `TES` easily bridges one isolated peak hour, `M2` sizes `HP + Boiler` `4–6 kW` below `M0` (`107–109` vs. `113.5 kW`), leaving a small multi-hour cold-snap shortfall on the real year.\n"
+            "  - **`M2` (1-hour extreme + exact means):** locks only the single `131.4 kW` peak hour as its own cluster (`weight = 1`) and averages surrounding cold-snap hours (`122–127 kW`) down into regular clusters (`108–115 kW`). Since `TES` easily bridges one isolated peak hour, `M2` sizes `HP + Boiler` `3–6 kW` below `M0` (`107.2–110.5` vs. `113.5 kW`), leaving a small multi-hour cold-snap shortfall on the real year.\n"
             "  - **`M1` (`new_cluster_center`):** pulls `5–12` near-peak hours into the `131.4 kW` peak cluster at `K=48–96`, exaggerating peak duration and accidentally **over-sizing `Boiler`** (`62–75 kW` vs. `58.9 kW` in `M0`) — masking shortfall at the cost of over-sizing and biased totals."
         ),
         md(
@@ -560,8 +560,13 @@ def e1b():
             "- **Why predicted cost error ≠ Design Regret:**\n"
             "  - Typical-hour clustering makes storage look artificially restricted inside the ROM solve (inflating ROM operating cost), while still preserving the peak and price spread signals needed to size `PV`, `Bat`, `HP`, `Boiler`, and `TES` accurately.\n"
             "- **Why `M2` shows slightly higher backup heat (`0.04–0.08 %`) at `K=96–384`:**\n"
-            "  - `M2` isolates only the single highest hour (`131.4 kW`, `weight = 1`), while nearby cold-snap hours (`122–127 kW`) get averaged into regular clusters (`108–115 kW`). `TES` covers the single isolated peak hour in ROM, so `HP + Boiler` is sized `3–6 kW` smaller (`108–110` vs. `113.5 kW` in `M0`).\n"
-            "  - By contrast, `M1` groups `5–12` near-peak hours into the `131.4 kW` peak cluster, accidentally over-sizing `Boiler` (`62–75 kW`) and hiding the shortfall until `K ≥ 768` — where `M2` resolves the cold-snap plateau and beats `M1` on both backup heat (`0.006 %` vs. `0.012 %`) and regret (`0.15 %` vs. `0.21 %`)."
+            "  - `M2` isolates only the single highest hour (`131.4 kW`, `weight = 1`), while nearby cold-snap hours (`122–127 kW`) get averaged into regular clusters (`108–115 kW`). `TES` covers the single isolated peak hour in ROM, so `HP + Boiler` is sized `3–6 kW` smaller (`107.2–110.5` vs. `113.5 kW` in `M0`).\n"
+            "  - By contrast, `M1` groups `5–12` near-peak hours into the `131.4 kW` peak cluster, accidentally over-sizing `Boiler` (`62–75 kW`) and hiding the shortfall until `K ≥ 768` — where `M2` resolves the cold-snap plateau and beats `M1` on both backup heat (`0.006 %` vs. `0.012 %`) and regret (`0.15 %` vs. `0.21 %`).\n"
+            "- **Caveat — `M2` does not have lower regret than `M1` at moderate `K`:**\n"
+            "  - At `K=96–384`, `M1` regret is `0.07–0.35 %` vs. `0.69–1.25 %` for `M2`; `M2` is better only at `K=48` and `K ≥ 768`.\n"
+            "  - The gap comes almost entirely from emergency heat priced at `5.0 CHF/kWh`, so the `M1`/`M2` ranking depends on that penalty. With backup heat at `1.0 CHF/kWh` (E1c, model `pv_bat_bak1`; same `M0` optimum), `M2` regret drops to `0.11–0.22 %` at `K=96–384` vs. `0.03–0.12 %` for `M1`, so the two are close.\n"
+            "  - The case for `M2` (#57) is correctness (exact totals, peaks kept in all stages, no crashes), not better sizing. Protecting the *duration* of peaks (near-peak hours or extreme days), not only the single peak hour, is the likely fix for the `M2` shortfall.\n"
+            "  - All sizing results come from one synthetic model (`pv_bat`, seed 42)."
         ),
     ]
     return cells
@@ -735,9 +740,10 @@ def e7():
         ),
         md(
             "## Findings (E7)\n\n"
-            "- **Key takeaway (hypothesis confirmed 100 %):**\n"
-            "  - **Almost all (`> 95 %`) of the remaining cost error comes from forcing storage to use the same charge/discharge rate across unrelated hours in the same cluster**, not from smoothing the input profiles.\n"
-            "- **Ablation proof (`M2`):**\n"
+            "- **Key takeaway:**\n"
+            "  - **Storage coupling is the dominant cause of the remaining cost error**: forcing storage to use the same charge/discharge rate across unrelated hours in the same cluster, not smoothing the input profiles. Without storage, the `M2` ROM cost error drops below `1 %`.\n"
+            "  - Removing storage changes the model, so this ablation shows the dominant cause but is not an exact decomposition of the error.\n"
+            "- **Ablation (`M2`):**\n"
             "  - `demo` (`+5.76 %` at `K=48` → `+3.83 %` at `K=1460`) drops to **`-0.69 %` → `-0.11 %`** in `demo_nostor`.\n"
             "  - `pv_bat` (`+13.46 %` at `K=48` → `+3.47 %` at `K=1460`) drops to **`-0.79 %` → `-0.05 %`** in `pv_bat_nostor` (with Design Regret `≤ 0.23 %`).\n"
             "- **Storage operation comparison (`M2` vs. `M3` vs. `M4`):**\n"
@@ -891,11 +897,11 @@ def e4():
             "- **Key takeaway:**\n"
             "  - Neither plain `M3` nor `M4` is a drop-in replacement for `M2` — each solves one piece and breaks another.\n"
             "- **Comparison by method:**\n"
-            "  - **`M2` (Typical hours + extremes):** Highest ROM operating-cost error (`+9.5 %` on `pv_bat` at `K=192`), **yet lowest Design Regret (`0.79–1.25 %` at `K=96–192`)** and `0 %` peak error on `swissx`.\n"
-            "  - **`M3` (Typical days, no extremes):** Slashes ROM operating-cost error (`+0.96 %` on `pv_bat` and `+2.95 %` on `demo` at `K=192`) by keeping 24 h storage cycles intact, **but missing extreme days causes `0 kW` Boiler at `K ≤ 96` (`+70–227 %` regret) and `+8.1 %` regret at `K=192`**.\n"
-            "  - **`M4` (Downsampling):** Fails whenever block length approaches or exceeds the diurnal cycle (`K ≤ 768`), wiping out `Bat` and `TES` investments (`+21–46 %` regret).\n"
+            "  - **`M2` (Typical hours + extremes):** Highest ROM operating-cost error (`+9.5 %` on `pv_bat` at `K=192`), **yet lowest Design Regret of `M2`/`M3`/`M4` (`0.79–1.25 %` at `K=96–192`)** and `0 %` peak error on `swissx`. Note that `M1` (main) has even lower regret at `K=96–384` (`0.07–0.35 %`, see E1b).\n"
+            "  - **`M3` (Typical days, no extremes):** Cuts ROM operating-cost error at small `K` (`+0.96 %` on `pv_bat` and `+2.95 %` on `demo` at `K=192`) by keeping 24 h storage cycles intact, **but missing extreme days causes `0 kW` Boiler at `K ≤ 96` (`+70–227 %` regret) and `+8.1 %` regret at `K=192`**. Its `pv_bat` cost error does not converge with `K` (`+1.3–1.6 %` at `K=384–1460`), and its regret (`7.7 %` at `K=384`) plateaus at about `1.2 %` from `K=768`.\n"
+            "  - **`M4` (Downsampling):** Fails with blocks of about 11 h or longer (`K ≤ 768`), wiping out `Bat` and `TES` investments (`+21–46 %` regret). With 6 h blocks (`K=1460`) it is competitive (`0.78 %` regret), and with 3 h blocks (`K=2920`, extra run, not in the plots) it reaches `+0.98 %` ROM cost error and `0.16 %` regret on `pv_bat` (`+3.06 %` on `demo`), i.e. as good as `M2` at `K=1460`.\n"
             "- **Recommendation:**\n"
-            "  - Keep **`M2`** as the immediate fix for `#57` (best sizing and lowest regret out of the box).\n"
+            "  - Keep **`M2`** as the immediate fix for `#57` for correctness (exact totals, peaks kept in all stages). Its sizing is not better than `M1` at moderate `K` (see E1b).\n"
             "  - If high operating-cost accuracy with storage is needed in a future feature, build **`M3 + extreme-day protection`** (combining `M3`'s 24 h chronology with `M2`'s extreme protection)."
         ),
     ]

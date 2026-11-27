@@ -3,6 +3,7 @@
 Models created:
   - pv_bat:        1-stage free-capacity PV + Battery + Heat Pump + Boiler + TES
   - pv_bat_nostor: same as pv_bat without Bat and TES
+  - pv_bat_bak1:   same as pv_bat with emergency heat at 1.0 instead of 5.0 CHF/kWh
   - demo_nostor:   copy of examples/clustering_demo without EBM storage (X2)
 """
 
@@ -101,7 +102,7 @@ def _build_pv_bat_profiles(seed: int = 42):
     return solar, el_dem, heat_dem, hp_cop, el_price
 
 
-def make_pv_bat(name: str = "pv_bat", include_storage: bool = True) -> str:
+def make_pv_bat(name: str = "pv_bat", include_storage: bool = True, backup_price: float = 5.0) -> str:
     root = os.path.join(MODELS_DIR, name, "inputs")
     if os.path.exists(os.path.join(MODELS_DIR, name)):
         shutil.rmtree(os.path.join(MODELS_DIR, name))
@@ -140,7 +141,7 @@ def make_pv_bat(name: str = "pv_bat", include_storage: bool = True) -> str:
         "- stages: S1\n  hubs: H1\n  ec: El\n  profile_path: profiles/imports.csv\n\n"
         "- stages: S1\n  hubs: H1\n  ec: Gas\n  price: 0.11 CHF/kWh\n\n"
         "- stages: S1\n  hubs: H1\n  ec: Sol\n\n"
-        "- stages: S1\n  hubs: H1\n  ec: Heat\n  price: 5.0 CHF/kWh\n",
+        f"- stages: S1\n  hubs: H1\n  ec: Heat\n  price: {backup_price} CHF/kWh\n",
     )
 
     _write_text(
@@ -330,4 +331,5 @@ if __name__ == "__main__":
     p1 = make_pv_bat("pv_bat", include_storage=True)
     p2 = make_pv_bat("pv_bat_nostor", include_storage=False)
     p3 = make_demo_nostor()
-    print("Generated:", p1, p2, p3, sep="\n  ")
+    p4 = make_pv_bat("pv_bat_bak1", include_storage=True, backup_price=1.0)
+    print("Generated:", p1, p2, p3, p4, sep="\n  ")

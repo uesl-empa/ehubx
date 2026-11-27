@@ -4,12 +4,15 @@
 
 - **Why typical hours (`M2`) alone are not enough for storage-heavy models:**
   - `M2` achieves low **Design Regret** (`0.15–1.25 %` for `K ≥ 96`) and preserves exact annual totals and peaks.
-  - However, **E7** proved that `> 95 %` of `M2`'s slow-converging ROM cost error (`+9.5 %` at `K=192`, `+3.5 %` at `K=1460`) comes from forcing storage (`stor_tech_model.py`, `ebm_tech_model.py`) to share one charge/discharge rate across unrelated hours in the same cluster:
+  - `M1` (main) has even lower regret at `K=96–384` (`0.07–0.35 %` vs. `0.69–1.25 %`). The gap comes from `M2` sizing heating `3–6 kW` too small and paying for `5.0 CHF/kWh` emergency heat, so the ranking depends on that penalty price. With backup heat at `1.0 CHF/kWh` (E1c), `M2` regret drops to `0.11–0.22 %` and is close to `M1` (`0.03–0.12 %`).
+  - `M4` (downsampling) with 3 h blocks (`K=2920`) reaches `+0.98 %` ROM cost error and `0.16 %` regret on `pv_bat`, so plain downsampling is a simple alternative when about 3,000 steps are affordable.
+  - **E7** shows that storage coupling is the dominant cause of `M2`'s slow-converging ROM cost error (`+9.5 %` at `K=192`, `+3.5 %` at `K=1460`), i.e. forcing storage (`stor_tech_model.py`, `ebm_tech_model.py`) to share one charge/discharge rate across unrelated hours in the same cluster:
     - `Bat` throughput in `M2` is throttled to `59.0 %` of `M0` at `K=192` (`83.4 %` at `K=1460`).
     - Removing storage collapses `M2` cost error below `0.8 %` (`demo_nostor`: `-0.69 % → -0.11 %`; `pv_bat_nostor`: `-0.79 % → -0.05 %`).
 - **What typical days (`M3`) already achieved in `E4` & `E7`:**
   - Preserving 24-hour chronology immediately restores realistic storage cycling (`Bat` throughput `89.4 %` at `K=192`, `93.4 %` at `K=1460`, hourly `SOC` correlation `0.84–0.88`).
   - Cuts `pv_bat` ROM operating-cost error from `+9.52 %` (`M2`) down to **`+0.96 %`** at `K=192` (`8` typical days), and cuts `demo` error from `+5.53 %` to `+2.95 %`.
+  - But the `M3` cost error does not converge with `K` (`+1.3–1.6 %` at `K=384–1460`), and its regret plateaus at about `1.2 %` from `K=768`.
 - **The missing piece in plain `M3`:**
   - Without extreme-day protection, `M3` misses the winter cold snap (`0 kW` Boiler at `K ≤ 96`), causing `+70–227 %` Design Regret at `K ≤ 96` and `+8.06 %` at `K=192`.
 - **Verdict:**
@@ -48,7 +51,7 @@
 ## 4. Key Engineering Subtleties to Resolve
 
 1. **Extreme-day count explosion (highest risk):**
-   - Extracting both `max` and `min` days across all `46` series on `swissx` could isolate `50–80` distinct extreme days (`1,200–1,920` steps), defeating compression.
+   - Extracting both `max` and `min` days across all series on `swissx` gives `32–35` distinct extreme days per stage (from `39–41` extreme hours), i.e. up to `~840` steps before any regular day, which defeats compression.
    - **Mitigations to benchmark in `E4b`:**
      - Skip trivial/repeated minima (e.g., nighttime `0` PV, summer `0` heating, capped flat bounds).
      - Test **peaks-only vs. max+min**, or rank candidate extreme days by normalized extremeness / series relevance with an optional `max_extreme_periods` cap.
@@ -76,6 +79,6 @@
 | `src/ehubx/{data,model,writer}/` | **No changes required.** |
 
 ### Recommended Next Steps
-1. **Merge `#57` (`M2`) as-is** — it is a strict bugfix for typical-hour clustering and gives the best sizing/regret today.
+1. **Merge `#57` (`M2`) as-is**: it is a strict bugfix for typical-hour clustering (exact totals, peaks kept in all stages, no crashes). It does not give better sizing than `M1` at moderate `K`. Protecting peak duration (near-peak hours or extreme days) is a possible follow-up.
 2. **Run a small `E4b` experiment** (`M3e` on `pv_bat` and `swissx`) to test extreme-day selection rules (peaks-only vs. non-trivial max/min vs. capped extremes) and confirm `< 1 %` ROM cost error **and** `< 1 %` Design Regret simultaneously.
 3. **Implement `hours_per_period=24` in `src/ehubx/core/rom.py`** in a dedicated follow-up PR with unit tests in `tests/tests_core/test_rom.py`.

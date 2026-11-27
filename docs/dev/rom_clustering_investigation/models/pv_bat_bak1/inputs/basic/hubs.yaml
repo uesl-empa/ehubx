@@ -1,0 +1,20 @@
+tech_lists:
+- tech_list_id: TL1
+  techs: [PV, Bat, HP, Boiler, TES]
+
+hubs:
+- hub_id: H1
+  allowed_tech_lists: TL1
+  techs:
+  - tech_id: Bat
+    tech_params:
+      cap_max: 2000 kWh
+  - tech_id: HP
+    tech_params:
+      cap_max: 200 kW
+  - tech_id: Boiler
+    tech_params:
+      cap_max: 200 kW
+  - tech_id: TES
+    tech_params:
+      cap_max: 1500 kWh

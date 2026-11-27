@@ -6,8 +6,10 @@ in a subprocess with that folder on PYTHONPATH. Results are cached as JSON in
 ``results/runs``; delete a file (or pass ``force=True``) to recompute it.
 """
 
+import hashlib
 import json
 import os
+import warnings
 import subprocess
 import sys
 import tarfile
@@ -54,11 +56,40 @@ def ensure_src(variant: str) -> str:
     return os.path.join(dst, "src")
 
 
+CASE_DIRS = {
+    "demo": os.path.join(REPO, "examples", "clustering_demo"),
+    "swissx": os.path.join(INV, "models", "swissx", "profiles"),
+}
+
+
+def fingerprint(case: str, code: str) -> str:
+    """Hash of everything a cached run depends on: model inputs, run_case.py, code commit."""
+    h = hashlib.sha256()
+    h.update(VARIANTS[code].encode())
+    with open(os.path.join(HERE, "run_case.py"), "rb") as f:
+        h.update(f.read())
+    root = CASE_DIRS.get(case, os.path.join(INV, "models", case))
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d != "results")
+        for name in sorted(filenames):
+            path = os.path.join(dirpath, name)
+            h.update(os.path.relpath(path, root).replace(os.sep, "/").encode())
+            with open(path, "rb") as f:
+                h.update(f.read())
+    return h.hexdigest()[:16]
+
+
 def run(case: str, variant: str, mode: str, target: int = 0, force: bool = False) -> dict:
-    """Run (or load from cache) one case. variant M0 means mode full / profiles."""
+    """Run (or load from cache) one case. variant M0 means mode full / profiles.
+
+    Each new result stores a fingerprint of its inputs. If a cached result's
+    fingerprint no longer matches, a warning is issued (pass force=True to rerun).
+    Results without a fingerprint (older runs) are accepted as they are.
+    """
     code = "M2" if variant in ("M0", "M3", "M4") else variant
     method = variant if variant in ("M3", "M4") else "tsam"
     out = os.path.join(RESULTS, "runs", f"{case}_{variant}_{mode}_{target}.json")
+    fp = fingerprint(case, code)
     if force or not os.path.isfile(out):
         fix_json = ""
         if mode == "regret":
@@ -81,8 +112,22 @@ def run(case: str, variant: str, mode: str, target: int = 0, force: bool = False
             raise RuntimeError(
                 f"{case} {variant} {mode} {target} failed:\n{proc.stderr[-3000:]}"
             )
+        with open(out) as f:
+            res = json.load(f)
+        res["fingerprint"] = fp
+        with open(out + ".tmp", "w") as f:
+            json.dump(res, f)
+        os.replace(out + ".tmp", out)
+        return res
     with open(out) as f:
-        return json.load(f)
+        res = json.load(f)
+    if res.get("fingerprint", fp) != fp:
+        warnings.warn(
+            f"cached result {os.path.basename(out)} is stale (inputs, run_case.py or "
+            "code changed); rerun with force=True",
+            stacklevel=2,
+        )
+    return res
 
 
 # ---------------------------------------------------------------- metrics --

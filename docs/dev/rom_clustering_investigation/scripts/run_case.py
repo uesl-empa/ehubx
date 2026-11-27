@@ -5,12 +5,15 @@ script runs every method variant (see romlab.py, which sets PYTHONPATH).
 
 usage: run_case.py <case> <mode> <num_ts_target> <out_json> [method] [fix_caps_json]
 
-case    demo | ms3 | swissx | pv_bat | pv_bat_nostor | demo_nostor
+case    demo | ms3 | swissx | pv_bat | pv_bat_nostor | pv_bat_bak1 | demo_nostor
 mode    profiles  original time series only (no clustering, no solve)
         cluster   clustering only
         full      solve the full-horizon model
         rom       cluster and solve
         regret    solve full-horizon operation with capacities fixed from fix_caps_json
+                  (technology capacities and build decisions only; network
+                  capacities are NOT fixed, so use it only on models without
+                  network links to size, e.g. pv_bat, not demo)
 method  tsam (default) | M3 (typical days) | M4 (temporal downsampling)
 """
 
@@ -51,6 +54,7 @@ CASES = {
     "ms3": os.path.join(INV, "models", "ms3"),
     "pv_bat": os.path.join(INV, "models", "pv_bat"),
     "pv_bat_nostor": os.path.join(INV, "models", "pv_bat_nostor"),
+    "pv_bat_bak1": os.path.join(INV, "models", "pv_bat_bak1"),
     "demo_nostor": os.path.join(INV, "models", "demo_nostor"),
 }
 SWISSX_DIR = os.path.join(INV, "models", "swissx", "profiles")

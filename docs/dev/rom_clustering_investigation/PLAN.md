@@ -81,15 +81,33 @@ Each experiment is a script that writes a tidy results table (one row per model 
 
 Order: E0 → E1 → E2 → E3 first (cheap, highest expected impact, needed by the rest); E4–E8 depending on findings.
 
+**Status** (see `REPORT.md` for the findings):
+
+| Exp. | Status | Notebook |
+|---|---|---|
+| E0 | done | `E0_baseline` |
+| E1 | done | `E1_convergence` |
+| E1b – design regret (added) | done on `pv_bat` | `E1b_design_regret` |
+| E1c – backup-price sensitivity of regret (added) | done on `pv_bat_bak1` | in `REPORT.md` |
+| E2, E3, E5, E6, E8 | not started | |
+| E4 | done (M3 without extreme days, M4 up to 3 h blocks) | `E4_alternative_methods` |
+| E7 | done as a storage ablation (`*_nostor` models) | `E7_storage_coupling` |
+
+The order changed after E1: E1b, E7 and E4 came first, because E1 showed that the ROM cost error is dominated by storage, not by the profile error. The follow-up on typical days is in `TYPICAL_DAYS_ANALYSIS.md`.
+
 ## 7. Folder layout
 
 ```
 docs/dev/rom_clustering_investigation/
   PLAN.md          this file
   REPORT.md        findings, written as experiments complete
-  scripts/         experiment scripts (one per experiment, plus shared helpers)
-  models/          small synthetic test models (input files only)
-  results/         raw result tables and plots (git-ignored; final plots copied into REPORT.md)
+  TYPICAL_DAYS_ANALYSIS.md  follow-up: typical days (M3) with extreme days in ehubX
+  notebooks/       one executed notebook per experiment (outputs saved)
+  scripts/         run_case.py (one run), romlab.py (cache + metrics),
+                   run_batch.py (pre-compute runs), build_notebooks.py,
+                   make_models.py (synthetic models)
+  models/          test models (input files only; see models/README.md)
+  results/         run cache, extracted code variants, logs (git-ignored)
 ```
 
 ## 8. Deliverables
@@ -103,5 +121,5 @@ docs/dev/rom_clustering_investigation/
 
 - Which real multi-stage model(s) can be used as reference, and can their data be stored in the repo?
 - Solver and time budget for the full-horizon reference runs (Gurobi on the server?).
-- Is design regret (fix design, operate over full horizon) supported by the current API, or does it need a helper?
-- Should M3/M4 (E4) be in scope, given they may need code changes? M4 is likely the cheaper of the two.
+- Is design regret (fix design, operate over full horizon) supported by the current API, or does it need a helper? *Answer: needs a helper; `run_case.py` mode `regret` fixes technology capacities via `modify_model` (network capacities not yet).*
+- Should M3/M4 (E4) be in scope, given they may need code changes? *Answer: both work with the existing time mapping and need no model changes (done in E4).*
