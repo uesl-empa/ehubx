@@ -1,12 +1,15 @@
-"""Generate the experiment notebooks (E0, E1) from code cells defined here.
+"""Generate the experiment notebooks (E0, E1) and execute them.
 
-usage: build_notebooks.py           write notebooks/ (unexecuted)
-Run them with:  jupyter nbconvert --to notebook --execute --inplace notebooks/E0_baseline.ipynb
+usage: build_notebooks.py
+
+The notebooks are saved with their outputs, so they can be viewed without
+running them. Runs come from the cache in results/runs (see run_batch.py).
 """
 
 import os
 
 import nbformat as nbf
+from nbconvert.preprocessors import ExecutePreprocessor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NB_DIR = os.path.join(os.path.dirname(HERE), "notebooks")
@@ -243,6 +246,9 @@ def write(name, cells):
     nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
     os.makedirs(NB_DIR, exist_ok=True)
     path = os.path.join(NB_DIR, f"{name}.ipynb")
+    ExecutePreprocessor(timeout=3600, kernel_name="python3").preprocess(
+        nb, {"metadata": {"path": NB_DIR}}
+    )
     nbf.write(nb, path)
     print("wrote", path)
 
