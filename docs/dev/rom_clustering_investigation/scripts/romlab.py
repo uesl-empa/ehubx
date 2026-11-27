@@ -33,7 +33,9 @@ LABELS = {
     "M0": "M0 full horizon",
     "M1": "M1 existing (main)",
     "M1b": "M1b PR #58",
-    "M2": "M2 proposed fix",
+    "M2": "M2 typical hours (#57)",
+    "M3": "M3 typical days (24 h)",
+    "M4": "M4 downsampling",
 }
 
 
@@ -54,14 +56,22 @@ def ensure_src(variant: str) -> str:
 
 def run(case: str, variant: str, mode: str, target: int = 0, force: bool = False) -> dict:
     """Run (or load from cache) one case. variant M0 means mode full / profiles."""
-    code = "M2" if variant == "M0" else variant
+    code = "M2" if variant in ("M0", "M3", "M4") else variant
+    method = variant if variant in ("M3", "M4") else "tsam"
     out = os.path.join(RESULTS, "runs", f"{case}_{variant}_{mode}_{target}.json")
     if force or not os.path.isfile(out):
+        fix_json = ""
+        if mode == "regret":
+            run(case, variant, "rom", target, force=force)
+            fix_json = os.path.join(RESULTS, "runs", f"{case}_{variant}_rom_{target}.json")
         env = dict(os.environ, PYTHONPATH=ensure_src(code))
         work = os.path.join(RESULTS, "work", f"{case}_{variant}_{mode}_{target}")
         os.makedirs(work, exist_ok=True)
+        cmd = [PYTHON, os.path.join(HERE, "run_case.py"), case, mode, str(target), out, method]
+        if fix_caps_arg := fix_json:
+            cmd.append(fix_caps_arg)
         proc = subprocess.run(
-            [PYTHON, os.path.join(HERE, "run_case.py"), case, mode, str(target), out],
+            cmd,
             env=env,
             cwd=work,
             capture_output=True,

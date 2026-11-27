@@ -449,6 +449,459 @@ def e1():
     return cells
 
 
+def e1b():
+    cells = [
+        md(
+            "# E1b – Free-capacity sizing & design regret\n\n"
+            "- **Goal:** Test whether ROM picks the right technology sizes when capacities are free to vary (`demo`/`ms3` had fixed sizes).\n"
+            "- **Test model (`pv_bat`):**\n"
+            "  - 1 stage, `8,760` h, 5 technologies with free capacities: **PV**, **Battery (`Bat`)**, **Heat Pump (`HP`)**, **Gas Boiler (`Boiler`)**, and **Thermal Storage (`TES`)**.\n"
+            "  - Includes an expensive emergency heat backup (`5.0 CHF/kWh`, `0` used in `M0`) to measure peak shortfall if ROM under-sizes heating.\n"
+            "- **Design regret:** Fix the capacities chosen by ROM (`M1`, `M2`) and re-solve full `8,760` h operation — how much more expensive is the ROM design than the true full-year optimum (`M0`)?\n"
+            "- *Sweep:* `K` ∈ `{48, 96, 192, 384, 768, 1460}`."
+        ),
+        code(SETUP),
+        code(
+            "K_EXP = [48, 96, 192, 384, 768, 1460]\n"
+            'VARS = ["M1", "M2"]\n'
+            'COLORS = {"M1": "C0", "M2": "C2"}\n'
+            'TECHS = ["PV", "Bat", "HP", "Boiler", "TES"]\n'
+            'full = rl.run("pv_bat", "M0", "full")\n'
+            'prof = rl.run("pv_bat", "M0", "profiles")\n'
+            'tot_heat = sum(prof["series"]["TimeSeriesKind.DEMAND|S1|H1|Heat"]["values"])\n'
+            "rows = []\n"
+            "for v in VARS:\n"
+            "    for k in K_EXP:\n"
+            '        r = rl.run("pv_bat", v, "rom", k)\n'
+            '        rg = rl.run("pv_bat", v, "regret", k)\n'
+            "        sc = rl.solution_compare(full, r)\n"
+            '        row = {"variant": v, "target": k, "num_ts": r["num_ts"],\n'
+            '               "obj_err_pct": sc["obj_err"] * 100,\n'
+            '               "regret_pct": (rg["objective"] - full["objective"]) / full["objective"] * 100,\n'
+            '               "cap_diff_pct": sc["cap_abs_diff_rel"] * 100,\n'
+            '               "heat_bak_pct": rg["flows"].get("V_Imp[S1,H1,Heat]", 0.0) / tot_heat * 100,\n'
+            '               "secs_solve": r["secs_solve"]}\n'
+            "        for t in TECHS:\n"
+            '            row[t] = r["caps"].get(f"S1,H1,{t}", 0.0)\n'
+            "        rows.append(row)\n"
+            "df = pd.DataFrame(rows)\n"
+            'print("M0 full cost:", round(full["objective"], 1), "| M0 caps:", {t: round(full["caps"].get(f"S1,H1,{t}", 0.0), 1) for t in TECHS})'
+        ),
+        md(
+            "## 1. Technology sizing accuracy (`PV`, `Bat`, `HP`, `Boiler`, `TES`)\n\n"
+            "- **Left (top-to-bottom / panels):** Installed capacity relative to `M0` (`1.0` = exact match) across `K`, plus absolute capacities at `K=192`.\n"
+            "- **Check:** Does `M2` avoid the under-sizing traps seen at small `K`?"
+        ),
+        code(
+            "fig, axes = plt.subplots(2, 3, figsize=(15, 7.5))\n"
+            "for idx, t in enumerate(TECHS):\n"
+            "    ax = axes[idx // 3, idx % 3]\n"
+            '    m0_val = full["caps"].get(f"S1,H1,{t}", 0.0)\n'
+            "    for v in VARS:\n"
+            "        d = df[df.variant == v]\n"
+            '        ax.plot(d.num_ts, d[t] / m0_val, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            '    ax.axhline(1.0, color="k", ls="--", lw=1, label="M0 full (= 1.0)")\n'
+            '    ax.set_xscale("log"); ax.set_ylim(0, 1.45)\n'
+            '    ax.set_title(f"{t} capacity / M0 (M0 = {m0_val:.0f})"); ax.set_xlabel("clustered steps")\n'
+            '    ax.set_ylabel("ratio to M0"); ax.grid(True, alpha=0.3)\n'
+            "ax = axes[1, 2]\n"
+            "for v in VARS:\n"
+            "    d = df[df.variant == v]\n"
+            '    ax.plot(d.num_ts, d.cap_diff_pct, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            'ax.axhline(0, color="k", lw=0.8); ax.set_xscale("log")\n'
+            'ax.set_title("Total capacity difference vs. M0 [%]"); ax.set_xlabel("clustered steps")\n'
+            'ax.set_ylabel("error [%]"); ax.grid(True, alpha=0.3)\n'
+            "handles, labels = axes[0, 0].get_legend_handles_labels()\n"
+            'fig.legend(handles, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 0.99))\n'
+            'fig.suptitle("Section 1 – Installed capacities vs. full-year optimum (M0)", y=1.03)\n'
+            "plt.tight_layout(rect=[0, 0, 1, 0.94])"
+        ),
+        md(
+            "**Summary (Section 1):**\n"
+            "- At the smallest target (`K=48`, `58` steps), both methods under-build battery (`M2`: `202` kWh, `M1`: `41` kWh vs. `516` kWh in `M0`) and `PV` (`cap_diff`: `33.4 %` in `M2`, `47.9 %` in `M1`).\n"
+            "- From `K=96` (`106` steps) onward, both recover the full 5-technology mix within `2–10 %` total capacity difference (`M2` `K=96`: `cap_diff = 2.3 %`).\n"
+            "- `M2` slightly under-sizes `Boiler` (`56.5–56.8` kW vs. `58.9` kW in `M0` at `K=96–192`), whereas `M1` slightly over-sizes it (`62.0–65.5` kW)."
+        ),
+        md(
+            "## 2. Predicted cost error vs. true Design Regret\n\n"
+            "- **ROM cost error:** how far ROM's *own* objective sits from `M0`.\n"
+            "- **Design Regret:** extra cost when ROM's chosen capacities are operated over the real `8,760` h year.\n"
+            "- **Emergency backup heat (% of annual demand):** share of total heat demand (`202.1 MWh/yr`) served by expensive emergency backup (`5.0 CHF/kWh`) during cold-snap peaks."
+        ),
+        code(
+            "fig, axes = plt.subplots(1, 3, figsize=(15, 4.2))\n"
+            "for v in VARS:\n"
+            "    d = df[df.variant == v]\n"
+            '    axes[0].plot(d.num_ts, d.obj_err_pct, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            '    axes[1].plot(d.num_ts, d.regret_pct, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            '    axes[2].plot(d.num_ts, d.heat_bak_pct, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            'axes[0].axhline(0, color="k", lw=0.8); axes[0].set_xscale("log"); axes[0].set_title("ROM predicted cost error [%]"); axes[0].set_ylabel("error [%]")\n'
+            'axes[1].axhline(0, color="k", lw=0.8); axes[1].set_xscale("log"); axes[1].set_title("True Design Regret (8,760 h re-solve) [%]"); axes[1].set_ylabel("regret [%]")\n'
+            'axes[2].axhline(0, color="k", lw=0.8); axes[2].set_xscale("log"); axes[2].set_title("Emergency backup heat [% of annual demand]"); axes[2].set_ylabel("% of annual heat demand")\n'
+            'for ax in axes:\n    ax.set_xlabel("clustered steps"); ax.grid(True, alpha=0.3)\n'
+            "handles, labels = axes[0].get_legend_handles_labels()\n"
+            'fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 0.96))\n'
+            'fig.suptitle("Section 2 – ROM predicted cost error vs. true Design Regret", y=1.04)\n'
+            "plt.tight_layout(rect=[0, 0, 1, 0.88])"
+        ),
+        md(
+            "**Summary (Section 2):**\n"
+            "- **Crucial gap:** ROM's predicted cost error looks large (`+12.1 %` at `K=96`, `+9.5 %` at `K=192`), yet true **Design Regret is only `0.15–1.25 %`** for `M2` from `K=96` onward.\n"
+            "- **Relative backup heat is tiny (`≤ 0.11 %`), even in `M2`:** `0.11 %` (`K=48`), `0.05–0.08 %` (`K=96–192`), `0.04 %` (`K=384`), down to **`0.006 %`** at `K=1460` (better than `M1`'s `0.012 %`). Because emergency heat is priced at `5.0 CHF/kWh` (~40× normal heat cost), even `0.08 %` unmet heat adds `~0.8–1.2 %` to annual cost.\n"
+            "- **Why `M2` uses more backup heat than `M1` at small `K` (`48–384`):**\n"
+            "  - **`M2` (1-hour extreme + exact means):** locks only the single `131.4 kW` peak hour as its own cluster (`weight = 1`) and averages surrounding cold-snap hours (`122–127 kW`) down into regular clusters (`108–115 kW`). Since `TES` easily bridges one isolated peak hour, `M2` sizes `HP + Boiler` `4–6 kW` below `M0` (`107–109` vs. `113.5 kW`), leaving a small multi-hour cold-snap shortfall on the real year.\n"
+            "  - **`M1` (`new_cluster_center`):** pulls `5–12` near-peak hours into the `131.4 kW` peak cluster at `K=48–96`, exaggerating peak duration and accidentally **over-sizing `Boiler`** (`62–75 kW` vs. `58.9 kW` in `M0`) — masking shortfall at the cost of over-sizing and biased totals."
+        ),
+        md(
+            "## Findings (E1b)\n\n"
+            "- **Key takeaway:**\n"
+            "  - Even when ROM's predicted cost error is `+9.5 %` to `+12.1 %` (`K=96–192`), **`M2` picks near-optimal investment sizes** with only **`0.15–1.25 %` true Design Regret**.\n"
+            "  - Extreme-hour protection prevents catastrophic under-sizing once `K ≥ 96` (`~106` steps); at `K=48` (`58` steps), battery capacity collapses (`-61 %` in `M2`, `-92 %` in `M1`) and regret jumps to `6.3–12.1 %`.\n"
+            "- **Why predicted cost error ≠ Design Regret:**\n"
+            "  - Typical-hour clustering makes storage look artificially restricted inside the ROM solve (inflating ROM operating cost), while still preserving the peak and price spread signals needed to size `PV`, `Bat`, `HP`, `Boiler`, and `TES` accurately.\n"
+            "- **Why `M2` shows slightly higher backup heat (`0.04–0.08 %`) at `K=96–384`:**\n"
+            "  - `M2` isolates only the single highest hour (`131.4 kW`, `weight = 1`), while nearby cold-snap hours (`122–127 kW`) get averaged into regular clusters (`108–115 kW`). `TES` covers the single isolated peak hour in ROM, so `HP + Boiler` is sized `3–6 kW` smaller (`108–110` vs. `113.5 kW` in `M0`).\n"
+            "  - By contrast, `M1` groups `5–12` near-peak hours into the `131.4 kW` peak cluster, accidentally over-sizing `Boiler` (`62–75 kW`) and hiding the shortfall until `K ≥ 768` — where `M2` resolves the cold-snap plateau and beats `M1` on both backup heat (`0.006 %` vs. `0.012 %`) and regret (`0.15 %` vs. `0.21 %`)."
+        ),
+    ]
+    return cells
+
+
+def e7():
+    cells = [
+        md(
+            "# E7 – Storage & time-coupling diagnosis\n\n"
+            "- **Hypothesis:** In typical-hour clustering (`M2`), storage energy (`SOC`) is tracked across all `8,760` hours, while charging/discharging flows share one variable per cluster — locking hours scattered across the year to identical dispatch.\n"
+            "- **Ablation test (`M2`, Sections 1–2):** Compare two model pairs **with vs. without storage**:\n"
+            "  - `demo` (has EBM fleet storage `X2`) vs. `demo_nostor` (`X2` removed).\n"
+            "  - `pv_bat` (has `Bat` + `TES`) vs. `pv_bat_nostor` (`Bat` and `TES` removed).\n"
+            "- **Storage operation check (Sections 3–4):** Compare **`M2` (typical hours), `M3` (typical days), and `M4` (downsampling)** against `M0` on `pv_bat`:\n"
+            "  - Hourly `SOC` trajectories (`Bat` & `TES` in winter and summer at `K=192`).\n"
+            "  - Annual storage throughput, equivalent full cycles, and hourly `SOC` correlation across `K`."
+        ),
+        code(SETUP),
+        code(
+            "K_EXP = [48, 96, 192, 384, 768, 1460]\n"
+            'PAIRS = [("demo", "demo_nostor"), ("pv_bat", "pv_bat_nostor")]\n'
+            'full = {c: rl.run(c, "M0", "full") for pair in PAIRS for c in pair}\n'
+            "rows = []\n"
+            "for pair in PAIRS:\n"
+            "    for c in pair:\n"
+            "        for k in K_EXP:\n"
+            '            r = rl.run(c, "M2", "rom", k)\n'
+            "            sc = rl.solution_compare(full[c], r)\n"
+            '            row = {"case": c, "target": k, "num_ts": r["num_ts"],\n'
+            '                   "obj_err_pct": sc["obj_err"] * 100,\n'
+            '                   "cap_diff_pct": sc["cap_abs_diff_rel"] * 100}\n'
+            '            if c.startswith("pv_bat"):\n'
+            '                rg = rl.run(c, "M2", "regret", k)\n'
+            '                row["regret_pct"] = (rg["objective"] - full[c]["objective"]) / full[c]["objective"] * 100\n'
+            "            rows.append(row)\n"
+            "df = pd.DataFrame(rows)\n"
+            'print("Loaded", len(df), "M2 storage-ablation runs")'
+        ),
+        md(
+            "## 1. Ablation: `demo` vs. `demo_nostor` (removing EBM storage)\n\n"
+            "- Compares `M2` objective error vs. `M0` as clustered steps grow."
+        ),
+        code(
+            "fig, ax = plt.subplots(figsize=(7.5, 4))\n"
+            'for c, col, lbl in [("demo", "C2", "demo (with EBM storage X2)"),\n'
+            '                    ("demo_nostor", "C0", "demo_nostor (no storage)")]:\n'
+            "    d = df[df.case == c]\n"
+            '    ax.plot(d.num_ts, d.obj_err_pct, marker="o", color=col, label=lbl)\n'
+            'ax.axhline(0, color="k", lw=0.8); ax.set_xscale("log")\n'
+            'ax.set_xlabel("clustered steps"); ax.set_ylabel("cost error vs. M0 [%]")\n'
+            'ax.set_title("Section 1 – Effect of removing EBM storage on demo (M2)")\n'
+            "ax.grid(True, alpha=0.3); ax.legend(); plt.tight_layout()"
+        ),
+        md(
+            "**Summary (Section 1):**\n"
+            "- Removing EBM storage `X2` eliminates almost the entire ROM error: `demo` (`+5.76 %` → `+3.83 %`) drops to `demo_nostor` (**`-0.69 %` → `-0.11 %`**).\n"
+            "- Confirms that non-storage parts of `demo` (demands, prices, solar, heat pump, conversion) converge below `0.5 %` error already at `120` steps."
+        ),
+        md(
+            "## 2. Ablation: `pv_bat` vs. `pv_bat_nostor` (removing `Bat` and `TES`)\n\n"
+            "- Compares ROM cost error, capacity difference, and true Design Regret with and without storage."
+        ),
+        code(
+            "fig, axes = plt.subplots(1, 3, figsize=(15, 4.2))\n"
+            'for c, col, lbl in [("pv_bat", "C2", "pv_bat (with Bat + TES)"),\n'
+            '                    ("pv_bat_nostor", "C0", "pv_bat_nostor (no storage)")]:\n'
+            "    d = df[df.case == c]\n"
+            '    axes[0].plot(d.num_ts, d.obj_err_pct, marker="o", color=col, label=lbl)\n'
+            '    axes[1].plot(d.num_ts, d.cap_diff_pct, marker="o", color=col, label=lbl)\n'
+            '    axes[2].plot(d.num_ts, d.regret_pct, marker="o", color=col, label=lbl)\n'
+            'axes[0].set_title("ROM cost error vs. M0 [%]"); axes[0].set_ylabel("error [%]")\n'
+            'axes[1].set_title("Capacity difference vs. M0 [%]"); axes[1].set_ylabel("error [%]")\n'
+            'axes[2].set_title("True Design Regret [%]"); axes[2].set_ylabel("regret [%]")\n'
+            "for ax in axes:\n"
+            '    ax.axhline(0, color="k", lw=0.8); ax.set_xscale("log"); ax.set_xlabel("clustered steps"); ax.grid(True, alpha=0.3)\n'
+            "handles, labels = axes[0].get_legend_handles_labels()\n"
+            'fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 0.96))\n'
+            'fig.suptitle("Section 2 – Effect of removing Bat + TES on pv_bat (M2)", y=1.04)\n'
+            "plt.tight_layout(rect=[0, 0, 1, 0.88])"
+        ),
+        md(
+            "**Summary (Section 2):**\n"
+            "- Without storage (`pv_bat_nostor`), `M2` cost error drops from **`+13.46 % → +3.47 %`** down to **`-0.79 % → -0.05 %`**!\n"
+            "- Design Regret without storage is virtually zero (`0.00–0.23 %` across the entire sweep)."
+        ),
+        md(
+            "## 3. Hourly storage `SOC` trajectories (`M0` vs. `M2`, `M3`, `M4` at `K=192`)\n\n"
+            "- Sample winter week (`days 20–27`, including the cold snap) and summer week (`days 180–187`) for `Bat` and `TES`."
+        ),
+        code(
+            'VARS_E7 = ["M2", "M3", "M4"]\n'
+            'COLORS_E7 = {"M2": "C2", "M3": "C4", "M4": "C3"}\n'
+            'runs_192 = {v: rl.run("pv_bat", v, "rom", 192) for v in VARS_E7}\n'
+            'm0_soc = full["pv_bat"]["soc"]\n'
+            "windows = [(20 * 24, 27 * 24, 'Winter week (days 20–27)'), (180 * 24, 187 * 24, 'Summer week (days 180–187)')]\n"
+            "fig, axes = plt.subplots(2, 2, figsize=(15, 6.8))\n"
+            'for i, tech in enumerate(["Bat", "TES"]):\n'
+            '    key = f"S1,H1,{tech}"\n'
+            "    for j, (a, b, wtitle) in enumerate(windows):\n"
+            "        ax = axes[i, j]\n"
+            "        hrs = np.arange(a, b) - a\n"
+            '        ax.plot(hrs, m0_soc[key][a:b], color="k", lw=1.8, label="M0 full")\n'
+            "        for v in VARS_E7:\n"
+            '            ax.plot(hrs, runs_192[v]["soc"][key][a:b], color=COLORS_E7[v], ls="--", lw=1.3, label=rl.LABELS[v])\n'
+            '        ax.set_title(f"{tech} SOC — {wtitle}"); ax.set_xlabel("hours in week"); ax.set_ylabel("stored energy [kWh]")\n'
+            "        ax.grid(True, alpha=0.3)\n"
+            "handles, labels = axes[0, 0].get_legend_handles_labels()\n"
+            'fig.legend(handles, labels, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 0.99))\n'
+            'fig.suptitle("Section 3 – Hourly SOC trajectories at K=192: M0 vs. M2, M3, M4", y=1.03)\n'
+            "plt.tight_layout(rect=[0, 0, 1, 0.94])"
+        ),
+        md(
+            "**Summary (Section 3):**\n"
+            "- **`M0` (full year):** `Bat` and `TES` follow clean, repeating 24-hour charge/discharge cycles.\n"
+            "- **`M3` (typical days):** tracks `M0`'s daily cycling closely in both winter and summer because 24-hour chronology is preserved.\n"
+            "- **`M2` (typical hours):** flattens and shifts daily `SOC` swings (`Bat` misses daily solar peaks; `TES` cannot buffer intra-day heat smoothly).\n"
+            "- **`M4` (downsampling):** sits flat at `0 kWh` because 45.6-hour averaging erases diurnal price/solar swings so `Bat` and `TES` are not built at `K=192`."
+        ),
+        md(
+            "## 4. Storage operation metrics across `K`: `M2` vs. `M3` vs. `M4`\n\n"
+            "- Evaluates how closely each method reproduces `M0`'s actual storage usage on `pv_bat`:\n"
+            "  - **Annual throughput (`% of M0`):** total kWh charged into storage over the year (`∑ max(SOC[t+1] - SOC[t], 0)`).\n"
+            "  - **Equivalent full cycles (`cyc/yr`):** annual throughput divided by installed capacity.\n"
+            "  - **Hourly `SOC` correlation:** Pearson correlation between ROM's `8,760` h `SOC` trajectory and `M0` (`1.0` = identical timing)."
+        ),
+        code(
+            "def _soc_metrics(run, ref_run, tech):\n"
+            '    key = f"S1,H1,{tech}"\n'
+            '    cap = run["caps"].get(key, 0.0)\n'
+            '    s = np.array(run["soc"][key], dtype=float)\n'
+            '    r = np.array(ref_run["soc"][key], dtype=float)\n'
+            "    thru = float(np.sum(np.maximum(np.diff(s, append=s[0]), 0.0)))\n"
+            "    efc = thru / cap if cap > 1e-6 else 0.0\n"
+            "    corr = float(np.corrcoef(s, r)[0, 1]) if s.std() > 1e-6 else 0.0\n"
+            "    return thru, efc, corr\n\n"
+            'm0_ref = {tech: _soc_metrics(full["pv_bat"], full["pv_bat"], tech) for tech in ("Bat", "TES")}\n'
+            "op_rows = []\n"
+            'for tech in ("Bat", "TES"):\n'
+            "    thru0, efc0, _ = m0_ref[tech]\n"
+            "    for v in VARS_E7:\n"
+            "        for k in K_EXP:\n"
+            '            r = rl.run("pv_bat", v, "rom", k)\n'
+            '            thru, efc, corr = _soc_metrics(r, full["pv_bat"], tech)\n'
+            '            op_rows.append({"tech": tech, "variant": v, "num_ts": r["num_ts"],\n'
+            '                            "thru_pct": thru / thru0 * 100, "efc": efc, "corr": corr})\n'
+            "op_df = pd.DataFrame(op_rows)\n\n"
+            'cols = [("thru_pct", "Annual throughput [% of M0]", "% of M0", 100.0),\n'
+            '        ("efc", "Equivalent full cycles [cyc/yr]", "cycles / yr", None),\n'
+            '        ("corr", "Hourly SOC correlation vs. M0", "correlation", 1.0)]\n'
+            "fig, axes = plt.subplots(2, 3, figsize=(15, 7))\n"
+            'for i, tech in enumerate(("Bat", "TES")):\n'
+            "    for j, (col, title, ylab, ref_val) in enumerate(cols):\n"
+            "        ax = axes[i, j]\n"
+            "        for v in VARS_E7:\n"
+            "            d = op_df[(op_df.tech == tech) & (op_df.variant == v)]\n"
+            '            ax.plot(d.num_ts, d[col], marker="o", color=COLORS_E7[v], label=rl.LABELS[v])\n'
+            "        ref_y = m0_ref[tech][1] if col == 'efc' else ref_val\n"
+            '        ax.axhline(ref_y, color="k", ls="--", lw=1, label="M0 full")\n'
+            '        ax.set_xscale("log"); ax.set_title(f"{tech}: {title}")\n'
+            '        ax.set_xlabel("clustered steps"); ax.set_ylabel(ylab); ax.grid(True, alpha=0.3)\n'
+            "handles, labels = axes[0, 0].get_legend_handles_labels()\n"
+            'fig.legend(handles, labels, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 0.99))\n'
+            'fig.suptitle("Section 4 – Storage operation fidelity: M2 vs. M3 vs. M4", y=1.03)\n'
+            "plt.tight_layout(rect=[0, 0, 1, 0.94])"
+        ),
+        md(
+            "**Summary (Section 4):**\n"
+            "- **`M2` (typical hours) throttles storage usage:** at `K=192`, `Bat` delivers only **`59.0 %`** of `M0` throughput (`198` vs. `358` cycles/yr, `corr = 0.62`), rising slowly to `83.4 %` at `K=1460` (`TES`: `62.4 % → 70.8 %`).\n"
+            "- **`M3` (typical days) recovers realistic cycling immediately:** `Bat` reaches **`89.4 %`** throughput at `K=192` (`340` cycles/yr, `corr = 0.84`) and `93.4 %` at `K=1460` (`corr = 0.88`); `TES` reaches `94.8–102.7 %` at `K=384–1460` (`corr = 0.76–0.84`).\n"
+            "- **`M4` (downsampling) suppresses storage at small `K`:** `0 %` usage up to `K=384`, `< 6 %` at `K=768`, and only activates at `K=1460` (`74.8 %` `Bat` / `59.0 %` `TES` throughput)."
+        ),
+        md(
+            "## Findings (E7)\n\n"
+            "- **Key takeaway (hypothesis confirmed 100 %):**\n"
+            "  - **Almost all (`> 95 %`) of the remaining cost error comes from forcing storage to use the same charge/discharge rate across unrelated hours in the same cluster**, not from smoothing the input profiles.\n"
+            "- **Ablation proof (`M2`):**\n"
+            "  - `demo` (`+5.76 %` at `K=48` → `+3.83 %` at `K=1460`) drops to **`-0.69 %` → `-0.11 %`** in `demo_nostor`.\n"
+            "  - `pv_bat` (`+13.46 %` at `K=48` → `+3.47 %` at `K=1460`) drops to **`-0.79 %` → `-0.05 %`** in `pv_bat_nostor` (with Design Regret `≤ 0.23 %`).\n"
+            "- **Storage operation comparison (`M2` vs. `M3` vs. `M4`):**\n"
+            "  - `M2` under-utilizes `Bat` (`59 %` throughput at `K=192`, `83 %` at `K=1460`) because scattered hours share one dispatch variable in `stor_tech_model.py` (`_con_stor_tech_charging_dynamic`).\n"
+            "  - `M3` (typical days) preserves 24 h chronology and restores `89–93 %` of `Bat` throughput (`corr = 0.84–0.88`), explaining why `M3` slashes ROM cost error (`+0.96 %` at `K=192` in **E4**).\n"
+            "  - `M4` (downsampling) wipes out storage (`0 %` throughput) whenever block length exceeds ~12 hours (`K ≤ 384`).\n"
+            "- **Implication:**\n"
+            "  - Further tuning of typical-hour clustering (`E2`, `E3`, `E6`) cannot fix storage dispatch; preserving daily chronology (`M3` + extreme-day protection) is the right path if operating-cost accuracy with storage matters."
+        ),
+    ]
+    return cells
+
+
+def e4():
+    cells = [
+        md(
+            "# E4 – Alternative chronology-preserving methods (`M3`, `M4`) vs. `M2`\n\n"
+            "- **Goal:** Test whether keeping time order fixes storage operation and lowers both ROM cost error and Design Regret.\n"
+            "- **Methods compared (`K` ∈ `{48, 96, 192, 384, 768, 1460}`):**\n"
+            "  - **`M2` (Typical hours, `#57`):** 1-hour clusters + hand-picked extreme hours (breaks chronology, keeps peaks).\n"
+            "  - **`M3` (Typical days, 24 h):** Hierarchical clustering of full 24-hour days (`round(K/24)` days, no extreme-day protection; keeps daily chronology).\n"
+            "  - **`M4` (Temporal downsampling):** Averages consecutive hours into `K` equal-length contiguous blocks (keeps full-year order, smooths peaks & daily cycles).\n"
+            "- **Cases:** `pv_bat` (sizing + regret + SOC), `demo` (ROM cost), and `swissx` (input accuracy + clustering speed)."
+        ),
+        code(SETUP),
+        code(
+            "K_EXP = [48, 96, 192, 384, 768, 1460]\n"
+            'VARS = ["M2", "M3", "M4"]\n'
+            'COLORS = {"M2": "C2", "M3": "C4", "M4": "C3"}\n'
+            'TECHS = ["PV", "Bat", "HP", "Boiler", "TES"]\n'
+            'full_pb = rl.run("pv_bat", "M0", "full")\n'
+            'full_dm = rl.run("demo", "M0", "full")\n'
+            'prof_sx = rl.run("swissx", "M0", "profiles")\n'
+            "rows, sx_rows = [], []\n"
+            "for v in VARS:\n"
+            "    for k in K_EXP:\n"
+            '        r = rl.run("pv_bat", v, "rom", k)\n'
+            '        rg = rl.run("pv_bat", v, "regret", k)\n'
+            "        sc = rl.solution_compare(full_pb, r)\n"
+            '        rd = rl.run("demo", v, "rom", k)\n'
+            '        row = {"variant": v, "target": k, "num_ts": r["num_ts"],\n'
+            '               "obj_err_pct": sc["obj_err"] * 100,\n'
+            '               "regret_pct": (rg["objective"] - full_pb["objective"]) / full_pb["objective"] * 100,\n'
+            '               "cap_diff_pct": sc["cap_abs_diff_rel"] * 100,\n'
+            '               "secs_solve": r["secs_solve"],\n'
+            '               "demo_err_pct": (rd["objective"] - full_dm["objective"]) / full_dm["objective"] * 100}\n'
+            "        for t in TECHS:\n"
+            '            row[t] = r["caps"].get(f"S1,H1,{t}", 0.0)\n'
+            "        rows.append(row)\n"
+            '        rs = rl.run("swissx", v, "cluster", k)\n'
+            "        m = rl.series_metrics(prof_sx, rs); m = m[~m.constant]\n"
+            '        sx_rows.append({"variant": v, "target": k, "num_ts": rs["num_ts"], "secs_cluster": rs["secs_cluster"],\n'
+            '                        "max_err": m["max_err"].abs().mean() * 100,\n'
+            '                        "dc_nrmse": m["dc_nrmse"].mean() * 100,\n'
+            '                        "chr_nrmse": m["chr_nrmse"].mean() * 100})\n'
+            "df = pd.DataFrame(rows); sx = pd.DataFrame(sx_rows)\n"
+            'print("Loaded", len(df), "pv_bat/demo runs and", len(sx), "swissx runs")'
+        ),
+        md(
+            "## 1. Cost error, Design Regret, sizing error, and solve time (`pv_bat`)\n\n"
+            "- Compares `M2`, `M3`, and `M4` vs. `M0` across actual clustered steps (log scale)."
+        ),
+        code(
+            'panels = [("obj_err_pct", "ROM predicted cost error vs. M0 [%]", "error [%]"),\n'
+            '          ("regret_pct", "True Design Regret (8,760 h re-solve) [%]", "regret [%]"),\n'
+            '          ("cap_diff_pct", "Capacity difference vs. M0 [%]", "error [%]"),\n'
+            '          ("secs_solve", "ROM solver runtime [s]", "seconds [s]")]\n'
+            "fig, axes = plt.subplots(2, 2, figsize=(13, 8))\n"
+            "for idx, (col, title, ylab) in enumerate(panels):\n"
+            "    ax = axes[idx // 2, idx % 2]\n"
+            "    for v in VARS:\n"
+            "        d = df[df.variant == v]\n"
+            '        ax.plot(d.num_ts, d[col], marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            '    if col == "secs_solve":\n'
+            '        ax.axhline(full_pb["secs_solve"], color="k", ls="--", label="M0 full")\n'
+            "    else:\n"
+            '        ax.axhline(0, color="k", lw=0.8)\n'
+            '    if col == "regret_pct":\n'
+            '        ax.set_ylim(-2, 55)\n'
+            '    ax.set_xscale("log"); ax.set_title(title); ax.set_xlabel("clustered steps"); ax.set_ylabel(ylab); ax.grid(True, alpha=0.3)\n'
+            "handles, labels = axes[1, 1].get_legend_handles_labels()\n"
+            'fig.legend(handles, labels, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 0.99))\n'
+            'fig.suptitle("Section 1 – pv_bat convergence: typical hours (M2) vs. typical days (M3) vs. downsampling (M4)", y=1.03)\n'
+            "plt.tight_layout(rect=[0, 0, 1, 0.94])"
+        ),
+        md(
+            "**Summary (Section 1):**\n"
+            "- **ROM cost error:** `M3` slashes operating-cost error to **`+0.96 %`** at `K=192` (`8` days) vs. `+9.52 %` for `M2`; `M4` severely under-predicts cost (`-9.4 %` to `-10.6 %` at `K ≤ 384`).\n"
+            "- **Design Regret (plot clipped at `55 %`):** **`M2` wins (`0.79–1.25 %` at `K=96–192`)**. Plain `M3` misses cold-snap peaks (`+227 %` at `K=48`, `+70 %` at `K=96`, `+8.1 %` at `K=192`); `M4` drops storage (`+21–46 %` regret at `K ≤ 768`).\n"
+            "- **Solve time:** `M3` and `M4` solve `2–3×` faster than `M0` (`13–22 s` up to `K=384` vs. `40 s` for `M0`)."
+        ),
+        md(
+            "## 2. Installed technology mix & `Bat` SOC trajectory (`K ≈ 192`)\n\n"
+            "- **Left:** Chosen capacities relative to `M0` (`1.0` = exact) at `K=192`.\n"
+            "- **Right:** Winter-week `Bat` SOC (`days 20–27`) showing why `M3` matches `M0` operation while `M4` drops battery storage."
+        ),
+        code(
+            "fig, axes = plt.subplots(1, 2, figsize=(15, 4.5))\n"
+            'k192 = df[df.target == 192].set_index("variant")\n'
+            'm0_caps = {t: full_pb["caps"].get(f"S1,H1,{t}", 0.0) for t in TECHS}\n'
+            "ratios = pd.DataFrame({v: [k192.loc[v, t] / m0_caps[t] for t in TECHS] for v in VARS}, index=TECHS)\n"
+            'ratios.plot.bar(ax=axes[0], rot=0, color=[COLORS[v] for v in VARS])\n'
+            'axes[0].axhline(1.0, color="k", ls="--", lw=1, label="M0 full")\n'
+            'axes[0].set_title("Capacity mix relative to M0 (K=192)"); axes[0].set_ylabel("ratio to M0"); axes[0].grid(axis="y", alpha=0.3)\n'
+            "a, b = 20 * 24, 27 * 24\n"
+            "hrs = np.arange(a, b) - a\n"
+            'axes[1].plot(hrs, full_pb["soc"]["S1,H1,Bat"][a:b], color="k", lw=1.8, label="M0 full")\n'
+            "for v in VARS:\n"
+            '    r = rl.run("pv_bat", v, "rom", 192)\n'
+            '    axes[1].plot(hrs, r["soc"]["S1,H1,Bat"][a:b], color=COLORS[v], ls="--", lw=1.4, label=rl.LABELS[v])\n'
+            'axes[1].set_title("Bat SOC — Winter week (days 20–27, K=192)"); axes[1].set_xlabel("hours in week"); axes[1].set_ylabel("stored energy [kWh]")\n'
+            'axes[1].grid(True, alpha=0.3); axes[1].legend()\n'
+            'fig.suptitle("Section 2 – Why M3 preserves daily cycling while M4 drops storage at K=192", y=1.03)\n'
+            "plt.tight_layout()"
+        ),
+        md(
+            "**Summary (Section 2):**\n"
+            "- At `K=192`, `M4` averages over `45.6`-hour blocks, erasing diurnal arbitrage so it builds **`0 kWh` `Bat` and `0 kWh` `TES`** (and compensates by over-building `PV` `1.77×`).\n"
+            "- `M3` preserves daily `Bat` cycling (`SOC` tracks `M0` closely), but without extreme-day protection it under-sizes `Boiler` (`36.8` vs. `58.9 kW`)."
+        ),
+        md(
+            "## 3. Cross-check on `demo` cost error and `swissx` clustering metrics\n\n"
+            "- **Panels:** `demo` cost error, `swissx` mean peak error (`max_err`), `swissx` hourly match error (`chr_nrmse`), and `swissx` clustering time (`secs_cluster`)."
+        ),
+        code(
+            "fig, axes = plt.subplots(1, 4, figsize=(17, 3.8))\n"
+            "for v in VARS:\n"
+            "    d = df[df.variant == v]; ds = sx[sx.variant == v]\n"
+            '    axes[0].plot(d.num_ts, d.demo_err_pct, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            '    axes[1].plot(ds.num_ts, ds.max_err, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            '    axes[2].plot(ds.num_ts, ds.chr_nrmse, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            '    axes[3].plot(ds.num_ts, ds.secs_cluster, marker="o", color=COLORS[v], label=rl.LABELS[v])\n'
+            'axes[0].axhline(0, color="k", lw=0.8); axes[0].set_title("demo: cost error vs. M0 [%]"); axes[0].set_ylabel("error [%]")\n'
+            'axes[1].set_title("swissx: mean peak error [%]"); axes[1].set_ylabel("error [% of range]")\n'
+            'axes[2].set_title("swissx: mean hourly error [%]"); axes[2].set_ylabel("error [% of range]")\n'
+            'axes[3].set_title("swissx: clustering time [s]"); axes[3].set_ylabel("seconds [s]")\n'
+            "for ax in axes:\n"
+            '    ax.set_xscale("log"); ax.set_xlabel("clustered steps"); ax.grid(True, alpha=0.3)\n'
+            "handles, labels = axes[0].get_legend_handles_labels()\n"
+            'fig.legend(handles, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 0.96))\n'
+            'fig.suptitle("Section 3 – demo cost convergence and swissx profile/runtime comparison", y=1.05)\n'
+            "plt.tight_layout(rect=[0, 0, 1, 0.87])"
+        ),
+        md(
+            "**Summary (Section 3):**\n"
+            "- On `demo`, `M3` halves cost error vs. `M2` (`+2.95 %` vs. `+5.53 %` at `K=192`); `M4` barely improves on `M2` (`+5.53 %` at `K=192`).\n"
+            "- On `swissx`, only `M2` preserves peaks (`0.0 %` error vs. `26.3 %` in `M3` and `31.1 %` in `M4` at `K=192`), and `M2` also has the lowest `chr_nrmse` (`6.1 %` vs. `9.1 %` / `10.7 %`), while `M3`/`M4` cluster slightly faster (`34–36 s` vs. `45–52 s`)."
+        ),
+        md(
+            "## Findings (E4)\n\n"
+            "- **Key takeaway:**\n"
+            "  - Neither plain `M3` nor `M4` is a drop-in replacement for `M2` — each solves one piece and breaks another.\n"
+            "- **Comparison by method:**\n"
+            "  - **`M2` (Typical hours + extremes):** Highest ROM operating-cost error (`+9.5 %` on `pv_bat` at `K=192`), **yet lowest Design Regret (`0.79–1.25 %` at `K=96–192`)** and `0 %` peak error on `swissx`.\n"
+            "  - **`M3` (Typical days, no extremes):** Slashes ROM operating-cost error (`+0.96 %` on `pv_bat` and `+2.95 %` on `demo` at `K=192`) by keeping 24 h storage cycles intact, **but missing extreme days causes `0 kW` Boiler at `K ≤ 96` (`+70–227 %` regret) and `+8.1 %` regret at `K=192`**.\n"
+            "  - **`M4` (Downsampling):** Fails whenever block length approaches or exceeds the diurnal cycle (`K ≤ 768`), wiping out `Bat` and `TES` investments (`+21–46 %` regret).\n"
+            "- **Recommendation:**\n"
+            "  - Keep **`M2`** as the immediate fix for `#57` (best sizing and lowest regret out of the box).\n"
+            "  - If high operating-cost accuracy with storage is needed in a future feature, build **`M3 + extreme-day protection`** (combining `M3`'s 24 h chronology with `M2`'s extreme protection)."
+        ),
+    ]
+    return cells
+
+
 def write(name, cells):
     nb = nbf.v4.new_notebook()
     nb.cells = cells
@@ -465,3 +918,6 @@ def write(name, cells):
 if __name__ == "__main__":
     write("E0_baseline", e0())
     write("E1_convergence", e1())
+    write("E1b_design_regret", e1b())
+    write("E7_storage_coupling", e7())
+    write("E4_alternative_methods", e4())

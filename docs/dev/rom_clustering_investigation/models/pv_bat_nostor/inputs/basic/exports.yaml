@@ -1,0 +1,4 @@
+- stages: S1
+  hubs: H1
+  ec: El
+  price: 0.02 CHF/kWh

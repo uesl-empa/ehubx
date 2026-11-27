@@ -1,0 +1,74 @@
+techs:
+- tech_id: PV
+  type: solar
+  tech_params:
+    lifetime: 25 a
+  costs:
+    capex_per_cap: 270 CHF/m^2
+  conversion_params:
+    in_ecs:
+    - in_id: Sol
+      in_part: 1 kWh
+    out_ecs:
+    - ec_id: El
+      out_eff: 0.20 kWh/kWh
+
+- tech_id: Bat
+  type: storage
+  tech_params:
+    lifetime: 15 a
+  costs:
+    capex_per_cap: 130 CHF/kWh
+  storage_params:
+    ec: El
+    charge_max: 0.5 1/h
+    discharge_max: 0.5 1/h
+    in_eff: 0.95
+    out_eff: 0.95
+    standby_loss: 0.0005 1/h
+    soc_min: 0.1
+    soc_max: 0.9
+
+- tech_id: HP
+  type: conversion
+  tech_params:
+    lifetime: 20 a
+  costs:
+    capex_per_cap: 900 CHF/kW
+  conversion_params:
+    in_ecs:
+    - in_id: El
+      in_part: 1 kWh
+    out_ecs:
+    - ec_id: Heat
+      out_eff: profiles/HP_cop.csv
+
+- tech_id: Boiler
+  type: conversion
+  tech_params:
+    lifetime: 20 a
+  costs:
+    capex_per_cap: 150 CHF/kW
+  conversion_params:
+    in_ecs:
+    - in_id: Gas
+      in_part: 1 kWh
+    out_ecs:
+    - ec_id: Heat
+      out_eff: 0.90 kWh/kWh
+
+- tech_id: TES
+  type: storage
+  tech_params:
+    lifetime: 20 a
+  costs:
+    capex_per_cap: 35 CHF/kWh
+  storage_params:
+    ec: Heat
+    charge_max: 0.5 1/h
+    discharge_max: 0.5 1/h
+    in_eff: 0.98
+    out_eff: 0.98
+    standby_loss: 0.005 1/h
+    soc_min: 0.05
+    soc_max: 0.95

@@ -1,0 +1,9 @@
+ecs:
+- ec_id: El
+  unit: kWh
+- ec_id: Heat
+  unit: kWh
+- ec_id: Gas
+  unit: kWh
+- ec_id: Sol
+  unit: kWh
